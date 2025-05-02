@@ -1,6 +1,6 @@
 # supremo_lite
 
-A lightweight memory first, model agnostic version of SuPreMo
+A lightweight memory first, model agnostic version of [SuPreMo](https://github.com/ketringjoni/SuPreMo).
 
 ## Installation
 
