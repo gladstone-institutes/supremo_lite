@@ -7,7 +7,7 @@
 # -- Project information -----------------------------------------------------
 
 project = u"supremo_lite"
-copyright = u"2025, Natalie Gill"
+copyright = u"2025, Gladstone Institutes"
 author = u"Natalie Gill"
 
 # -- General configuration ---------------------------------------------------
