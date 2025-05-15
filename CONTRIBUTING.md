@@ -51,10 +51,10 @@ Ready to contribute? Here's how to set up `supremo_lite` for local development.
     $ conda activate supremo_lite
     ```
 
-3. Install `supremo_lite` using `poetry`:
+3. Install `supremo_lite` using `poetry`, include the dev dependencies for testing and styling your changes:
 
     ```console
-    $ poetry install
+    $ poetry install --with dev
     ```
 
 4. Use `git` (or similar) to create a branch for local development and make your changes:
