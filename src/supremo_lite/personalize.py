@@ -7,7 +7,7 @@ variants to a reference genome and generating sequence windows around variants.
 
 import warnings
 from .variant_utils import read_vcf
-
+from pyfaidx import Fasta
 
 def get_personal_genome(reference_fn, variants_fn):
     """
@@ -40,19 +40,11 @@ def get_personal_genome(reference_fn, variants_fn):
             if hasattr(ref_seq, "seq"):  # Handle pyfaidx-like objects
                 ref_seq = ref_seq.seq
         else:  # Assume it's a file path
-            with open(reference_fn) as f:
-                # Find the chromosome in the FASTA file
-                # This is a simplified implementation and would need to be
-                # expanded for real use with proper FASTA parsing
-                ref_seq = ""
-                reading = False
-                for line in f:
-                    if line.startswith(f">{chrom} ") or line.startswith(f">{chrom}\t"):
-                        reading = True
-                    elif line.startswith(">") and reading:
-                        break
-                    elif reading:
-                        ref_seq += line.strip()
+            # Load the reference genome
+            reference = Fasta(reference_fn)
+            # Get the sequence for the specified chromosome
+            # This retrieves the entire chromosome sequence at once, efficiently
+            ref_seq = str(reference[chrom])
 
         # Apply variants sequentially
         personal_seq = ref_seq
