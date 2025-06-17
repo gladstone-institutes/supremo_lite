@@ -29,54 +29,63 @@ def get_personal_genome(reference_fn, variants_fn):
     # Sort variants by chromosome and position
     variants = variants.sort_values(["chrom", "pos"])
 
-    # Initialize personalized genome
+    # Load the reference genome once
+    if isinstance(reference_fn, str):  # File path
+        reference = Fasta(reference_fn)
+    else:  # Dictionary-like object
+        reference = reference_fn
+
+    # Initialize personalized genome with all chromosomes from reference
     personal_genome = {}
+    
+    # First, add all chromosomes from reference (unchanged initially)
+    for chrom in reference.keys():  # Use .keys() to get chromosome names
+        # Get the sequence for this chromosome
+        chrom_seq = reference[chrom]
+        
+        # Convert to string - pyfaidx FastaRecord objects convert automatically
+        personal_genome[chrom] = str(chrom_seq)
 
-    # Group variants by chromosome
-    for chrom, chrom_vars in variants.groupby("chrom"):
-        # Get reference sequence for this chromosome
-        if hasattr(reference_fn, "__getitem__"):  # Dictionary-like
-            ref_seq = reference_fn[chrom]
-            if hasattr(ref_seq, "seq"):  # Handle pyfaidx-like objects
-                ref_seq = ref_seq.seq
-        else:  # Assume it's a file path
-            # Load the reference genome
-            reference = Fasta(reference_fn)
-            # Get the sequence for the specified chromosome
-            # This retrieves the entire chromosome sequence at once, efficiently
-            ref_seq = str(reference[chrom])
-
-        # Apply variants sequentially
-        personal_seq = ref_seq
-        offset = 0  # Track position shifts due to indels
-
-        for _, var in chrom_vars.iterrows():
-            pos = var["pos"] + offset - 1  # Convert to 0-based and apply offset
-            ref = var["ref"]
-            alt = var["alt"]
-
-            # Skip if variant is outside sequence bounds
-            if pos >= len(personal_seq):
+    # Group variants by chromosome and apply them
+    if not variants.empty:
+        for chrom, chrom_vars in variants.groupby("chrom"):
+            # Skip chromosomes not in reference
+            if chrom not in personal_genome:
                 continue
+                
+            # Get reference sequence for this chromosome
+            ref_seq = personal_genome[chrom]  # We already have it from above
 
-            # Verify reference allele matches
-            if personal_seq[pos : pos + len(ref)] != ref:
-                warnings.warn(
-                    f"Reference allele mismatch at {chrom}:{var['pos']}. Expected {ref}, found {personal_seq[pos:pos+len(ref)]}."
-                )
-                continue
+            # Apply variants sequentially
+            personal_seq = ref_seq
+            offset = 0  # Track position shifts due to indels
 
-            # Apply the variant
-            personal_seq = personal_seq[:pos] + alt + personal_seq[pos + len(ref) :]
+            for _, var in chrom_vars.iterrows():
+                pos = var["pos"] + offset - 1  # Convert to 0-based and apply offset
+                ref = var["ref"]
+                alt = var["alt"]
 
-            # Update offset for indels
-            offset += len(alt) - len(ref)
+                # Skip if variant is outside sequence bounds
+                if pos >= len(personal_seq):
+                    continue
 
-        personal_genome[chrom] = personal_seq
+                # Verify reference allele matches
+                if personal_seq[pos : pos + len(ref)] != ref:
+                    warnings.warn(
+                        f"Reference allele mismatch at {chrom}:{var['pos']}. Expected {ref}, found {personal_seq[pos:pos+len(ref)]}."
+                    )
+                    continue
+
+                # Apply the variant
+                personal_seq = personal_seq[:pos] + alt + personal_seq[pos + len(ref) :]
+
+                # Update offset for indels
+                offset += len(alt) - len(ref)
+
+            # Update the chromosome sequence
+            personal_genome[chrom] = personal_seq
 
     return personal_genome
-
-
 def get_personal_sequences(reference_fn, variants_fn, seq_len):
     """
     Create sequence windows centered on each variant position.

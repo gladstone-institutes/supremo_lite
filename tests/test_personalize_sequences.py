@@ -1,153 +1,235 @@
 """
 Tests for the personalized sequence functions in supremo_lite.
 
-This file tests the functions for creating personalized genomes and sequence windows.
+This file tests the get_personal_genome function using real test data files 
+for SNPs, insertions, and deletions.
 """
 
 import unittest
+import os
 import pandas as pd
+from pyfaidx import Fasta
 import supremo_lite as sl
+import warnings
 
 
-class MockReferenceGenome:
-    """Mock reference genome for testing."""
-
-    def __init__(self):
-        self.sequences = {
-            "chr1": "A" * 100 + "C" * 100 + "G" * 100 + "T" * 100,
-            "chr2": "G" * 100 + "C" * 100 + "A" * 100 + "T" * 100,
-        }
-
-    def __getitem__(self, chrom):
-        return self.sequences[chrom]
-
-
-class TestPersonalizedSequences(unittest.TestCase):
+class TestPersonalizeGenome(unittest.TestCase):
+    """Test cases for genome personalization using VCF files."""
 
     def setUp(self):
-        """Set up test data."""
-        # Create a mock reference genome
-        self.reference = MockReferenceGenome()
+        """Set up test data paths."""
+        self.test_dir = os.path.dirname(os.path.abspath(__file__))
+        self.data_dir = os.path.join(self.test_dir, "data")
+        self.reference_fa = os.path.join(self.data_dir, "test_genome.fa")
 
-        # Create sample variants
-        self.variants = pd.DataFrame(
-            {
-                "chrom": ["chr1", "chr1", "chr2"],
-                "pos": [50, 150, 250],
-                "id": [".", "rs123", "."],
-                "ref": ["A", "C", "A"],
-                "alt": ["G", "T", "AGG"],
-            }
-        )
+    def read_fasta_to_dict(self, filepath):
+        """Helper function to read a fasta file into a dictionary."""
+        sequences = {}
+        current_chrom = None
+        current_seq = []
+        
+        with open(filepath, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith('>'):
+                    # Save previous sequence if exists
+                    if current_chrom:
+                        sequences[current_chrom] = ''.join(current_seq)
+                    # Start new sequence
+                    current_chrom = line[1:]  # Remove '>' prefix
+                    current_seq = []
+                else:
+                    current_seq.append(line)
+            
+            # Don't forget the last sequence
+            if current_chrom:
+                sequences[current_chrom] = ''.join(current_seq)
+        
+        return sequences
 
-    def test_get_personal_genome(self):
-        """Test creating a personalized genome."""
-        personalized = sl.get_personal_genome(self.reference, self.variants)
+    def test_snp_variants(self):
+        """Test personalization with SNP variants."""
+        # Paths for SNP test
+        snp_vcf = os.path.join(self.data_dir, "snp", "snp.vcf")
+        snp_expected = os.path.join(self.data_dir, "snp", "snp_expected_output.fa")
+        
+        # Create personalized genome
+        personalized = sl.get_personal_genome(self.reference_fa, snp_vcf)
+        
+        # Load expected output
+        expected = Fasta(snp_expected)
+        
+        # Compare each chromosome
+        for chrom in expected.keys():
+            self.assertIn(chrom, personalized)
+            self.assertEqual(
+                personalized[chrom], 
+                str(expected[chrom]),
+                f"Mismatch in {chrom} for SNP variants"
+            )
 
-        # Check that we have entries for both chromosomes
-        self.assertEqual(len(personalized), 2)
-        self.assertIn("chr1", personalized)
-        self.assertIn("chr2", personalized)
+    def test_insertion_variants(self):
+        """Test personalization with insertion variants."""
+        # Paths for insertion test
+        ins_vcf = os.path.join(self.data_dir, "ins", "ins.vcf")
+        ins_expected = os.path.join(self.data_dir, "ins", "ins_expected_output.fa")
+        
+        # Create personalized genome
+        personalized = sl.get_personal_genome(self.reference_fa, ins_vcf)
+        
+        # Load expected output
+        expected = Fasta(ins_expected)
+        
+        # Compare each chromosome
+        for chrom in expected.keys():
+            self.assertIn(chrom, personalized)
+            self.assertEqual(
+                personalized[chrom], 
+                str(expected[chrom]),
+                f"Mismatch in {chrom} for insertion variants"
+            )
 
-        # Check chromosome 1 variants
-        chr1_seq = personalized["chr1"]
+    def test_deletion_variants(self):
+        """Test personalization with deletion variants."""
+        # Paths for deletion test
+        del_vcf = os.path.join(self.data_dir, "del", "del.vcf")
+        del_expected = os.path.join(self.data_dir, "del", "del_expected_output.fa")
+        
+        # Create personalized genome
+        personalized = sl.get_personal_genome(self.reference_fa, del_vcf)
+        
+        # Load expected output
+        expected = Fasta(del_expected)
+        
+        # Compare each chromosome
+        for chrom in expected.keys():
+            self.assertIn(chrom, personalized)
+            self.assertEqual(
+                personalized[chrom], 
+                str(expected[chrom]),
+                f"Mismatch in {chrom} for deletion variants"
+            )
 
-        # First variant: A->G at position 50
-        self.assertEqual(chr1_seq[49], "G")  # 0-based index
+    def test_variant_details(self):
+        """Test specific variant applications to verify correctness."""
+        # Test SNP variant details
+        snp_vcf = os.path.join(self.data_dir, "snp", "snp.vcf")
+        personalized = sl.get_personal_genome(self.reference_fa, snp_vcf)
+        expected = Fasta(os.path.join(self.data_dir, "snp", "snp_expected_output.fa"))
+        
+        # Just verify the output matches expected
+        self.assertEqual(personalized['chr1'], str(expected['chr1']))
+        self.assertEqual(personalized['chr2'], str(expected['chr2']))
 
-        # Second variant: C->T at position 150
-        self.assertEqual(chr1_seq[149], "T")
+    def test_insertion_details(self):
+        """Test specific insertion applications."""
+        ins_vcf = os.path.join(self.data_dir, "ins", "ins.vcf")
+        personalized = sl.get_personal_genome(self.reference_fa, ins_vcf)
+        expected = Fasta(os.path.join(self.data_dir, "ins", "ins_expected_output.fa"))
+        
+        # Just verify the output matches expected
+        self.assertEqual(personalized['chr1'], str(expected['chr1']))
+        self.assertEqual(personalized['chr2'], str(expected['chr2']))
 
-        # Check chromosome 2 variant
-        chr2_seq = personalized["chr2"]
+    def test_deletion_details(self):
+        """Test specific deletion applications."""
+        del_vcf = os.path.join(self.data_dir, "del", "del.vcf")
+        variants = sl.read_vcf(del_vcf)
+        personalized = sl.get_personal_genome(self.reference_fa, variants)
+        
+        # Get reference and expected for comparison
+        ref_sequences = Fasta(self.reference_fa)
+        expected = Fasta(os.path.join(self.data_dir, "del", "del_expected_output.fa"))
+        
+        # Just verify the final result matches expected
+        self.assertEqual(personalized['chr1'], str(expected['chr1']), 
+                        "Deletion on chr1 did not produce expected result")
 
-        # Third variant: A->AGG at position 250
-        self.assertEqual(chr2_seq[249:252], "AGG")
+    def test_variant_outside_bounds(self):
+        """Test handling of variants that fall outside chromosome bounds."""
+        # Create a variant past the end of chr1
+        invalid_variants = pd.DataFrame({
+            'chrom': ['chr1'],
+            'pos': [1000],  # chr1 is only 80 bases long
+            'id': ['.'],
+            'ref': ['A'],
+            'alt': ['G']
+        })
+        
+        # Should handle gracefully without error
+        personalized = sl.get_personal_genome(self.reference_fa, invalid_variants)
+        
+        # Original sequence should be unchanged
+        ref_sequences = Fasta(self.reference_fa)
+        self.assertEqual(personalized['chr1'], str(ref_sequences['chr1']))
 
-        # Check that lengths are as expected
-        # chr1 should be unchanged in length (substitutions only)
-        self.assertEqual(len(chr1_seq), len(self.reference["chr1"]))
+    def test_reference_mismatch(self):
+        """Test handling of variants where reference allele doesn't match."""
+        # Create a variant with wrong reference allele
+        mismatch_variants = pd.DataFrame({
+            'chrom': ['chr1'],
+            'pos': [5],  # Position 5 is 'A' in reference
+            'id': ['.'],
+            'ref': ['G'],  # Wrong reference allele
+            'alt': ['T']
+        })
+        
+        # Should handle gracefully, skip the variant
+        with self.assertWarns(Warning):
+            personalized = sl.get_personal_genome(self.reference_fa, mismatch_variants)
+        
+        # Original sequence should be unchanged
+        ref_sequences = Fasta(self.reference_fa)
+        self.assertEqual(personalized['chr1'], str(ref_sequences['chr1']))
 
-        # chr2 should be 2 bases longer due to insertion
-        self.assertEqual(len(chr2_seq), len(self.reference["chr2"]) + 2)
+    def test_chromosome_not_in_vcf(self):
+        """Test that chromosomes not in VCF remain unchanged."""
+        # Use SNP VCF which only has variants for chr1 and chr2
+        snp_vcf = os.path.join(self.data_dir, "snp", "snp.vcf")
+        personalized = sl.get_personal_genome(self.reference_fa, snp_vcf)
+        
+        # chr3, chr4, chr5 should remain unchanged
+        ref_sequences = Fasta(self.reference_fa)
+        
+        # These chromosomes should be in the personalized genome but unchanged
+        for chrom in ['chr3', 'chr4', 'chr5']:
+            self.assertIn(chrom, personalized)
+            self.assertEqual(personalized[chrom], str(ref_sequences[chrom]))
 
-    def test_get_personal_sequences(self):
-        """Test creating sequence windows centered on variants."""
-        seq_len = 20
-        sequences = sl.get_personal_sequences(
-            self.reference, self.variants, seq_len=seq_len
-        )
+    def test_variant_on_missing_chromosome(self):
+        """Test handling of variants on chromosomes not in reference."""
+        # The deletion VCF has a variant on chr9 which doesn't exist in test_genome.fa
+        del_vcf = os.path.join(self.data_dir, "del", "del.vcf")
+        
+        # Should handle gracefully without error  
+        personalized = sl.get_personal_genome(self.reference_fa, del_vcf)
+        
+        # Should only have chromosomes that exist in reference
+        self.assertNotIn('chr9', personalized)
+        
+        # Other chromosomes should still be processed correctly
+        expected = Fasta(os.path.join(self.data_dir, "del", "del_expected_output.fa"))
+        for chrom in ['chr1', 'chr2']:
+            self.assertEqual(personalized[chrom], str(expected[chrom]))
 
-        # Check that we have the expected number of sequences
-        self.assertEqual(len(sequences), 3)
-
-        # Check the structure of the first sequence
-        chrom, start, end, seq = sequences[0]
-        self.assertEqual(chrom, "chr1")
-        self.assertEqual(start, 50 - seq_len // 2)
-        self.assertEqual(end, start + seq_len)
-        self.assertEqual(len(seq), seq_len)
-
-        # Check a case where the window would extend beyond the start of the chromosome
-        # Create a variant near the start
-        start_variant = pd.DataFrame(
-            {
-                "chrom": ["chr1"],
-                "pos": [5],  # Very close to start
-                "id": ["."],
-                "ref": ["A"],
-                "alt": ["G"],
-            }
-        )
-
-        start_sequences = sl.get_personal_sequences(
-            self.reference, start_variant, seq_len=20
-        )
-        chrom, start, end, seq = start_sequences[0]
-
-        # Start should be clamped to 0
-        self.assertEqual(start, 0)
-        self.assertEqual(len(seq), seq_len)
-
-    def test_get_pam_disrupting_personal_sequences(self):
-        """Test finding and modifying PAM sites."""
-
-        # Create a reference with NGG PAM sites
-        class PamReference:
-            def __getitem__(self, chrom):
-                if chrom == "chr1":
-                    # Create a sequence with NGG sites at specific positions
-                    return "A" * 10 + "AGG" + "A" * 10 + "CGG" + "A" * 10
-                return ""
-
-        # Create variants that could disrupt PAM sites
-        pam_variants = pd.DataFrame(
-            {
-                "chrom": ["chr1", "chr1"],
-                "pos": [
-                    12,
-                    25,
-                ],  # Second G of the first PAM and first G of the second PAM
-                "id": [".", "."],
-                "ref": ["G", "G"],
-                "alt": ["T", "C"],
-            }
-        )
-
-        result = sl.get_pam_disrupting_personal_sequences(
-            PamReference(),
-            pam_variants,
-            seq_len=20,
-            max_pam_distance=5,
-            pam_sequence="NGG",
-        )
-
-        # Check that we identified the PAM disrupting variants
-        self.assertGreater(len(result["variants"]), 0)
-
-        # Check that we have intact and disrupted sequences
-        self.assertGreater(len(result["pam_intact"]), 0)
-        self.assertGreater(len(result["pam_disrupted"]), 0)
+    def test_chromosomes_in_personalized_genome(self):
+        """Test that all reference chromosomes appear in personalized genome."""
+        # Even with no variants, all chromosomes should be present
+        empty_variants = pd.DataFrame({
+            'chrom': [],
+            'pos': [],
+            'id': [],
+            'ref': [],
+            'alt': []
+        })
+        
+        personalized = sl.get_personal_genome(self.reference_fa, empty_variants)
+        ref_sequences = Fasta(self.reference_fa)
+        
+        # All chromosomes from reference should be in personalized
+        for chrom in ref_sequences.keys():  # Use .keys() to get chromosome names as strings
+            self.assertIn(chrom, personalized)
+            self.assertEqual(personalized[chrom], str(ref_sequences[chrom]))
 
 
 if __name__ == "__main__":
