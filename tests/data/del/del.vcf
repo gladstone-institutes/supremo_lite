@@ -5,6 +5,5 @@
 ##FORMAT=<ID=AD,Number=R,Type=Integer,Description="Allelic depths">
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO 
-chr1	16	.	CGAGAA	C   6	PASS	DP=100
-chr2	23	.	ATTAATTTA	A   6	PASS	DP=100
-chr9	23	.	TAAA	T   6	PASS	DP=100
+chr1	17	.	CGAGAA	C	6	PASS	DP=100
+chr2	23	.	ATTAATTTA	A	6	PASS	DP=100

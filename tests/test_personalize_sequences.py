@@ -22,31 +22,7 @@ class TestPersonalizeGenome(unittest.TestCase):
         self.data_dir = os.path.join(self.test_dir, "data")
         self.reference_fa = os.path.join(self.data_dir, "test_genome.fa")
 
-    def read_fasta_to_dict(self, filepath):
-        """Helper function to read a fasta file into a dictionary."""
-        sequences = {}
-        current_chrom = None
-        current_seq = []
-        
-        with open(filepath, 'r') as f:
-            for line in f:
-                line = line.strip()
-                if line.startswith('>'):
-                    # Save previous sequence if exists
-                    if current_chrom:
-                        sequences[current_chrom] = ''.join(current_seq)
-                    # Start new sequence
-                    current_chrom = line[1:]  # Remove '>' prefix
-                    current_seq = []
-                else:
-                    current_seq.append(line)
-            
-            # Don't forget the last sequence
-            if current_chrom:
-                sequences[current_chrom] = ''.join(current_seq)
-        
-        return sequences
-
+    
     def test_snp_variants(self):
         """Test personalization with SNP variants."""
         # Paths for SNP test
@@ -54,7 +30,7 @@ class TestPersonalizeGenome(unittest.TestCase):
         snp_expected = os.path.join(self.data_dir, "snp", "snp_expected_output.fa")
         
         # Create personalized genome
-        personalized = sl.get_personal_genome(self.reference_fa, snp_vcf)
+        personalized = sl.get_personal_genome(self.reference_fa, snp_vcf, encode=False)
         
         # Load expected output
         expected = Fasta(snp_expected)
@@ -75,7 +51,7 @@ class TestPersonalizeGenome(unittest.TestCase):
         ins_expected = os.path.join(self.data_dir, "ins", "ins_expected_output.fa")
         
         # Create personalized genome
-        personalized = sl.get_personal_genome(self.reference_fa, ins_vcf)
+        personalized = sl.get_personal_genome(self.reference_fa, ins_vcf, encode=False)
         
         # Load expected output
         expected = Fasta(ins_expected)
@@ -96,7 +72,7 @@ class TestPersonalizeGenome(unittest.TestCase):
         del_expected = os.path.join(self.data_dir, "del", "del_expected_output.fa")
         
         # Create personalized genome
-        personalized = sl.get_personal_genome(self.reference_fa, del_vcf)
+        personalized = sl.get_personal_genome(self.reference_fa, del_vcf, encode=False)
         
         # Load expected output
         expected = Fasta(del_expected)
@@ -114,7 +90,7 @@ class TestPersonalizeGenome(unittest.TestCase):
         """Test specific variant applications to verify correctness."""
         # Test SNP variant details
         snp_vcf = os.path.join(self.data_dir, "snp", "snp.vcf")
-        personalized = sl.get_personal_genome(self.reference_fa, snp_vcf)
+        personalized = sl.get_personal_genome(self.reference_fa, snp_vcf, encode=False)
         expected = Fasta(os.path.join(self.data_dir, "snp", "snp_expected_output.fa"))
         
         # Just verify the output matches expected
@@ -124,7 +100,7 @@ class TestPersonalizeGenome(unittest.TestCase):
     def test_insertion_details(self):
         """Test specific insertion applications."""
         ins_vcf = os.path.join(self.data_dir, "ins", "ins.vcf")
-        personalized = sl.get_personal_genome(self.reference_fa, ins_vcf)
+        personalized = sl.get_personal_genome(self.reference_fa, ins_vcf, encode=False)
         expected = Fasta(os.path.join(self.data_dir, "ins", "ins_expected_output.fa"))
         
         # Just verify the output matches expected
@@ -135,7 +111,7 @@ class TestPersonalizeGenome(unittest.TestCase):
         """Test specific deletion applications."""
         del_vcf = os.path.join(self.data_dir, "del", "del.vcf")
         variants = sl.read_vcf(del_vcf)
-        personalized = sl.get_personal_genome(self.reference_fa, variants)
+        personalized = sl.get_personal_genome(self.reference_fa, variants, encode=False)
         
         # Get reference and expected for comparison
         ref_sequences = Fasta(self.reference_fa)
@@ -157,7 +133,7 @@ class TestPersonalizeGenome(unittest.TestCase):
         })
         
         # Should handle gracefully without error
-        personalized = sl.get_personal_genome(self.reference_fa, invalid_variants)
+        personalized = sl.get_personal_genome(self.reference_fa, invalid_variants, encode=False)
         
         # Original sequence should be unchanged
         ref_sequences = Fasta(self.reference_fa)
@@ -176,7 +152,7 @@ class TestPersonalizeGenome(unittest.TestCase):
         
         # Should handle gracefully, skip the variant
         with self.assertWarns(Warning):
-            personalized = sl.get_personal_genome(self.reference_fa, mismatch_variants)
+            personalized = sl.get_personal_genome(self.reference_fa, mismatch_variants, encode=False)
         
         # Original sequence should be unchanged
         ref_sequences = Fasta(self.reference_fa)
@@ -186,7 +162,7 @@ class TestPersonalizeGenome(unittest.TestCase):
         """Test that chromosomes not in VCF remain unchanged."""
         # Use SNP VCF which only has variants for chr1 and chr2
         snp_vcf = os.path.join(self.data_dir, "snp", "snp.vcf")
-        personalized = sl.get_personal_genome(self.reference_fa, snp_vcf)
+        personalized = sl.get_personal_genome(self.reference_fa, snp_vcf, encode=False)
         
         # chr3, chr4, chr5 should remain unchanged
         ref_sequences = Fasta(self.reference_fa)
@@ -202,7 +178,7 @@ class TestPersonalizeGenome(unittest.TestCase):
         del_vcf = os.path.join(self.data_dir, "del", "del.vcf")
         
         # Should handle gracefully without error  
-        personalized = sl.get_personal_genome(self.reference_fa, del_vcf)
+        personalized = sl.get_personal_genome(self.reference_fa, del_vcf, encode=False)
         
         # Should only have chromosomes that exist in reference
         self.assertNotIn('chr9', personalized)
@@ -223,7 +199,7 @@ class TestPersonalizeGenome(unittest.TestCase):
             'alt': []
         })
         
-        personalized = sl.get_personal_genome(self.reference_fa, empty_variants)
+        personalized = sl.get_personal_genome(self.reference_fa, empty_variants, encode=False)
         ref_sequences = Fasta(self.reference_fa)
         
         # All chromosomes from reference should be in personalized
