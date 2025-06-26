@@ -8,12 +8,12 @@ variants to a reference genome and generating sequence windows around variants.
 import bisect
 import warnings
 import os
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Union
 import pandas as pd
+import numpy as np
 from pyfaidx import Fasta
 from .variant_utils import read_vcf
 from .sequence_utils import encode_seq
-
 
 
 class FrozenRegionTracker:
@@ -132,6 +132,61 @@ class VariantApplicator:
         
         return self.sequence.decode(), stats
     
+    def apply_single_variant_to_window(self, variant: pd.Series, window_start: int, 
+                                     window_end: int) -> str:
+        """
+        Apply a single variant to a sequence window.
+        
+        Args:
+            variant: Series containing variant information (pos, ref, alt)
+            window_start: Start position of window (0-based)
+            window_end: End position of window (0-based, exclusive)
+            
+        Returns:
+            Modified sequence string
+        """
+        # Create a copy of the window sequence
+        window_seq = self.sequence[window_start:window_end].copy()
+        
+        # Handle multiple ALT alleles - take first one
+        alt_allele = variant.alt.split(',')[0]
+        
+        # Calculate variant position relative to window
+        genomic_pos = variant.pos - 1  # Convert VCF 1-based to 0-based
+        var_pos_in_window = genomic_pos - window_start
+        
+        # Check if variant is within window
+        if var_pos_in_window < 0 or var_pos_in_window >= len(window_seq):
+            return window_seq.decode()
+        
+        # Check if entire variant fits in window
+        ref_end = var_pos_in_window + len(variant.ref)
+        if ref_end > len(window_seq):
+            return window_seq.decode()
+        
+        # Validate reference matches
+        expected_ref = window_seq[var_pos_in_window:ref_end].decode()
+        if expected_ref.upper() != variant.ref.upper():
+            warnings.warn(
+                f"Reference mismatch at position {variant.pos}: "
+                f"expected '{variant.ref}', found '{expected_ref}'"
+            )
+            return window_seq.decode()
+        
+        # Apply variant
+        if len(alt_allele) == len(variant.ref):
+            # SNV: Direct substitution
+            window_seq[var_pos_in_window:ref_end] = alt_allele.encode()
+        elif len(alt_allele) < len(variant.ref):
+            # Deletion
+            window_seq[var_pos_in_window:var_pos_in_window + len(alt_allele)] = alt_allele.encode()
+            del window_seq[var_pos_in_window + len(alt_allele):ref_end]
+        else:
+            # Insertion
+            window_seq[var_pos_in_window:ref_end] = alt_allele.encode()
+        
+        return window_seq.decode()
+    
     def _apply_single_variant(self, variant: pd.Series) -> None:
         """
         Apply a single variant to the sequence.
@@ -207,7 +262,23 @@ class VariantApplicator:
             
         else:
             # Insertion: Replace + insert extra bases
+            # Python bytearray handles this efficiently
             self.sequence[pos:pos + ref_len] = alt_allele.encode()
+
+
+def _load_reference(reference_fn: Union[str, Dict, Fasta]) -> Union[Dict, Fasta]:
+    """Load reference genome from file or return as-is if already loaded."""
+    if isinstance(reference_fn, str) and os.path.isfile(reference_fn):
+        return Fasta(reference_fn)
+    return reference_fn
+
+
+def _load_variants(variants_fn: Union[str, pd.DataFrame]) -> pd.DataFrame:
+    """Load variants from file or return as-is if already a DataFrame."""
+    if isinstance(variants_fn, str):
+        return read_vcf(variants_fn)
+    return variants_fn
+
 
 def get_personal_genome(reference_fn, variants_fn, encode=True):
     """
@@ -222,20 +293,12 @@ def get_personal_genome(reference_fn, variants_fn, encode=True):
         A dictionary mapping chromosome names to personalized sequences (either
         as strings or one-hot encoded numpy arrays)
     """
-    # Read variants if filename provided
-    if isinstance(variants_fn, str):
-        variants = read_vcf(variants_fn)
-    else:
-        variants = variants_fn
-
+    # Load reference and variants
+    reference = _load_reference(reference_fn)
+    variants = _load_variants(variants_fn)
+    
     # Sort variants by chromosome and position
     variants = variants.sort_values(["chrom", "pos"])
-
-    # If the fasta is a file path, load it into memory here
-    if isinstance(reference_fn, str) and os.path.isfile(reference_fn):
-        reference = Fasta(reference_fn)
-    else:
-        reference = reference_fn  # Assume it's already a dictionary-like object
 
     # Get all chromosome names from the reference
     ref_chroms = list(reference.keys())
@@ -279,8 +342,8 @@ def get_personal_genome(reference_fn, variants_fn, encode=True):
                     )
             sequence = personal_seq
             # Pad sequence with Ns if shorter than reference
-            ref_len=len(ref_seq)
-            seq_len=len(sequence)
+            ref_len = len(ref_seq)
+            seq_len = len(sequence)
             if seq_len < ref_len:
                 sequence += 'N' * (ref_len - seq_len)
         else:
@@ -291,7 +354,8 @@ def get_personal_genome(reference_fn, variants_fn, encode=True):
 
     return personal_genome
 
-def get_personal_sequences(reference_fn, variants_fn, seq_len):
+
+def get_personal_sequences(reference_fn, variants_fn, seq_len, encode=True):
     """
     Create sequence windows centered on each variant position.
 
@@ -299,53 +363,99 @@ def get_personal_sequences(reference_fn, variants_fn, seq_len):
         reference_fn: Path to reference genome file or dictionary-like object
         variants_fn: Path to variants file or DataFrame
         seq_len: Length of the sequence window
+        encode: Return sequences as one-hot encoded numpy arrays (default: True)
 
     Returns:
-        A list of tuples containing (chrom, start, end, sequence)
+        A list of tuples containing (chrom, start, end, sequence/encoding)
     """
-    # Read variants if filename provided
-    if isinstance(variants_fn, str):
-        variants = read_vcf(variants_fn)
-    else:
-        variants = variants_fn
-
+    # Load reference and variants
+    reference = _load_reference(reference_fn)
+    variants = _load_variants(variants_fn)
+    
     sequences = []
 
-    # For each variant, extract a sequence window
+    # Process each variant individually
     for _, var in variants.iterrows():
         chrom = var["chrom"]
         pos = var["pos"]  # 1-based position
-
-        # Calculate window boundaries
-        window_start = max(0, pos - seq_len // 2)
-        window_end = window_start + seq_len
-
+        
         # Get reference sequence for this chromosome
-        if hasattr(reference_fn, "__getitem__"):  # Dictionary-like
-            try:
-                ref_seq = reference_fn[chrom][window_start:window_end]
-                if hasattr(ref_seq, "seq"):  # Handle pyfaidx-like objects
-                    ref_seq = ref_seq.seq
-            except IndexError:
-                # Handle case where window extends beyond chromosome
-                ref_seq = reference_fn[chrom][window_start:]
-                if hasattr(ref_seq, "seq"):  # Handle pyfaidx-like objects
-                    ref_seq = ref_seq.seq
-                ref_seq += "N" * (seq_len - len(ref_seq))  # Pad with Ns
-        else:  # Assume it's a file path
-            # This is a simplified implementation
-            ref_seq = "N" * seq_len  # Placeholder
+        if chrom not in reference:
+            warnings.warn(f"Chromosome {chrom} not found in reference. Skipping variant at {chrom}:{pos}.")
+            continue
+            
+        ref_seq = str(reference[chrom])
+        chrom_length = len(ref_seq)
+        
+        # Convert to 0-based position
+        genomic_pos = pos - 1
+        
+        # Create a temporary applicator with just this variant
+        single_var_df = pd.DataFrame([var])
+        temp_applicator = VariantApplicator(ref_seq, single_var_df)
+        
+        # Apply the variant to get the full modified chromosome
+        modified_chrom, stats = temp_applicator.apply_variants()
+        
+        # Calculate window boundaries centered on variant start
+        half_len = seq_len // 2
+        window_start = genomic_pos - half_len
+        window_end = window_start + seq_len
+        
+        # Handle edge cases and extract window
+        if window_start < 0:
+            # Window extends before chromosome start
+            left_pad = -window_start
+            actual_start = 0
+        else:
+            left_pad = 0
+            actual_start = window_start
+            
+        if window_end > len(modified_chrom):
+            # Window extends beyond chromosome end
+            right_pad = window_end - len(modified_chrom)
+            actual_end = len(modified_chrom)
+        else:
+            right_pad = 0
+            actual_end = window_end
+        
+        # Extract window from modified chromosome
+        window_seq = modified_chrom[actual_start:actual_end]
+        
+        # Add padding if needed
+        if left_pad > 0:
+            window_seq = 'N' * left_pad + window_seq
+        if right_pad > 0:
+            window_seq = window_seq + 'N' * right_pad
+            
+        # Ensure correct length
+        if len(window_seq) != seq_len:
             warnings.warn(
-                "File-based sequence extraction not implemented yet. Returning N's."
+                f"Sequence length mismatch for variant at {chrom}:{pos}. "
+                f"Expected {seq_len}, got {len(window_seq)}"
             )
-
-        sequences.append((chrom, window_start, window_end, ref_seq))
+            # Truncate or pad as needed
+            if len(window_seq) < seq_len:
+                window_seq += 'N' * (seq_len - len(window_seq))
+            else:
+                window_seq = window_seq[:seq_len]
+        
+        # Encode if requested
+        final_seq = encode_seq(window_seq) if encode else window_seq
+        
+        # Store with original coordinates (before padding adjustment)
+        sequences.append((
+            chrom, 
+            max(0, genomic_pos - half_len),  # Original window start
+            max(0, genomic_pos - half_len) + seq_len,  # Original window end
+            final_seq
+        ))
 
     return sequences
 
 
 def get_pam_disrupting_personal_sequences(
-    reference_fn, variants_fn, seq_len, max_pam_distance, pam_sequence="NGG"
+    reference_fn, variants_fn, seq_len, max_pam_distance, pam_sequence="NGG", encode=True
 ):
     """
     Generate sequences for variants that disrupt PAM sites.
@@ -356,88 +466,148 @@ def get_pam_disrupting_personal_sequences(
         seq_len: Length of sequence windows
         max_pam_distance: Maximum distance from variant to PAM site
         pam_sequence: PAM sequence pattern (default: 'NGG' for SpCas9)
+        encode: Return sequences as one-hot encoded numpy arrays (default: True)
 
     Returns:
-        A dictionary of sequences with PAM sites, and variants that disrupt them
+        A dictionary containing:
+            - variants: List of variants that disrupt PAM sites
+            - pam_intact: List of sequences with variant applied but PAM intact
+            - pam_disrupted: List of sequences with both variant and PAM disrupted
     """
-    # Read variants if filename provided
-    if isinstance(variants_fn, str):
-        variants = read_vcf(variants_fn)
-    else:
-        variants = variants_fn
-
-    # Filter variants that are near PAM sites
+    # Load reference and variants
+    reference = _load_reference(reference_fn)
+    variants = _load_variants(variants_fn)
+    
     pam_disrupting_variants = []
     pam_intact_sequences = []
     pam_disrupted_sequences = []
 
-    # For each variant, check if it disrupts a PAM site
+    # Process each variant individually
     for _, var in variants.iterrows():
         chrom = var["chrom"]
         pos = var["pos"]  # 1-based position
-        ref = var["ref"]
-        alt = var["alt"]
-
-        # Calculate window boundaries
-        window_start = max(0, pos - seq_len // 2)
+        
+        # Get reference sequence for this chromosome
+        if chrom not in reference:
+            warnings.warn(f"Chromosome {chrom} not found in reference. Skipping variant at {chrom}:{pos}.")
+            continue
+            
+        ref_seq = str(reference[chrom])
+        chrom_length = len(ref_seq)
+        
+        # Convert to 0-based position
+        genomic_pos = pos - 1
+        
+        # Calculate window boundaries centered on variant start
+        half_len = seq_len // 2
+        window_start = genomic_pos - half_len
         window_end = window_start + seq_len
-
-        # Get reference sequence for this region
-        if hasattr(reference_fn, "__getitem__"):  # Dictionary-like
-            try:
-                ref_seq = reference_fn[chrom][window_start:window_end]
-                if hasattr(ref_seq, "seq"):  # Handle pyfaidx-like objects
-                    ref_seq = ref_seq.seq
-            except IndexError:
-                # Handle case where window extends beyond chromosome
-                ref_seq = reference_fn[chrom][window_start:]
-                if hasattr(ref_seq, "seq"):  # Handle pyfaidx-like objects
-                    ref_seq = ref_seq.seq
-                ref_seq += "N" * (seq_len - len(ref_seq))  # Pad with Ns
-        else:  # Assume it's a file path
-            # This is a simplified implementation
-            ref_seq = "N" * seq_len  # Placeholder
-            warnings.warn(
-                "File-based sequence extraction not implemented yet. Returning N's."
-            )
-
-        # Find PAM sites in the reference sequence
+        
+        # Handle edge cases for reference sequence PAM detection
+        if window_start < 0:
+            left_pad = -window_start
+            ref_window_start = 0
+        else:
+            left_pad = 0
+            ref_window_start = window_start
+            
+        if window_end > chrom_length:
+            right_pad = window_end - chrom_length
+            ref_window_end = chrom_length
+        else:
+            right_pad = 0
+            ref_window_end = window_end
+        
+        # Extract window from reference for PAM detection
+        ref_window_seq = ref_seq[ref_window_start:ref_window_end]
+        
+        # Add padding for PAM detection
+        if left_pad > 0:
+            ref_window_seq = 'N' * left_pad + ref_window_seq
+        if right_pad > 0:
+            ref_window_seq = ref_window_seq + 'N' * right_pad
+        
+        # Find PAM sites in the reference sequence window
         pam_sites = []
-        for i in range(len(ref_seq) - len(pam_sequence) + 1):
-            potential_pam = ref_seq[i : i + len(pam_sequence)]
+        for i in range(len(ref_window_seq) - len(pam_sequence) + 1):
+            potential_pam = ref_window_seq[i:i + len(pam_sequence)]
             # Check if the potential PAM matches the pattern
             if all(
                 a == b or b == "N"
                 for a, b in zip(potential_pam.upper(), pam_sequence.upper())
             ):
                 pam_sites.append(i)
-
+        
+        # Calculate variant position in padded window
+        variant_pos_in_window = left_pad + (genomic_pos - ref_window_start)
+        
         # Filter PAM sites that are within max_pam_distance of the variant
-        variant_pos_in_window = pos - window_start
         nearby_pam_sites = [
-            p for p in pam_sites if abs(p - variant_pos_in_window) <= max_pam_distance
+            p for p in pam_sites 
+            if abs(p - variant_pos_in_window) <= max_pam_distance
         ]
-
+        
         if nearby_pam_sites:
             pam_disrupting_variants.append(var)
-
-            # Create sequence with the variant but PAM intact
-            variant_seq = (
-                ref_seq[: variant_pos_in_window - 1]
-                + alt
-                + ref_seq[variant_pos_in_window - 1 + len(ref) :]
-            )
-            pam_intact_sequences.append((chrom, window_start, window_end, variant_seq))
-
-            # Create sequences with PAM disrupted
+            
+            # Create a temporary applicator with just this variant
+            single_var_df = pd.DataFrame([var])
+            temp_applicator = VariantApplicator(ref_seq, single_var_df)
+            
+            # Apply the variant to get the full modified chromosome
+            modified_chrom, stats = temp_applicator.apply_variants()
+            
+            # Extract window from modified chromosome
+            if window_start < 0:
+                actual_start = 0
+            else:
+                actual_start = window_start
+                
+            if window_end > len(modified_chrom):
+                actual_end = len(modified_chrom)
+            else:
+                actual_end = window_end
+            
+            modified_window = modified_chrom[actual_start:actual_end]
+            
+            # Add padding
+            if left_pad > 0:
+                modified_window = 'N' * left_pad + modified_window
+            if right_pad > 0:
+                modified_window = modified_window + 'N' * right_pad
+            
+            # Ensure correct length
+            if len(modified_window) != seq_len:
+                if len(modified_window) < seq_len:
+                    modified_window += 'N' * (seq_len - len(modified_window))
+                else:
+                    modified_window = modified_window[:seq_len]
+            
+            # Store PAM-intact sequence
+            final_intact = encode_seq(modified_window) if encode else modified_window
+            pam_intact_sequences.append((
+                chrom,
+                max(0, genomic_pos - half_len),
+                max(0, genomic_pos - half_len) + seq_len,
+                final_intact
+            ))
+            
+            # Create PAM-disrupted versions
             for pam_site in nearby_pam_sites:
-                # Make a version where the PAM is disrupted
-                disrupted_seq = (
-                    variant_seq[:pam_site] + "NNN" + variant_seq[pam_site + 3 :]
-                )  # Disrupt with NNN
-                pam_disrupted_sequences.append(
-                    (chrom, window_start, window_end, disrupted_seq)
-                )
+                # Disrupt PAM with NNN
+                disrupted_seq = list(modified_window)
+                for j in range(len(pam_sequence)):
+                    if pam_site + j < len(disrupted_seq):
+                        disrupted_seq[pam_site + j] = 'N'
+                disrupted_seq = ''.join(disrupted_seq)
+                
+                final_disrupted = encode_seq(disrupted_seq) if encode else disrupted_seq
+                pam_disrupted_sequences.append((
+                    chrom,
+                    max(0, genomic_pos - half_len),
+                    max(0, genomic_pos - half_len) + seq_len,
+                    final_disrupted
+                ))
 
     return {
         "variants": pam_disrupting_variants,
