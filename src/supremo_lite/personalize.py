@@ -252,7 +252,7 @@ class VariantApplicator:
         alt_len = len(alt_allele)
         
         if alt_len == ref_len:
-            # SNV: Direct substitution
+            # SNV/MNV: Direct substitution
             self.sequence[pos:pos + ref_len] = alt_allele.encode()
             
         elif alt_len < ref_len:
@@ -262,7 +262,6 @@ class VariantApplicator:
             
         else:
             # Insertion: Replace + insert extra bases
-            # Python bytearray handles this efficiently
             self.sequence[pos:pos + ref_len] = alt_allele.encode()
 
 

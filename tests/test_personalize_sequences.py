@@ -86,6 +86,52 @@ class TestPersonalizeGenome(unittest.TestCase):
                 f"Mismatch in {chrom} for deletion variants"
             )
 
+    def test_multi_overlapping_variants(self):
+        """
+        Test personalization with multiple overlapping variants where some should be skipped.
+        The frozen region tracker should prevent overlapping variants from being applied.
+        """
+        # Paths for multi-variant test
+        multi_vcf = os.path.join(self.data_dir, "multi", "multi.vcf")
+        multi_expected = os.path.join(self.data_dir, "multi", "multi_expected_output.fa")
+        
+        # Load the variants to understand what we're testing
+        variants = sl.read_vcf(multi_vcf)
+        chr1_variants = variants[variants['chrom'] == 'chr1'].sort_values('pos')
+        
+        # Verify we have the expected overlapping variants
+        self.assertTrue(len(chr1_variants) >= 6, "Should have multiple variants for testing")
+        
+        # Check for overlapping variants at positions 11
+        pos_11_variants = chr1_variants[chr1_variants['pos'] == 11]
+        self.assertTrue(len(pos_11_variants) >= 2, "Should have overlapping variants at position 11")
+        
+        # Create personalized genome - warnings will be visible in test output
+        # but we don't need to catch them for this test to pass
+        personalized = sl.get_personal_genome(self.reference_fa, multi_vcf, encode=False)
+        
+        # Load expected output and compare
+        expected = Fasta(multi_expected)
+        
+        # Compare chr1 (the chromosome with overlapping variants)
+        self.assertIn('chr1', personalized)
+        self.assertEqual(
+            personalized['chr1'], 
+            str(expected['chr1']),
+            f"Multi-variant chr1 sequence doesn't match expected output.\n"
+            f"Expected: {str(expected['chr1'])}\n"
+            f"Got:      {personalized['chr1']}"
+        )
+        
+        # Verify other chromosomes remain unchanged
+        ref_sequences = Fasta(self.reference_fa)
+        for chrom in ['chr2', 'chr3', 'chr4', 'chr5']:
+            self.assertEqual(
+                personalized[chrom], 
+                str(ref_sequences[chrom]),
+                f"Chromosome {chrom} should remain unchanged in multi-variant test"
+            )
+
     def test_variant_details(self):
         """Test specific variant applications to verify correctness."""
         # Test SNP variant details
