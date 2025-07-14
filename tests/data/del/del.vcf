@@ -1,0 +1,9 @@
+##fileformat=VCFv4.2
+##FILTER=<ID=PASS,Description="All filters passed">
+##reference=tests/data/test_genome.fa
+##contig=<ID=22,length=51304566>
+##FORMAT=<ID=AD,Number=R,Type=Integer,Description="Allelic depths">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO 
+chr1	17	.	CGAGAA	C	6	PASS	DP=100
+chr2	23	.	ATTAATTTA	A	6	PASS	DP=100

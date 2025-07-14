@@ -1,0 +1,16 @@
+##fileformat=VCFv4.2
+##FILTER=<ID=PASS,Description="All filters passed">
+##reference=input.fasta
+##contig=<ID=22,length=51304566>
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Read depth">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=AD,Number=R,Type=Integer,Description="Allelic depths">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+chr1	10	.	A	T	30	PASS	DP=100
+chr1	11	.	T	TATATAG	30	PASS	DP=100
+chr1	11	.	TATTTTCGAGAAT	T	30	PASS	DP=100
+chr1	11	.	T	TGGGGG	30	PASS	DP=100
+chr1	25	.	A	AATATAGG	30	PASS	DP=100
+chr1	50	.	G	GGGGGG	30	PASS	DP=100
+chr1	52	.	GTTTTA	G	30	PASS	DP=100
+chr1	76	.	ATATT	AGATT	30	PASS	DP=100
