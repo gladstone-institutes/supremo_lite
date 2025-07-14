@@ -14,6 +14,12 @@ import numpy as np
 from pyfaidx import Fasta
 from .variant_utils import read_vcf
 from .sequence_utils import encode_seq
+from .core import TORCH_AVAILABLE
+
+try:
+    import torch
+except ImportError:
+    pass  # Already handled in core
 
 
 class FrozenRegionTracker:
@@ -289,8 +295,8 @@ def get_personal_genome(reference_fn, variants_fn, encode=True):
         encode: Return sequences as one-hot encoded numpy arrays (default: True)
 
     Returns:
-        A dictionary mapping chromosome names to personalized sequences (either
-        as strings or one-hot encoded numpy arrays)
+        If encode=True: A dictionary mapping chromosome names to encoded tensors/arrays
+        If encode=False: A dictionary mapping chromosome names to sequence strings
     """
     # Load reference and variants
     reference = _load_reference(reference_fn)
@@ -365,13 +371,15 @@ def get_personal_sequences(reference_fn, variants_fn, seq_len, encode=True):
         encode: Return sequences as one-hot encoded numpy arrays (default: True)
 
     Returns:
-        A list of tuples containing (chrom, start, end, sequence/encoding)
+        If encode=True: A tensor/array of shape (N, seq_len, 4) where N is the number of variants
+        If encode=False: A list of tuples containing (chrom, start, end, sequence_string)
     """
     # Load reference and variants
     reference = _load_reference(reference_fn)
     variants = _load_variants(variants_fn)
     
     sequences = []
+    metadata = []
 
     # Process each variant individually
     for _, var in variants.iterrows():
@@ -439,19 +447,36 @@ def get_personal_sequences(reference_fn, variants_fn, seq_len, encode=True):
             else:
                 window_seq = window_seq[:seq_len]
         
-        # Encode if requested
-        final_seq = encode_seq(window_seq) if encode else window_seq
+        if encode:
+            # Store encoded sequence for tensor stacking
+            sequences.append(encode_seq(window_seq))
+        else:
+            # Store as tuple for backward compatibility
+            sequences.append((
+                chrom, 
+                max(0, genomic_pos - half_len),  # Original window start
+                max(0, genomic_pos - half_len) + seq_len,  # Original window end
+                window_seq
+            ))
         
-        # Store with original coordinates (before padding adjustment)
-        sequences.append((
-            chrom, 
-            max(0, genomic_pos - half_len),  # Original window start
-            max(0, genomic_pos - half_len) + seq_len,  # Original window end
-            final_seq
-        ))
+        # Store metadata for potential future use
+        metadata.append({
+            'chrom': chrom,
+            'start': max(0, genomic_pos - half_len),
+            'end': max(0, genomic_pos - half_len) + seq_len,
+            'variant_pos': pos,
+            'ref': var['ref'],
+            'alt': var['alt']
+        })
 
+    # If encoding, stack all sequences into a single tensor/array
+    if encode and sequences:
+        if TORCH_AVAILABLE:
+            return torch.stack(sequences)
+        else:
+            return np.stack(sequences)
+    
     return sequences
-
 
 def get_pam_disrupting_personal_sequences(
     reference_fn, variants_fn, seq_len, max_pam_distance, pam_sequence="NGG", encode=True
