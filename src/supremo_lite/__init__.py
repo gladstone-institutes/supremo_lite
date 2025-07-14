@@ -28,7 +28,7 @@ from .personalize import (
 from .mutagenesis import get_sm_sequences, get_sm_subsequences
 
 # Version
-__version__ = "0.1.0"
+__version__ = "0.4.0"
 # Package metadata
 __description__ = (
     "A module for generating personalized genome sequences and in-silico mutagenesis"
