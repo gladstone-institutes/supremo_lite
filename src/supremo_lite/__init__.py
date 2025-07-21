@@ -15,7 +15,12 @@ from .core import TORCH_AVAILABLE, nt_to_1h, nts
 from .sequence_utils import encode_seq, decode_seq, rc, rc_str
 
 # Import variant reading utilities
-from .variant_utils import read_vcf, read_vcf_chunked, get_vcf_chromosomes, read_vcf_chromosome
+from .variant_utils import (
+    read_vcf,
+    read_vcf_chunked,
+    get_vcf_chromosomes,
+    read_vcf_chromosome,
+)
 
 # Import chromosome matching utilities
 from .chromosome_utils import (

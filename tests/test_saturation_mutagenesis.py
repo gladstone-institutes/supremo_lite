@@ -6,6 +6,9 @@ This file tests the saturation mutagenesis functions.
 
 import unittest
 import numpy as np
+import pandas as pd
+import tempfile
+import os
 import supremo_lite as sl
 
 try:
@@ -151,6 +154,216 @@ class TestSaturationMutagenesis(unittest.TestCase):
         # Check shapes
         self.assertEqual(ref_1h.shape, (4, 4))
         self.assertEqual(alt_seqs.shape, (12, 4, 4))  # 4 positions * 3 alternatives
+
+    def test_bed_regions_dataframe(self):
+        """Test BED regions filtering using DataFrame input."""
+        chrom = "chr1"
+        anchor = 50
+        anchor_radius = 5
+        seq_len = 100
+
+        # Create BED regions that cover positions 45-50 (5 positions in mutagenesis window)
+        bed_df = pd.DataFrame(
+            {
+                "chrom": ["chr1", "chr1"],
+                "start": [45, 48],  # Cover positions 45-47 and 48-50
+                "end": [48, 51],
+            }
+        )
+
+        ref_1h, alt_seqs, metadata = sl.get_sm_subsequences(
+            chrom, anchor, anchor_radius, seq_len, self.reference, bed_regions=bed_df
+        )
+
+        # Should have mutations for positions 45-50 (6 positions)
+        # But mutagenesis window is anchor_offset-radius to anchor_offset+radius
+        # anchor_offset = 50, so window is 45-55
+        # BED regions cover 45-51, intersection is 45-51 (6 positions)
+        # Each position gets 3 alternatives = 18 total mutations
+        expected_positions = {45, 46, 47, 48, 49, 50}  # 6 positions
+        actual_positions = set(metadata["offset"].unique())
+
+        # Check that we have the right positions
+        self.assertTrue(len(actual_positions) <= len(expected_positions))
+        self.assertTrue(actual_positions.issubset(expected_positions))
+
+        # Check each position has 3 alternatives
+        for pos in actual_positions:
+            pos_count = (metadata["offset"] == pos).sum()
+            self.assertEqual(pos_count, 3)
+
+    def test_bed_regions_file(self):
+        """Test BED regions filtering using file input."""
+        chrom = "chr1"
+        anchor = 50
+        anchor_radius = 3
+        seq_len = 100
+
+        # Create temporary BED file
+        bed_content = "chr1\t48\t52\nexcluded_chrom\t100\t200\n"
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".bed", delete=False) as f:
+            f.write(bed_content)
+            bed_file = f.name
+
+        try:
+            ref_1h, alt_seqs, metadata = sl.get_sm_subsequences(
+                chrom,
+                anchor,
+                anchor_radius,
+                seq_len,
+                self.reference,
+                bed_regions=bed_file,
+            )
+
+            # BED region covers positions 48-51, mutagenesis window is 47-53
+            # Intersection should be positions 48-51 (4 positions)
+            expected_positions = {48, 49, 50, 51}
+            actual_positions = set(metadata["offset"].unique())
+
+            self.assertTrue(actual_positions.issubset(expected_positions))
+
+        finally:
+            os.unlink(bed_file)
+
+    def test_bed_regions_chromosome_matching(self):
+        """Test chromosome name matching between reference and BED file."""
+        chrom = "chr1"
+        anchor = 50
+        anchor_radius = 2
+        seq_len = 100
+
+        # BED file uses '1' instead of 'chr1'
+        bed_df = pd.DataFrame(
+            {"chrom": ["1"], "start": [48], "end": [52]}  # Different naming convention
+        )
+
+        ref_1h, alt_seqs, metadata = sl.get_sm_subsequences(
+            chrom, anchor, anchor_radius, seq_len, self.reference, bed_regions=bed_df
+        )
+
+        # Should still work due to chromosome matching
+        self.assertTrue(len(metadata) > 0)
+
+        # Check positions are within expected range
+        positions = set(metadata["offset"].unique())
+        expected_window = set(
+            range(48, 52)
+        )  # BED region intersection with mutagenesis window
+        self.assertTrue(positions.issubset(expected_window))
+
+    def test_bed_regions_no_overlap(self):
+        """Test behavior when BED regions don't overlap with mutagenesis window."""
+        chrom = "chr1"
+        anchor = 50
+        anchor_radius = 2
+        seq_len = 100
+
+        # BED region far from mutagenesis window (48-52)
+        bed_df = pd.DataFrame({"chrom": ["chr1"], "start": [10], "end": [20]})
+
+        with self.assertWarns(UserWarning):
+            ref_1h, alt_seqs, metadata = sl.get_sm_subsequences(
+                chrom,
+                anchor,
+                anchor_radius,
+                seq_len,
+                self.reference,
+                bed_regions=bed_df,
+            )
+
+        # Should return empty results
+        self.assertEqual(len(alt_seqs), 0)
+        self.assertEqual(len(metadata), 0)
+        self.assertEqual(ref_1h.shape, (100, 4))  # Reference should still be returned
+
+    def test_bed_regions_no_chromosome(self):
+        """Test behavior when BED file has no regions for target chromosome."""
+        chrom = "chr1"
+        anchor = 50
+        anchor_radius = 2
+        seq_len = 100
+
+        # BED region for different chromosome
+        bed_df = pd.DataFrame({"chrom": ["chr2"], "start": [48], "end": [52]})
+
+        with self.assertWarns(UserWarning):
+            ref_1h, alt_seqs, metadata = sl.get_sm_subsequences(
+                chrom,
+                anchor,
+                anchor_radius,
+                seq_len,
+                self.reference,
+                bed_regions=bed_df,
+            )
+
+        # Should return empty results
+        self.assertEqual(len(alt_seqs), 0)
+        self.assertEqual(len(metadata), 0)
+
+    def test_bed_regions_invalid_format(self):
+        """Test error handling for invalid BED file formats."""
+        chrom = "chr1"
+        anchor = 50
+        anchor_radius = 2
+        seq_len = 100
+
+        # Invalid BED DataFrame (missing required columns)
+        invalid_bed_df = pd.DataFrame(
+            {"chromosome": ["chr1"], "start": [48], "end": [52]}  # Wrong column name
+        )
+
+        with self.assertRaises(ValueError):
+            sl.get_sm_subsequences(
+                chrom,
+                anchor,
+                anchor_radius,
+                seq_len,
+                self.reference,
+                bed_regions=invalid_bed_df,
+            )
+
+    def test_bed_regions_partial_overlap(self):
+        """Test BED regions that partially overlap with mutagenesis window."""
+        chrom = "chr1"
+        anchor = 50
+        anchor_radius = 5  # Window: 45-55
+        seq_len = 100
+
+        # BED region partially overlaps: 40-48 (should cover positions 45-47)
+        bed_df = pd.DataFrame({"chrom": ["chr1"], "start": [40], "end": [48]})
+
+        ref_1h, alt_seqs, metadata = sl.get_sm_subsequences(
+            chrom, anchor, anchor_radius, seq_len, self.reference, bed_regions=bed_df
+        )
+
+        # Should only have mutations for positions 45, 46, 47 (3 positions * 3 alts = 9)
+        positions = set(metadata["offset"].unique())
+        expected_positions = {45, 46, 47}
+        self.assertEqual(positions, expected_positions)
+        self.assertEqual(len(metadata), 9)  # 3 positions * 3 alternatives each
+
+    def test_backward_compatibility(self):
+        """Test that function works exactly the same when bed_regions=None."""
+        chrom = "chr1"
+        anchor = 50
+        anchor_radius = 3
+        seq_len = 100
+
+        # Test without BED regions
+        ref_1h_no_bed, alt_seqs_no_bed, metadata_no_bed = sl.get_sm_subsequences(
+            chrom, anchor, anchor_radius, seq_len, self.reference
+        )
+
+        # Test with bed_regions=None
+        ref_1h_none, alt_seqs_none, metadata_none = sl.get_sm_subsequences(
+            chrom, anchor, anchor_radius, seq_len, self.reference, bed_regions=None
+        )
+
+        # Results should be identical
+        np.testing.assert_array_equal(ref_1h_no_bed, ref_1h_none)
+        np.testing.assert_array_equal(alt_seqs_no_bed, alt_seqs_none)
+        pd.testing.assert_frame_equal(metadata_no_bed, metadata_none)
 
 
 if __name__ == "__main__":
