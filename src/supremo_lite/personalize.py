@@ -13,6 +13,7 @@ import pandas as pd
 import numpy as np
 from pyfaidx import Fasta
 from .variant_utils import read_vcf
+from .chromosome_utils import match_chromosomes_with_report, apply_chromosome_mapping
 from .sequence_utils import encode_seq
 from .core import TORCH_AVAILABLE
 
@@ -305,23 +306,22 @@ def get_personal_genome(reference_fn, variants_fn, encode=True):
     # Sort variants by chromosome and position
     variants = variants.sort_values(["chrom", "pos"])
 
-    # Get all chromosome names from the reference
-    ref_chroms = list(reference.keys())
+    # Get all chromosome names from the reference and VCF
+    ref_chroms = set(reference.keys())
+    vcf_chroms = set(variants['chrom'].unique())
+    
+    # Use chromosome matching to handle name mismatches
+    mapping, unmatched = match_chromosomes_with_report(ref_chroms, vcf_chroms, verbose=True)
+    
+    # Apply chromosome name mapping to variants
+    if mapping:
+        variants = apply_chromosome_mapping(variants, mapping)
     
     # Build a dictionary of variants grouped by chromosome
     chrom_to_vars = {}
-    missing_chroms = set()
     for chrom, group in variants.groupby("chrom"):
         if chrom in ref_chroms:
             chrom_to_vars[chrom] = group
-        else:
-            missing_chroms.add(chrom)
-    
-    # Warn about missing chromosomes
-    if missing_chroms:
-        warnings.warn(
-            f"Chromosomes {', '.join(missing_chroms)} in variants not found in reference. Skipping."
-        )
 
     # Initialize personalized genome
     personal_genome = {}
@@ -378,26 +378,32 @@ def get_personal_sequences(reference_fn, variants_fn, seq_len, encode=True, chun
     # Load reference and variants
     reference = _load_reference(reference_fn)
     
-    # Handle chunked processing
-    if isinstance(variants_fn, str) and chunk_size > 1:
-        # Use chunked VCF reader for file paths
-        from .variant_utils import read_vcf_chunked
-        variant_chunks = read_vcf_chunked(variants_fn, chunk_size)
+    # For chromosome matching, we need to load all variants first to get chromosome names
+    all_variants = _load_variants(variants_fn)
+    ref_chroms = set(reference.keys())
+    vcf_chroms = set(all_variants['chrom'].unique())
+    
+    # Use chromosome matching to handle name mismatches
+    mapping, unmatched = match_chromosomes_with_report(ref_chroms, vcf_chroms, verbose=True)
+    
+    # Apply chromosome name mapping to variants
+    if mapping:
+        all_variants = apply_chromosome_mapping(all_variants, mapping)
+    
+    # Handle chunked processing using the chromosome-mapped variants
+    variants = all_variants  # Use the mapped variants
+    if chunk_size == 1:
+        # Process one variant at a time
+        variant_chunks = (pd.DataFrame([row]) for _, row in variants.iterrows())
     else:
-        # For DataFrames or single variant processing
-        variants = _load_variants(variants_fn)
-        if chunk_size == 1:
-            # Process one variant at a time
-            variant_chunks = (pd.DataFrame([row]) for _, row in variants.iterrows())
-        else:
-            # Split DataFrame into chunks using numpy array_split
-            n_chunks = max(1, len(variants) // chunk_size)
-            if len(variants) % chunk_size != 0:
-                n_chunks += 1
-            
-            indices = np.array_split(np.arange(len(variants)), n_chunks)
-            variant_chunks = (variants.iloc[chunk_indices].reset_index(drop=True) 
-                            for chunk_indices in indices if len(chunk_indices) > 0)
+        # Split DataFrame into chunks using numpy array_split
+        n_chunks = max(1, len(variants) // chunk_size)
+        if len(variants) % chunk_size != 0:
+            n_chunks += 1
+        
+        indices = np.array_split(np.arange(len(variants)), n_chunks)
+        variant_chunks = (variants.iloc[chunk_indices].reset_index(drop=True) 
+                        for chunk_indices in indices if len(chunk_indices) > 0)
     
     # Process each chunk
     for chunk_variants in variant_chunks:
@@ -524,6 +530,17 @@ def get_pam_disrupting_personal_sequences(
     # Load reference and variants
     reference = _load_reference(reference_fn)
     variants = _load_variants(variants_fn)
+    
+    # Get all chromosome names and apply chromosome matching
+    ref_chroms = set(reference.keys())
+    vcf_chroms = set(variants['chrom'].unique())
+    
+    # Use chromosome matching to handle name mismatches
+    mapping, unmatched = match_chromosomes_with_report(ref_chroms, vcf_chroms, verbose=True)
+    
+    # Apply chromosome name mapping to variants
+    if mapping:
+        variants = apply_chromosome_mapping(variants, mapping)
     
     pam_disrupting_variants = []
     pam_intact_sequences = []

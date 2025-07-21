@@ -17,6 +17,13 @@ from .sequence_utils import encode_seq, decode_seq, rc, rc_str
 # Import variant reading utilities
 from .variant_utils import read_vcf, read_vcf_chunked
 
+# Import chromosome matching utilities
+from .chromosome_utils import (
+    normalize_chromosome_name,
+    create_chromosome_mapping,
+    match_chromosomes_with_report,
+)
+
 # Import personalize functions
 from .personalize import (
     get_personal_genome,
