@@ -244,5 +244,85 @@ class TestChunkedPersonalSequences:
             os.unlink(vcf_path)
 
 
+class TestChunkedPersonalizeFunctions:
+    """Test chunked processing in main personalize functions."""
+    
+    def test_get_personal_genome_with_chunk_size(self):
+        """Test get_personal_genome with chunk_size parameter."""
+        # Create test data
+        variants_df = pd.DataFrame({
+            'chrom': ['chr1'] * 3,
+            'pos': [1000, 1100, 1200],
+            'id': ['.'] * 3,
+            'ref': ['A', 'A', 'A'],
+            'alt': ['G', 'T', 'C']
+        })
+        
+        reference = create_test_reference()
+        
+        # Test with default chunk_size=1 
+        result1 = sl.get_personal_genome(
+            reference_fn=reference,
+            variants_fn=variants_df,
+            encode=False,
+            chunk_size=1
+        )
+        
+        # Test with chunk_size=2 (should work the same for small data)
+        result2 = sl.get_personal_genome(
+            reference_fn=reference,
+            variants_fn=variants_df,
+            encode=False,
+            chunk_size=2
+        )
+        
+        # Results should be identical regardless of chunk_size for get_personal_genome
+        # since it processes all variants for each chromosome anyway
+        assert 'chr1' in result1
+        assert 'chr1' in result2
+        assert result1['chr1'] == result2['chr1']
+    
+    def test_get_pam_disrupting_sequences_with_chunk_size(self):
+        """Test get_pam_disrupting_personal_sequences with chunk_size parameter."""
+        # Create variants near PAM sites
+        variants_df = pd.DataFrame({
+            'chrom': ['chr1'] * 2,
+            'pos': [1000, 1100], 
+            'id': ['.'] * 2,
+            'ref': ['A', 'A'],
+            'alt': ['G', 'T']
+        })
+        
+        # Create reference with PAM sites near variant positions
+        reference = {"chr1": "A" * 950 + "AAAGGAAA" + "A" * 50 + "AAAGGAAA" + "A" * 8942}
+        
+        # Test with default chunk_size=1
+        result1 = sl.get_pam_disrupting_personal_sequences(
+            reference_fn=reference,
+            variants_fn=variants_df,
+            seq_len=100,
+            max_pam_distance=10,
+            pam_sequence="AGG", 
+            encode=False,
+            chunk_size=1
+        )
+        
+        # Test with chunk_size=2
+        result2 = sl.get_pam_disrupting_personal_sequences(
+            reference_fn=reference,
+            variants_fn=variants_df,
+            seq_len=100,
+            max_pam_distance=10,
+            pam_sequence="AGG",
+            encode=False,
+            chunk_size=2
+        )
+        
+        # Results should be identical
+        assert len(result1['variants']) == len(result2['variants'])
+        assert len(result1['pam_intact']) == len(result2['pam_intact'])
+        assert len(result1['pam_disrupted']) == len(result2['pam_disrupted'])
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

@@ -15,7 +15,7 @@ from .core import TORCH_AVAILABLE, nt_to_1h, nts
 from .sequence_utils import encode_seq, decode_seq, rc, rc_str
 
 # Import variant reading utilities
-from .variant_utils import read_vcf, read_vcf_chunked
+from .variant_utils import read_vcf, read_vcf_chunked, get_vcf_chromosomes, read_vcf_chromosome
 
 # Import chromosome matching utilities
 from .chromosome_utils import (
@@ -27,6 +27,7 @@ from .chromosome_utils import (
 # Import personalize functions
 from .personalize import (
     get_personal_genome,
+    get_personal_genome_chromosome_chunked,
     get_personal_sequences,
     get_pam_disrupting_personal_sequences,
 )

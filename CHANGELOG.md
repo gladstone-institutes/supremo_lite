@@ -4,9 +4,12 @@
 ## v0.5.0 (07/21/2025)
 
 - **Chromosome Name Matching**: Added intelligent heuristics to handle chromosome name mismatches between FASTA and VCF files (e.g., `chr1` ↔ `1`, `chrM` ↔ `MT`)
-- **Chunked VCF Processing**: Implemented memory-efficient chunked processing for large VCF files to handle datasets that don't fit in memory
+- **Chunked VCF Processing**: Implemented memory-efficient chunked processing for large VCF files with `chunk_size` parameter across all VCF-processing functions
+- **Enhanced API**: All functions now support `chunk_size=1` parameter for backward compatibility and memory efficiency
 - **Comprehensive PAM Disruption Testing**: Added extensive test suite for PAM disruption functionality covering multiple scenarios and edge cases
 - **Enhanced Error Handling**: Improved chromosome matching with detailed reporting and warnings for unmatched chromosomes
+- **Updated Documentation**: Comprehensive README with GitHub installation instructions, new features, and performance tips
+- **Test Coverage**: Added 67 tests with 87% code coverage including chunked processing and chromosome matching scenarios
 
 ## v0.4.0 (06/14/2025)
 

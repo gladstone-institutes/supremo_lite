@@ -2,13 +2,56 @@
 
 A lightweight memory first, model agnostic version of [SuPreMo](https://github.com/ketringjoni/SuPreMo).
 
+## Key Features
+
+- 🧬 **Personalized Genome Generation**: Apply variants from VCF files to reference genomes
+- 🎯 **Variant-Centered Sequences**: Generate sequence windows around variants
+- ✂️ **PAM Site Analysis**: Identify variants that disrupt CRISPR PAM sites
+- 🧪 **In-Silico Mutagenesis**: Systematic sequence mutation for predictive modeling
+- 🔧 **Memory Efficient**: Chunked processing for large VCF files
+- 🗺️ **Smart Chromosome Matching**: Automatic handling of chromosome naming differences (chr1 ↔ 1, chrM ↔ MT)
+- ⚡ **PyTorch Integration**: Automatic tensor support when PyTorch is available
+- 📊 **Format Flexibility**: Works with file paths, objects, or DataFrames
+
 ## Installation
 
+### Install from GitHub (Recommended)
+
+For the latest features and bug fixes:
+
 ```bash
-$ git clone https://github.com/gladstone-institutes/supremo_lite.git
-$ cd supremo_lite
-$ pip install .
+# Install directly from GitHub (latest release)
+pip install git+https://github.com/gladstone-institutes/supremo_lite.git
+
+# Or install a specific version/tag
+pip install git+https://github.com/gladstone-institutes/supremo_lite.git@v0.5.0
+
+# Or install from a specific branch
+pip install git+https://github.com/gladstone-institutes/supremo_lite.git@main
 ```
+
+### Install from Local Clone
+
+For development or customization:
+
+```bash
+git clone https://github.com/gladstone-institutes/supremo_lite.git
+cd supremo_lite
+pip install .
+
+# For development with editable install
+pip install -e .
+```
+
+### Dependencies
+
+Required dependencies will be installed automatically:
+- `pandas` - For VCF data handling
+- `numpy` - For numerical operations  
+- `pyfaidx` - For FASTA file reading
+
+Optional dependencies:
+- `torch` - For PyTorch tensor support (automatically detected)
 
 ## Usage
 
@@ -50,6 +93,23 @@ personal_genome_raw = sl.get_personal_genome(
 chr1_sequence = personal_genome_raw['chr1']  # String of nucleotides
 ```
 
+#### Memory-Efficient Processing for Large VCF Files
+
+For large variant files, use chunked processing to manage memory usage:
+
+```python
+# Process large VCF files in chunks (reduces memory usage)
+personal_genome = sl.get_personal_genome(
+    reference_fn='hg38.fa',
+    variants_fn='large_variants.vcf',
+    encode=False,
+    chunk_size=10000  # Process 10,000 variants at a time
+)
+
+# chunk_size=1 (default) loads entire VCF - use for compatibility
+# chunk_size>1 enables chunked processing for memory efficiency
+```
+
 ### 2. Variant-Centered Sequence Windows
 
 Generate sequence windows centered on each variant position:
@@ -60,7 +120,8 @@ sequences = sl.get_personal_sequences(
     reference_fn='hg38.fa',
     variants_fn='variants.vcf',
     seq_len=1000,
-    encode=True
+    encode=True,
+    chunk_size=1  # Process variants individually (default)
 )
 
 # Returns tensor/array of shape (n_variants, seq_len, 4)
@@ -79,6 +140,30 @@ for chrom, start, end, sequence in sequences_raw:
     print(f"{chrom}:{start}-{end}: {sequence[:50]}...")
 ```
 
+#### Automatic Chromosome Name Matching
+
+The package automatically handles chromosome naming mismatches between VCF and FASTA files:
+
+```python
+# Works automatically even with mismatched naming
+# VCF has: 'chr1', 'chr2', 'chrX', 'chrM' 
+# FASTA has: '1', '2', 'X', 'MT'
+
+personal_genome = sl.get_personal_genome(
+    reference_fn='reference.fa',  # Uses '1', '2', 'X', 'MT'
+    variants_fn='variants.vcf'    # Uses 'chr1', 'chr2', 'chrX', 'chrM'
+)
+# Chromosomes are automatically matched and mapped
+
+# You can also use the chromosome utilities directly
+ref_chroms = {'1', '2', 'X', 'MT'}
+vcf_chroms = {'chr1', 'chr2', 'chrX', 'chrM'}
+
+mapping, unmatched = sl.create_chromosome_mapping(ref_chroms, vcf_chroms)
+print(f"Chromosome mapping: {mapping}")
+# Output: {'chr1': '1', 'chr2': '2', 'chrX': 'X', 'chrM': 'MT'}
+```
+
 ### 3. PAM-Disrupting Variants
 
 Identify variants that disrupt PAM sites and generate corresponding sequences:
@@ -91,7 +176,8 @@ pam_results = sl.get_pam_disrupting_personal_sequences(
     seq_len=1000,
     max_pam_distance=50,  # Maximum distance from variant to PAM
     pam_sequence="NGG",   # SpCas9 PAM sequence
-    encode=True
+    encode=True,
+    chunk_size=1         # Default chunk size
 )
 
 # Access results
@@ -183,6 +269,12 @@ print(variants_df.head())
 
 # VCF DataFrame contains columns: chrom, pos, id, ref, alt
 filtered_variants = variants_df[variants_df['chrom'] == 'chr1']
+
+# For very large VCF files, use chunked reading
+for chunk in sl.read_vcf_chunked('large_variants.vcf', chunk_size=50000):
+    # Process each chunk of 50,000 variants
+    print(f"Processing chunk with {len(chunk)} variants")
+    # Your processing code here...
 ```
 
 ### 8. PyTorch Integration
@@ -253,23 +345,63 @@ with warnings.catch_warnings(record=True) as w:
         print(f"Warning: {warning.message}")
 ```
 
+### 11. Performance Tips
+
+For optimal performance with large datasets:
+
+```python
+# Use chunked processing for large VCF files
+personal_genome = sl.get_personal_genome(
+    reference_fn='hg38.fa',
+    variants_fn='large_variants.vcf',
+    encode=False,        # Use strings to save memory
+    chunk_size=50000     # Process in 50k variant chunks
+)
+
+# For sequence generation, balance chunk size with memory
+sequences = list(sl.get_personal_sequences(
+    reference_fn='hg38.fa', 
+    variants_fn='variants.vcf',
+    seq_len=1000,
+    chunk_size=100      # Generate 100 sequences at a time
+))
+
+# Disable encoding for large datasets to save memory
+sequences_raw = sl.get_personal_sequences(
+    reference_fn='hg38.fa',
+    variants_fn='variants.vcf', 
+    seq_len=1000,
+    encode=False        # Returns strings instead of tensors
+)
+```
+
 ## API Reference
 
 ### Core Functions
 
-- `get_personal_genome(reference_fn, variants_fn, encode=True)` - Generate personalized genome
-- `get_personal_sequences(reference_fn, variants_fn, seq_len, encode=True)` - Generate variant-centered windows
-- `get_pam_disrupting_personal_sequences(...)` - Find PAM-disrupting variants
+- `get_personal_genome(reference_fn, variants_fn, encode=True, chunk_size=1)` - Generate personalized genome with chunked processing
+- `get_personal_sequences(reference_fn, variants_fn, seq_len, encode=True, chunk_size=1)` - Generate variant-centered windows  
+- `get_pam_disrupting_personal_sequences(reference_fn, variants_fn, seq_len, max_pam_distance, pam_sequence="NGG", encode=True, chunk_size=1)` - Find PAM-disrupting variants
 - `get_sm_sequences(chrom, start, end, reference_fasta)` - Saturation mutagenesis
 - `get_sm_subsequences(chrom, anchor, anchor_radius, seq_len, reference_fasta)` - Targeted mutagenesis
 
-### Utility Functions
+### VCF Processing Functions
+
+- `read_vcf(path)` - Read VCF file into DataFrame
+- `read_vcf_chunked(path, chunk_size)` - Read large VCF files in chunks (generator)
+
+### Chromosome Utilities
+
+- `normalize_chromosome_name(chrom_name)` - Normalize chromosome naming
+- `create_chromosome_mapping(ref_chroms, vcf_chroms)` - Create chromosome name mapping
+- `match_chromosomes_with_report(ref_chroms, vcf_chroms, verbose=True)` - Match with detailed reporting
+
+### Sequence Utilities
 
 - `encode_seq(seq)` - Convert nucleotide string to one-hot encoding
 - `decode_seq(seq_1h)` - Convert one-hot encoding to nucleotide string
 - `rc(seq_1h)` - Reverse complement encoded sequence
 - `rc_str(seq)` - Reverse complement string
-- `read_vcf(path)` - Read VCF file into DataFrame
 
 ### Constants
 

@@ -12,7 +12,7 @@ from typing import Dict, List, Tuple, Optional, Union
 import pandas as pd
 import numpy as np
 from pyfaidx import Fasta
-from .variant_utils import read_vcf
+from .variant_utils import read_vcf, read_vcf_chunked, get_vcf_chromosomes, read_vcf_chromosome, read_vcf_chromosomes_chunked
 from .chromosome_utils import match_chromosomes_with_report, apply_chromosome_mapping
 from .sequence_utils import encode_seq
 from .core import TORCH_AVAILABLE
@@ -279,14 +279,59 @@ def _load_reference(reference_fn: Union[str, Dict, Fasta]) -> Union[Dict, Fasta]
     return reference_fn
 
 
-def _load_variants(variants_fn: Union[str, pd.DataFrame]) -> pd.DataFrame:
+def _load_chromosome_reference(reference_fn: Union[str, Dict, Fasta], chromosome: str) -> str:
+    """
+    Load a specific chromosome from reference genome.
+    
+    Args:
+        reference_fn: Path to reference file, Fasta object, or dictionary
+        chromosome: Chromosome name to load
+        
+    Returns:
+        String sequence for the specified chromosome
+        
+    Raises:
+        KeyError: If chromosome not found in reference
+    """
+    reference = _load_reference(reference_fn)
+    
+    if chromosome not in reference:
+        available_chroms = list(reference.keys()) if hasattr(reference, 'keys') else ['unknown']
+        raise KeyError(
+            f"Chromosome '{chromosome}' not found in reference. "
+            f"Available chromosomes: {sorted(available_chroms)[:10]}..."
+        )
+    
+    return str(reference[chromosome])
+
+
+def _get_reference_chromosomes(reference_fn: Union[str, Dict, Fasta]) -> set:
+    """
+    Get set of chromosome names available in reference genome.
+    
+    Args:
+        reference_fn: Path to reference file, Fasta object, or dictionary
+        
+    Returns:
+        Set of chromosome names
+    """
+    reference = _load_reference(reference_fn)
+    return set(reference.keys())
+
+
+def _load_variants(variants_fn: Union[str, pd.DataFrame], chunk_size: int = 1) -> pd.DataFrame:
     """Load variants from file or return as-is if already a DataFrame."""
     if isinstance(variants_fn, str):
-        return read_vcf(variants_fn)
+        if chunk_size == 1:
+            return read_vcf(variants_fn)
+        else:
+            # For chunked processing, we still need to load all variants first 
+            # to do chromosome matching, then we'll chunk during processing
+            return read_vcf(variants_fn)
     return variants_fn
 
 
-def get_personal_genome(reference_fn, variants_fn, encode=True):
+def get_personal_genome(reference_fn, variants_fn, encode=True, chunk_size=1):
     """
     Create a personalized genome by applying variants to a reference genome.
 
@@ -294,12 +339,25 @@ def get_personal_genome(reference_fn, variants_fn, encode=True):
         reference_fn: Path to reference genome file or dictionary-like object
         variants_fn: Path to variants file or DataFrame
         encode: Return sequences as one-hot encoded numpy arrays (default: True)
+        chunk_size: Process VCF in chunks of this size (default: 1, meaning load all at once)
 
     Returns:
         If encode=True: A dictionary mapping chromosome names to encoded tensors/arrays
         If encode=False: A dictionary mapping chromosome names to sequence strings
     """
-    # Load reference and variants
+    
+    # For chunk_size > 1, use the chromosome-based chunking approach which solves
+    # the adjacent variant coordination problem
+    if chunk_size > 1:
+        return get_personal_genome_chromosome_chunked(
+            reference_fn=reference_fn,
+            variants_fn=variants_fn,
+            encode=encode,
+            chunk_size=chunk_size,
+            verbose=False  # Keep existing function quiet by default
+        )
+    
+    # Original approach for chunk_size=1 (backward compatibility)
     reference = _load_reference(reference_fn)
     variants = _load_variants(variants_fn)
     
@@ -358,6 +416,7 @@ def get_personal_genome(reference_fn, variants_fn, encode=True):
         personal_genome[chrom] = encode_seq(sequence) if encode else sequence
 
     return personal_genome
+
 
 
 def get_personal_sequences(reference_fn, variants_fn, seq_len, encode=True, chunk_size=1):
@@ -508,7 +567,7 @@ def get_personal_sequences(reference_fn, variants_fn, seq_len, encode=True, chun
             yield sequences
 
 def get_pam_disrupting_personal_sequences(
-    reference_fn, variants_fn, seq_len, max_pam_distance, pam_sequence="NGG", encode=True
+    reference_fn, variants_fn, seq_len, max_pam_distance, pam_sequence="NGG", encode=True, chunk_size=1
 ):
     """
     Generate sequences for variants that disrupt PAM sites.
@@ -520,6 +579,7 @@ def get_pam_disrupting_personal_sequences(
         max_pam_distance: Maximum distance from variant to PAM site
         pam_sequence: PAM sequence pattern (default: 'NGG' for SpCas9)
         encode: Return sequences as one-hot encoded numpy arrays (default: True)
+        chunk_size: Process VCF in chunks of this size (default: 1)
 
     Returns:
         A dictionary containing:
@@ -529,7 +589,7 @@ def get_pam_disrupting_personal_sequences(
     """
     # Load reference and variants
     reference = _load_reference(reference_fn)
-    variants = _load_variants(variants_fn)
+    variants = _load_variants(variants_fn, chunk_size)
     
     # Get all chromosome names and apply chromosome matching
     ref_chroms = set(reference.keys())
@@ -678,3 +738,166 @@ def get_pam_disrupting_personal_sequences(
         "pam_intact": pam_intact_sequences,
         "pam_disrupted": pam_disrupted_sequences,
     }
+
+
+def get_personal_genome_chromosome_chunked(reference_fn, variants_fn, encode=True, 
+                                         chunk_size=50000, verbose=True):
+    """
+    Create a personalized genome using chromosome-based chunking for memory efficiency.
+    
+    This function processes variants chromosome by chromosome, ensuring that adjacent
+    variants are processed correctly even when split across chunks. This solves the
+    coordination problem in standard chunking approaches.
+    
+    Args:
+        reference_fn: Path to reference genome file or dictionary-like object
+        variants_fn: Path to variants file or DataFrame  
+        encode: Return sequences as one-hot encoded arrays (default: True)
+        chunk_size: Maximum variants per chunk within each chromosome (default: 50000)
+        verbose: Print progress information (default: True)
+        
+    Returns:
+        If encode=True: A dictionary mapping chromosome names to encoded tensors/arrays
+        If encode=False: A dictionary mapping chromosome names to sequence strings
+    """
+    
+    if verbose:
+        print("🧬 Starting chromosome-based chunked processing...")
+    
+    # Step 1: Get chromosome information from VCF and reference
+    if isinstance(variants_fn, str):
+        vcf_chromosomes = get_vcf_chromosomes(variants_fn)
+        if verbose:
+            print(f"📁 Found {len(vcf_chromosomes)} chromosomes in VCF: {sorted(list(vcf_chromosomes))[:5]}{'...' if len(vcf_chromosomes) > 5 else ''}")
+    else:
+        # DataFrame input
+        vcf_chromosomes = set(variants_fn['chrom'].unique()) 
+        
+    ref_chromosomes = _get_reference_chromosomes(reference_fn)
+    if verbose:
+        print(f"📚 Found {len(ref_chromosomes)} chromosomes in reference")
+    
+    # Step 2: Apply chromosome name matching  
+    mapping, unmatched = match_chromosomes_with_report(
+        ref_chromosomes, vcf_chromosomes, verbose=verbose
+    )
+    
+    # Step 3: Process each chromosome
+    personal_genome = {}
+    total_processed = 0
+    
+    for ref_chrom in sorted(ref_chromosomes):
+        if verbose:
+            print(f"\n🔄 Processing chromosome {ref_chrom}...")
+        
+        # Find VCF chromosome name (may be different due to naming conventions)
+        vcf_chrom = None
+        for vcf_chr, ref_chr in mapping.items():
+            if ref_chr == ref_chrom:
+                vcf_chrom = vcf_chr
+                break
+        
+        # Load reference sequence for this chromosome only
+        try:
+            ref_sequence = _load_chromosome_reference(reference_fn, ref_chrom)
+            if verbose:
+                print(f"  📖 Loaded reference: {len(ref_sequence):,} bp")
+        except KeyError:
+            if verbose:
+                print(f"  ⚠️  Skipping {ref_chrom}: not found in reference")
+            continue
+        
+        if vcf_chrom is None:
+            # No variants for this chromosome
+            if verbose:
+                print(f"  📝 No variants found for {ref_chrom}")
+            personal_genome[ref_chrom] = encode_seq(ref_sequence) if encode else ref_sequence
+            continue
+        
+        # Load variants for this chromosome only
+        if isinstance(variants_fn, str):
+            chrom_variants = read_vcf_chromosome(variants_fn, vcf_chrom)
+        else:
+            # DataFrame input
+            chrom_variants = variants_fn[variants_fn['chrom'] == vcf_chrom].copy()
+        
+        if len(chrom_variants) == 0:
+            if verbose:
+                print(f"  📝 No variants found for {ref_chrom}")
+            personal_genome[ref_chrom] = encode_seq(ref_sequence) if encode else ref_sequence
+            continue
+        
+        # Apply chromosome mapping to variants
+        if vcf_chrom in mapping:
+            chrom_variants['chrom'] = mapping[vcf_chrom]
+        
+        if verbose:
+            print(f"  🧪 Found {len(chrom_variants):,} variants")
+        
+        # Step 4: Process chromosome (with chunking if needed)
+        if len(chrom_variants) <= chunk_size:
+            # Small chromosome - process all at once
+            if verbose:
+                print(f"  ⚡ Processing all variants at once")
+            
+            applicator = VariantApplicator(ref_sequence, chrom_variants)
+            personal_sequence, stats = applicator.apply_variants()
+            
+            if verbose and stats['total'] > 0:
+                applied, skipped, total = stats['applied'], stats['skipped'], stats['total']
+                print(f"  ✅ Applied {applied}/{total} variants ({skipped} skipped)")
+        
+        else:
+            # Large chromosome - process in chunks sequentially
+            if verbose:
+                n_chunks = (len(chrom_variants) + chunk_size - 1) // chunk_size
+                print(f"  🔄 Large chromosome: processing {n_chunks} chunks of ~{chunk_size:,} variants each")
+            
+            # Sort variants by position to ensure correct sequential processing
+            chrom_variants = chrom_variants.sort_values('pos').reset_index(drop=True)
+            
+            # Start with reference sequence
+            current_sequence = ref_sequence
+            total_applied = 0
+            total_skipped = 0
+            
+            # Process chunks sequentially
+            n_chunks = (len(chrom_variants) + chunk_size - 1) // chunk_size
+            indices = np.array_split(np.arange(len(chrom_variants)), n_chunks)
+            
+            for i, chunk_indices in enumerate(indices):
+                if len(chunk_indices) == 0:
+                    continue
+                    
+                chunk_df = chrom_variants.iloc[chunk_indices].reset_index(drop=True)
+                
+                if verbose:
+                    print(f"    📦 Chunk {i+1}/{n_chunks}: {len(chunk_df):,} variants")
+                
+                # Apply variants to current sequence state
+                applicator = VariantApplicator(current_sequence, chunk_df)
+                current_sequence, stats = applicator.apply_variants()
+                
+                total_applied += stats['applied']
+                total_skipped += stats['skipped']
+                
+                if verbose:
+                    print(f"      ✅ Applied {stats['applied']}/{stats['total']} variants ({stats['skipped']} skipped)")
+            
+            personal_sequence = current_sequence
+            
+            if verbose:
+                total_vars = len(chrom_variants)
+                print(f"  🎯 Final: {total_applied}/{total_vars} variants applied ({total_skipped} skipped)")
+        
+        # Step 5: Store result
+        personal_genome[ref_chrom] = encode_seq(personal_sequence) if encode else personal_sequence
+        total_processed += len(chrom_variants)
+        
+        if verbose:
+            print(f"  ✅ Chromosome {ref_chrom} complete: {len(personal_sequence):,} bp final sequence")
+    
+    if verbose:
+        print(f"\n🎉 Processing complete! {len(personal_genome)} chromosomes, {total_processed:,} total variants processed")
+    
+    return personal_genome
