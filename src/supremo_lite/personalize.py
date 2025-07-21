@@ -360,7 +360,7 @@ def get_personal_genome(reference_fn, variants_fn, encode=True):
     return personal_genome
 
 
-def get_personal_sequences(reference_fn, variants_fn, seq_len, encode=True):
+def get_personal_sequences(reference_fn, variants_fn, seq_len, encode=True, chunk_size=1):
     """
     Create sequence windows centered on each variant position.
 
@@ -369,114 +369,137 @@ def get_personal_sequences(reference_fn, variants_fn, seq_len, encode=True):
         variants_fn: Path to variants file or DataFrame
         seq_len: Length of the sequence window
         encode: Return sequences as one-hot encoded numpy arrays (default: True)
+        chunk_size: Number of variants to process per chunk (default: 1)
 
-    Returns:
-        If encode=True: A tensor/array of shape (N, seq_len, 4) where N is the number of variants
-        If encode=False: A list of tuples containing (chrom, start, end, sequence_string)
+    Yields:
+        If encode=True: A tensor/array of shape (chunk_size, seq_len, 4) for each chunk
+        If encode=False: A list of tuples containing (chrom, start, end, sequence_string) for each chunk
     """
     # Load reference and variants
     reference = _load_reference(reference_fn)
-    variants = _load_variants(variants_fn)
     
-    sequences = []
-    metadata = []
-
-    # Process each variant individually
-    for _, var in variants.iterrows():
-        chrom = var["chrom"]
-        pos = var["pos"]  # 1-based position
-        
-        # Get reference sequence for this chromosome
-        if chrom not in reference:
-            warnings.warn(f"Chromosome {chrom} not found in reference. Skipping variant at {chrom}:{pos}.")
-            continue
-            
-        ref_seq = str(reference[chrom])
-        chrom_length = len(ref_seq)
-        
-        # Convert to 0-based position
-        genomic_pos = pos - 1
-        
-        # Create a temporary applicator with just this variant
-        single_var_df = pd.DataFrame([var])
-        temp_applicator = VariantApplicator(ref_seq, single_var_df)
-        
-        # Apply the variant to get the full modified chromosome
-        modified_chrom, stats = temp_applicator.apply_variants()
-        
-        # Calculate window boundaries centered on variant start
-        half_len = seq_len // 2
-        window_start = genomic_pos - half_len
-        window_end = window_start + seq_len
-        
-        # Handle edge cases and extract window
-        if window_start < 0:
-            # Window extends before chromosome start
-            left_pad = -window_start
-            actual_start = 0
+    # Handle chunked processing
+    if isinstance(variants_fn, str) and chunk_size > 1:
+        # Use chunked VCF reader for file paths
+        from .variant_utils import read_vcf_chunked
+        variant_chunks = read_vcf_chunked(variants_fn, chunk_size)
+    else:
+        # For DataFrames or single variant processing
+        variants = _load_variants(variants_fn)
+        if chunk_size == 1:
+            # Process one variant at a time
+            variant_chunks = (pd.DataFrame([row]) for _, row in variants.iterrows())
         else:
-            left_pad = 0
-            actual_start = window_start
+            # Split DataFrame into chunks using numpy array_split
+            n_chunks = max(1, len(variants) // chunk_size)
+            if len(variants) % chunk_size != 0:
+                n_chunks += 1
             
-        if window_end > len(modified_chrom):
-            # Window extends beyond chromosome end
-            right_pad = window_end - len(modified_chrom)
-            actual_end = len(modified_chrom)
-        else:
-            right_pad = 0
-            actual_end = window_end
+            indices = np.array_split(np.arange(len(variants)), n_chunks)
+            variant_chunks = (variants.iloc[chunk_indices].reset_index(drop=True) 
+                            for chunk_indices in indices if len(chunk_indices) > 0)
+    
+    # Process each chunk
+    for chunk_variants in variant_chunks:
+        sequences = []
+        metadata = []
         
-        # Extract window from modified chromosome
-        window_seq = modified_chrom[actual_start:actual_end]
-        
-        # Add padding if needed
-        if left_pad > 0:
-            window_seq = 'N' * left_pad + window_seq
-        if right_pad > 0:
-            window_seq = window_seq + 'N' * right_pad
+        # Process each variant individually in this chunk
+        for _, var in chunk_variants.iterrows():
+            chrom = var["chrom"]
+            pos = var["pos"]  # 1-based position
             
-        # Ensure correct length
-        if len(window_seq) != seq_len:
-            warnings.warn(
-                f"Sequence length mismatch for variant at {chrom}:{pos}. "
-                f"Expected {seq_len}, got {len(window_seq)}"
-            )
-            # Truncate or pad as needed
-            if len(window_seq) < seq_len:
-                window_seq += 'N' * (seq_len - len(window_seq))
+            # Get reference sequence for this chromosome
+            if chrom not in reference:
+                warnings.warn(f"Chromosome {chrom} not found in reference. Skipping variant at {chrom}:{pos}.")
+                continue
+                
+            ref_seq = str(reference[chrom])
+            chrom_length = len(ref_seq)
+            
+            # Convert to 0-based position
+            genomic_pos = pos - 1
+            
+            # Create a temporary applicator with just this variant
+            single_var_df = pd.DataFrame([var])
+            temp_applicator = VariantApplicator(ref_seq, single_var_df)
+            
+            # Apply the variant to get the full modified chromosome
+            modified_chrom, stats = temp_applicator.apply_variants()
+            
+            # Calculate window boundaries centered on variant start
+            half_len = seq_len // 2
+            window_start = genomic_pos - half_len
+            window_end = window_start + seq_len
+            
+            # Handle edge cases and extract window
+            if window_start < 0:
+                # Window extends before chromosome start
+                left_pad = -window_start
+                actual_start = 0
             else:
-                window_seq = window_seq[:seq_len]
+                left_pad = 0
+                actual_start = window_start
+                
+            if window_end > len(modified_chrom):
+                # Window extends beyond chromosome end
+                right_pad = window_end - len(modified_chrom)
+                actual_end = len(modified_chrom)
+            else:
+                right_pad = 0
+                actual_end = window_end
+            
+            # Extract window from modified chromosome
+            window_seq = modified_chrom[actual_start:actual_end]
+            
+            # Add padding if needed
+            if left_pad > 0:
+                window_seq = 'N' * left_pad + window_seq
+            if right_pad > 0:
+                window_seq = window_seq + 'N' * right_pad
+                
+            # Ensure correct length
+            if len(window_seq) != seq_len:
+                warnings.warn(
+                    f"Sequence length mismatch for variant at {chrom}:{pos}. "
+                    f"Expected {seq_len}, got {len(window_seq)}"
+                )
+                # Truncate or pad as needed
+                if len(window_seq) < seq_len:
+                    window_seq += 'N' * (seq_len - len(window_seq))
+                else:
+                    window_seq = window_seq[:seq_len]
+            
+            if encode:
+                # Store encoded sequence for tensor stacking
+                sequences.append(encode_seq(window_seq))
+            else:
+                # Store as tuple for backward compatibility
+                sequences.append((
+                    chrom, 
+                    max(0, genomic_pos - half_len),  # Original window start
+                    max(0, genomic_pos - half_len) + seq_len,  # Original window end
+                    window_seq
+                ))
+            
+            # Store metadata for potential future use
+            metadata.append({
+                'chrom': chrom,
+                'start': max(0, genomic_pos - half_len),
+                'end': max(0, genomic_pos - half_len) + seq_len,
+                'variant_pos': pos,
+                'ref': var['ref'],
+                'alt': var['alt']
+            })
         
-        if encode:
-            # Store encoded sequence for tensor stacking
-            sequences.append(encode_seq(window_seq))
+        # Yield chunk results
+        if encode and sequences:
+            if TORCH_AVAILABLE:
+                yield torch.stack(sequences)
+            else:
+                yield np.stack(sequences)
         else:
-            # Store as tuple for backward compatibility
-            sequences.append((
-                chrom, 
-                max(0, genomic_pos - half_len),  # Original window start
-                max(0, genomic_pos - half_len) + seq_len,  # Original window end
-                window_seq
-            ))
-        
-        # Store metadata for potential future use
-        metadata.append({
-            'chrom': chrom,
-            'start': max(0, genomic_pos - half_len),
-            'end': max(0, genomic_pos - half_len) + seq_len,
-            'variant_pos': pos,
-            'ref': var['ref'],
-            'alt': var['alt']
-        })
-
-    # If encoding, stack all sequences into a single tensor/array
-    if encode and sequences:
-        if TORCH_AVAILABLE:
-            return torch.stack(sequences)
-        else:
-            return np.stack(sequences)
-    
-    return sequences
+            yield sequences
 
 def get_pam_disrupting_personal_sequences(
     reference_fn, variants_fn, seq_len, max_pam_distance, pam_sequence="NGG", encode=True

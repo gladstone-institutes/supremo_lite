@@ -15,7 +15,7 @@ from .core import TORCH_AVAILABLE, nt_to_1h, nts
 from .sequence_utils import encode_seq, decode_seq, rc, rc_str
 
 # Import variant reading utilities
-from .variant_utils import read_vcf
+from .variant_utils import read_vcf, read_vcf_chunked
 
 # Import personalize functions
 from .personalize import (
