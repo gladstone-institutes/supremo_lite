@@ -90,7 +90,7 @@ personal_genome_raw = sl.get_personal_genome(
     variants_fn=variants_df,
     encode=False  # Returns sequence strings
 )
-chr1_sequence = personal_genome_raw['chr1']  # String of nucleotides
+chr1_sequence = personal_genome_raw['chr1']
 ```
 
 #### Memory-Efficient Processing for Large VCF Files
@@ -106,7 +106,7 @@ personal_genome = sl.get_personal_genome(
     chunk_size=10000  # Process 10,000 variants at a time
 )
 
-# chunk_size=1 (default) loads entire VCF - use for compatibility
+# chunk_size=1 (default) loads entire VCF
 # chunk_size>1 enables chunked processing for memory efficiency
 ```
 
@@ -425,7 +425,6 @@ We welcome feedback, bug reports, and feature requests! If you encounter any iss
 ### Common Issues to Report
 
 - **Performance problems** with large genomes or variant files
-- **Compatibility issues** with different file formats
 - **Unexpected behavior** with edge cases
 - **Documentation gaps** or unclear examples
 - **Feature requests** for new functionality
