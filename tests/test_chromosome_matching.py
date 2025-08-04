@@ -316,13 +316,13 @@ class TestIntegrationWithPersonalizeFunctions:
         assert isinstance(result, dict)
         assert all(isinstance(seq, str) for seq in result.values())
 
-    def test_get_personal_sequences_with_chromosome_matching(self):
-        """Test get_personal_sequences handles chromosome name mismatches."""
+    def test_get_alt_sequences_with_chromosome_matching(self):
+        """Test get_alt_sequences handles chromosome name mismatches."""
         reference, variants_df = self.create_test_reference_and_variants()
 
         # Should work despite chromosome name mismatch
         results = list(
-            sl.get_personal_sequences(
+            sl.get_alt_sequences(
                 reference_fn=reference,
                 variants_fn=variants_df,
                 seq_len=50,

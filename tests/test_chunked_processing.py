@@ -108,7 +108,7 @@ class TestChunkedPersonalSequences:
         try:
             # Test default chunking (chunk_size=1)
             results = list(
-                sl.get_personal_sequences(
+                sl.get_alt_sequences(
                     reference_fn=reference,
                     variants_fn=vcf_path,
                     seq_len=seq_len,
@@ -141,7 +141,7 @@ class TestChunkedPersonalSequences:
         try:
             # Test chunking with chunk_size=2
             results = list(
-                sl.get_personal_sequences(
+                sl.get_alt_sequences(
                     reference_fn=reference,
                     variants_fn=vcf_path,
                     seq_len=seq_len,
@@ -180,7 +180,7 @@ class TestChunkedPersonalSequences:
 
         # Test chunking with chunk_size=3
         results = list(
-            sl.get_personal_sequences(
+            sl.get_alt_sequences(
                 reference_fn=reference,
                 variants_fn=variants_df,
                 seq_len=seq_len,
@@ -206,7 +206,7 @@ class TestChunkedPersonalSequences:
         try:
             # Test without encoding
             results = list(
-                sl.get_personal_sequences(
+                sl.get_alt_sequences(
                     reference_fn=reference,
                     variants_fn=vcf_path,
                     seq_len=seq_len,
@@ -243,7 +243,7 @@ class TestChunkedPersonalSequences:
 
         try:
             # Process with chunking - should be generator
-            chunked_results = sl.get_personal_sequences(
+            chunked_results = sl.get_alt_sequences(
                 reference_fn=reference,
                 variants_fn=vcf_path,
                 seq_len=seq_len,
