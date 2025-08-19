@@ -18,23 +18,28 @@ def read_vcf(path):
         path: Path to VCF file
 
     Returns:
-        DataFrame with columns: chrom, pos, id, ref, alt
+        DataFrame with columns: chrom, pos1, id, ref, alt
     """
     with open(path, "r") as f:
         lines = [l for l in f if not l.startswith("##")]
-    return pd.read_csv(
+    
+    df = pd.read_csv(
         io.StringIO("".join(lines)),
         sep="\t",
         usecols=[0, 1, 2, 3, 4],  # Select only first 5 columns
-    ).rename(
-        columns={
-            "#CHROM": "chrom",
-            "POS": "pos",
-            "ID": "id",
-            "REF": "ref",
-            "ALT": "alt",
-        }
     )
+    
+    # Always use second column as pos1, regardless of header name
+    new_columns = ["chrom", "pos1", "id", "ref", "alt"]
+    df.columns = new_columns
+    
+    # Validate that pos1 column is numeric
+    if not pd.api.types.is_numeric_dtype(df["pos1"]):
+        raise ValueError(
+            f"Position column (second column) must be numeric, got {df['pos1'].dtype}"
+        )
+    
+    return df
 
 
 def read_vcf_chunked(path, chunk_size=1000):
@@ -46,7 +51,7 @@ def read_vcf_chunked(path, chunk_size=1000):
         chunk_size: Number of variants per chunk (default: 1000)
 
     Yields:
-        DataFrame chunks with columns: chrom, pos, id, ref, alt
+        DataFrame chunks with columns: chrom, pos1, id, ref, alt
     """
     with open(path, "r") as f:
         # Skip header lines
@@ -55,15 +60,22 @@ def read_vcf_chunked(path, chunk_size=1000):
     # Read full dataframe first
     full_df = pd.read_csv(
         io.StringIO("".join(lines)), sep="\t", usecols=[0, 1, 2, 3, 4]
-    ).rename(
-        columns={
-            "#CHROM": "chrom",
-            "POS": "pos",
-            "ID": "id",
-            "REF": "ref",
-            "ALT": "alt",
-        }
     )
+    
+    # Handle empty DataFrame
+    if len(full_df) == 0:
+        return
+    
+    # Always use second column as pos1, regardless of header name
+    new_columns = ["chrom", "pos1", "id", "ref", "alt"]
+    full_df.columns = new_columns
+    
+    # Validate that pos1 column is numeric
+    if not pd.api.types.is_numeric_dtype(full_df["pos1"]):
+        raise ValueError(
+            f"Position column (second column) must be numeric, got {full_df['pos1'].dtype}"
+        )
+    
 
     # Split into chunks using numpy array_split
     n_chunks = max(1, (len(full_df) + chunk_size - 1) // chunk_size)
@@ -108,7 +120,7 @@ def read_vcf_chromosome(path, target_chromosome):
         target_chromosome: Chromosome name to filter for
 
     Returns:
-        DataFrame with variants only from specified chromosome
+        DataFrame with variants only from specified chromosome (columns: chrom, pos1, id, ref, alt)
     """
     chromosome_lines = []
     header_line = None
@@ -128,22 +140,24 @@ def read_vcf_chromosome(path, target_chromosome):
 
     if not chromosome_lines:
         # Return empty DataFrame with correct columns if no variants found
-        return pd.DataFrame(columns=["chrom", "pos", "id", "ref", "alt"])
+        return pd.DataFrame(columns=["chrom", "pos1", "id", "ref", "alt"])
 
     # Combine header and chromosome-specific lines
     vcf_data = header_line + "".join(chromosome_lines)
 
     # Parse into DataFrame
-    df = pd.read_csv(io.StringIO(vcf_data), sep="\t", usecols=[0, 1, 2, 3, 4]).rename(
-        columns={
-            "#CHROM": "chrom",
-            "POS": "pos",
-            "ID": "id",
-            "REF": "ref",
-            "ALT": "alt",
-        }
-    )
-
+    df = pd.read_csv(io.StringIO(vcf_data), sep="\t", usecols=[0, 1, 2, 3, 4])
+    
+    # Always use second column as pos1, regardless of header name
+    new_columns = ["chrom", "pos1", "id", "ref", "alt"]
+    df.columns = new_columns
+    
+    # Validate that pos1 column is numeric
+    if len(df) > 0 and not pd.api.types.is_numeric_dtype(df["pos1"]):
+        raise ValueError(
+            f"Position column (second column) must be numeric, got {df['pos1'].dtype}"
+        )
+    
     return df
 
 
