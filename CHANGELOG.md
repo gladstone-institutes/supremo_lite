@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.5.2 (08/19/2025)
+
+- **Minimum dependency versions established**: Set minimum supported versions for all dependencies
+  - Python: `^3.8`
+  - torch: `>=1.13.0`
+  - pandas: `>=1.5.0`
+  - pyfaidx: `>=0.7.0`
+
 ## v0.5.1 (08/19/2025)
 
 

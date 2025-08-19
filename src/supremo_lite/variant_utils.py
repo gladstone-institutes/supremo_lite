@@ -22,23 +22,23 @@ def read_vcf(path):
     """
     with open(path, "r") as f:
         lines = [l for l in f if not l.startswith("##")]
-    
+
     df = pd.read_csv(
         io.StringIO("".join(lines)),
         sep="\t",
         usecols=[0, 1, 2, 3, 4],  # Select only first 5 columns
     )
-    
+
     # Always use second column as pos1, regardless of header name
     new_columns = ["chrom", "pos1", "id", "ref", "alt"]
     df.columns = new_columns
-    
+
     # Validate that pos1 column is numeric
     if not pd.api.types.is_numeric_dtype(df["pos1"]):
         raise ValueError(
             f"Position column (second column) must be numeric, got {df['pos1'].dtype}"
         )
-    
+
     return df
 
 
@@ -61,21 +61,20 @@ def read_vcf_chunked(path, chunk_size=1000):
     full_df = pd.read_csv(
         io.StringIO("".join(lines)), sep="\t", usecols=[0, 1, 2, 3, 4]
     )
-    
+
     # Handle empty DataFrame
     if len(full_df) == 0:
         return
-    
+
     # Always use second column as pos1, regardless of header name
     new_columns = ["chrom", "pos1", "id", "ref", "alt"]
     full_df.columns = new_columns
-    
+
     # Validate that pos1 column is numeric
     if not pd.api.types.is_numeric_dtype(full_df["pos1"]):
         raise ValueError(
             f"Position column (second column) must be numeric, got {full_df['pos1'].dtype}"
         )
-    
 
     # Split into chunks using numpy array_split
     n_chunks = max(1, (len(full_df) + chunk_size - 1) // chunk_size)
@@ -147,17 +146,17 @@ def read_vcf_chromosome(path, target_chromosome):
 
     # Parse into DataFrame
     df = pd.read_csv(io.StringIO(vcf_data), sep="\t", usecols=[0, 1, 2, 3, 4])
-    
+
     # Always use second column as pos1, regardless of header name
     new_columns = ["chrom", "pos1", "id", "ref", "alt"]
     df.columns = new_columns
-    
+
     # Validate that pos1 column is numeric
     if len(df) > 0 and not pd.api.types.is_numeric_dtype(df["pos1"]):
         raise ValueError(
             f"Position column (second column) must be numeric, got {df['pos1'].dtype}"
         )
-    
+
     return df
 
 
