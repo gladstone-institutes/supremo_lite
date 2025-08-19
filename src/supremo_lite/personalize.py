@@ -365,7 +365,7 @@ def _load_variants(
                 new_columns = list(variants_df.columns)
                 new_columns[1] = "pos1"
                 variants_df.columns = new_columns
-            
+
             # Validate that pos1 column is numeric
             if not pd.api.types.is_numeric_dtype(variants_df["pos1"]):
                 raise ValueError(
@@ -626,7 +626,6 @@ def get_alt_sequences(reference_fn, variants_fn, seq_len, encode=True, chunk_siz
                 yield np.stack(sequences)
         else:
             yield sequences
-
 
 
 def get_ref_sequences(reference_fn, variants_fn, seq_len, encode=True, chunk_size=1):
