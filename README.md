@@ -116,7 +116,7 @@ Generate sequence windows centered on each variant position:
 
 ```python
 # Create 1000bp windows around each variant
-sequences = sl.get_personal_sequences(
+sequences = sl.get_alt_sequences(
     reference_fn='hg38.fa',
     variants_fn='variants.vcf',
     seq_len=1000,
@@ -128,7 +128,7 @@ sequences = sl.get_personal_sequences(
 print(f"Generated {sequences.shape[0]} sequences of length {sequences.shape[1]}")
 
 # Or get raw sequences with metadata
-sequences_raw = sl.get_personal_sequences(
+sequences_raw = sl.get_alt_sequences(
     reference_fn='hg38.fa',
     variants_fn='variants.vcf',
     seq_len=1000,
@@ -288,7 +288,7 @@ import torch
 print(f"PyTorch available: {sl.TORCH_AVAILABLE}")
 
 # Sequences will be PyTorch tensors if available
-sequences = sl.get_personal_sequences(
+sequences = sl.get_alt_sequences(
     reference_fn='hg38.fa',
     variants_fn='variants.vcf',
     seq_len=1000
@@ -359,7 +359,7 @@ personal_genome = sl.get_personal_genome(
 )
 
 # For sequence generation, balance chunk size with memory
-sequences = list(sl.get_personal_sequences(
+sequences = list(sl.get_alt_sequences(
     reference_fn='hg38.fa', 
     variants_fn='variants.vcf',
     seq_len=1000,
@@ -367,7 +367,7 @@ sequences = list(sl.get_personal_sequences(
 ))
 
 # Disable encoding for large datasets to save memory
-sequences_raw = sl.get_personal_sequences(
+sequences_raw = sl.get_alt_sequences(
     reference_fn='hg38.fa',
     variants_fn='variants.vcf', 
     seq_len=1000,
@@ -380,7 +380,7 @@ sequences_raw = sl.get_personal_sequences(
 ### Core Functions
 
 - `get_personal_genome(reference_fn, variants_fn, encode=True, chunk_size=1)` - Generate personalized genome with chunked processing
-- `get_personal_sequences(reference_fn, variants_fn, seq_len, encode=True, chunk_size=1)` - Generate variant-centered windows  
+- `get_alt_sequences(reference_fn, variants_fn, seq_len, encode=True, chunk_size=1)` - Generate variant-centered windows  
 - `get_pam_disrupting_personal_sequences(reference_fn, variants_fn, seq_len, max_pam_distance, pam_sequence="NGG", encode=True, chunk_size=1)` - Find PAM-disrupting variants
 - `get_sm_sequences(chrom, start, end, reference_fasta)` - Saturation mutagenesis
 - `get_sm_subsequences(chrom, anchor, anchor_radius, seq_len, reference_fasta)` - Targeted mutagenesis

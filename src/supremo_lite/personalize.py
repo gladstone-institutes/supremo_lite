@@ -358,24 +358,23 @@ def _load_variants(
         # Handle DataFrame input
         variants_df = variants_fn.copy()
 
-        # Handle position column naming flexibility
-        if "pos1" in variants_df.columns:
-            # Already has pos1, use as-is
-            if "pos" not in variants_df.columns:
-                variants_df["pos"] = variants_df["pos1"]
-        elif "pos" in variants_df.columns:
-            # Has pos but not pos1, keep both for compatibility
-            variants_df["pos1"] = variants_df["pos"]
-        else:
-            # No pos or pos1 column, assume second column is position
-            if len(variants_df.columns) >= 2:
-                pos_col = variants_df.columns[1]
-                variants_df["pos"] = variants_df[pos_col]
-                variants_df["pos1"] = variants_df[pos_col]
-            else:
+        # Always use second column as pos1, regardless of current name
+        if len(variants_df.columns) >= 2:
+            # Rename second column to pos1 if it's not already named that
+            if variants_df.columns[1] != "pos1":
+                new_columns = list(variants_df.columns)
+                new_columns[1] = "pos1"
+                variants_df.columns = new_columns
+            
+            # Validate that pos1 column is numeric
+            if not pd.api.types.is_numeric_dtype(variants_df["pos1"]):
                 raise ValueError(
-                    "DataFrame must have at least 2 columns with position in second column"
+                    f"Position column (second column) must be numeric, got {variants_df['pos1'].dtype}"
                 )
+        else:
+            raise ValueError(
+                "DataFrame must have at least 2 columns with position in second column"
+            )
 
         return variants_df
 
@@ -628,34 +627,6 @@ def get_alt_sequences(reference_fn, variants_fn, seq_len, encode=True, chunk_siz
         else:
             yield sequences
 
-
-def get_personal_sequences(
-    reference_fn, variants_fn, seq_len, encode=True, chunk_size=1
-):
-    """
-    Create sequence windows centered on each variant position with variants applied.
-
-    DEPRECATED: Use get_alt_sequences instead. This function is kept for backward compatibility.
-
-    Args:
-        reference_fn: Path to reference genome file or dictionary-like object
-        variants_fn: Path to variants file or DataFrame
-        seq_len: Length of the sequence window
-        encode: Return sequences as one-hot encoded numpy arrays (default: True)
-        chunk_size: Number of variants to process per chunk (default: 1)
-
-    Yields:
-        If encode=True: A tensor/array of shape (chunk_size, seq_len, 4) for each chunk
-        If encode=False: A list of tuples containing (chrom, start, end, sequence_string) for each chunk
-    """
-    import warnings
-
-    warnings.warn(
-        "get_personal_sequences is deprecated. Use get_alt_sequences instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return get_alt_sequences(reference_fn, variants_fn, seq_len, encode, chunk_size)
 
 
 def get_ref_sequences(reference_fn, variants_fn, seq_len, encode=True, chunk_size=1):

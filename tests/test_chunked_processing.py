@@ -50,9 +50,9 @@ class TestChunkedVCFReading:
             # Should have only one chunk
             assert len(chunks) == 1
             assert len(chunks[0]) == 5
-            assert list(chunks[0].columns) == ["chrom", "pos", "id", "ref", "alt"]
+            assert list(chunks[0].columns) == ["chrom", "pos1", "id", "ref", "alt"]
             assert chunks[0]["chrom"].iloc[0] == "chr1"
-            assert chunks[0]["pos"].iloc[0] == 1000
+            assert chunks[0]["pos1"].iloc[0] == 1000
         finally:
             os.unlink(vcf_path)
 
@@ -74,8 +74,8 @@ class TestChunkedVCFReading:
             # Check continuity
             all_variants = pd.concat(chunks, ignore_index=True)
             assert len(all_variants) == 7
-            assert all_variants["pos"].iloc[0] == 1000
-            assert all_variants["pos"].iloc[6] == 1600
+            assert all_variants["pos1"].iloc[0] == 1000
+            assert all_variants["pos1"].iloc[6] == 1600
         finally:
             os.unlink(vcf_path)
 
@@ -94,7 +94,7 @@ class TestChunkedVCFReading:
 
 
 class TestChunkedPersonalSequences:
-    """Test chunked processing in get_personal_sequences."""
+    """Test chunked processing in get_alt_sequences."""
 
     def test_chunked_processing_default_chunk_size(self):
         """Test that default chunk_size=1 yields individual variants."""

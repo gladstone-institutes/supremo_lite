@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.5.1 (08/19/2025)
+
+
+- **Fixed VCF position column handling**: All VCF reading functions now consistently treat the second column as `pos1` regardless of header name 
+- **Added numeric validation**: Position columns are now validated to be numeric, throwing clear error messages for invalid data types
+- **Simplified DataFrame input**: Removed complex column name handling logic in favor of consistent `pos1` column naming
+- **Updated tests**: All test cases now use standardized `pos1` column names for consistency
+- Addressed issues #5, #6, #7, #8
 
 ## v0.5.0 (07/21/2025)
 

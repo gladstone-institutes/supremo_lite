@@ -98,7 +98,7 @@ class TestPersonalizeGenome(unittest.TestCase):
 
         # Load the variants to understand what we're testing
         variants = sl.read_vcf(multi_vcf)
-        chr1_variants = variants[variants["chrom"] == "chr1"].sort_values("pos")
+        chr1_variants = variants[variants["chrom"] == "chr1"].sort_values("pos1")
 
         # Verify we have the expected overlapping variants
         self.assertTrue(
@@ -106,7 +106,7 @@ class TestPersonalizeGenome(unittest.TestCase):
         )
 
         # Check for overlapping variants at positions 11
-        pos_11_variants = chr1_variants[chr1_variants["pos"] == 11]
+        pos_11_variants = chr1_variants[chr1_variants["pos1"] == 11]
         self.assertTrue(
             len(pos_11_variants) >= 2, "Should have overlapping variants at position 11"
         )
