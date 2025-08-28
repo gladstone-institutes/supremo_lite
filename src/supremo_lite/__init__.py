@@ -35,13 +35,14 @@ from .personalize import (
     get_personal_genome_chromosome_chunked,
     get_alt_sequences,
     get_pam_disrupting_personal_sequences,
+    get_alt_ref_sequences
 )
 
 # Import mutagenesis functions
 from .mutagenesis import get_sm_sequences, get_sm_subsequences
 
 # Version
-__version__ = "0.5.2"
+__version__ = "0.5.3"
 # Package metadata
 __description__ = (
     "A module for generating personalized genome sequences and in-silico mutagenesis"
