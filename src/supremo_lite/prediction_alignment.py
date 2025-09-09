@@ -99,25 +99,38 @@ def align_predictions_by_coordinate(ref_preds: np.ndarray,
         # SNVs don't change coordinates, direct alignment
         return ref_preds.copy(), alt_preds.copy()
         
-    elif variant_type in ['insertion', 'deletion', 'complex']:
+    elif variant_type in ['INS', 'DEL']:
         # Handle indel-type variants with coordinate shifts
         return align_indel_variants(ref_preds, alt_preds, variant_bin, downstream_offset, bin_length)
         
     elif variant_type == 'INV':
         # Inversions: sequence is reversed but coordinates maintained
-        return align_inversion_variant(ref_preds, alt_preds, variant_bin, metadata_row)
+        # TODO: Implement
+        # Unknown variant type, raise error to prevent unsupported usage
+        raise ValueError(f"Unsupported variant type: '{variant_type}'. "
+                        f"Supported types are: SNV, INS, DEL")
+
         
     elif variant_type == 'DUP':
         # Duplications: sequence is duplicated, extending downstream
-        return align_duplication_variant(ref_preds, alt_preds, variant_bin, metadata_row)
+        # TODO: Implement
+        # Unknown variant type, raise error to prevent unsupported usage
+        raise ValueError(f"Unsupported variant type: '{variant_type}'. "
+                        f"Supported types are: SNV, INS, DEL")
+
         
     elif variant_type == 'BND':
         # Breakends: complex rearrangements, may need special handling
-        return align_breakend_variant(ref_preds, alt_preds, variant_bin, metadata_row)
+        # TODO: Implement
+        # Unknown variant type, raise error to prevent unsupported usage
+        raise ValueError(f"Unsupported variant type: '{variant_type}'. "
+                        f"Supported types are: SNV, INS, DEL")
+
         
     else:
-        # Unknown variant type, fall back to simple alignment
-        return ref_preds.copy(), alt_preds.copy()
+        # Unknown variant type, raise error to prevent unsupported usage
+        raise ValueError(f"Unsupported variant type: '{variant_type}'. "
+                        f"Supported types are: SNV, INS, DEL")
 
 
 def align_indel_variants(ref_preds: np.ndarray, alt_preds: np.ndarray, 
