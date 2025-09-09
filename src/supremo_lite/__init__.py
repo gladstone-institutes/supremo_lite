@@ -20,6 +20,8 @@ from .variant_utils import (
     read_vcf_chunked,
     get_vcf_chromosomes,
     read_vcf_chromosome,
+    classify_variant_type,
+    parse_vcf_info
 )
 
 # Import chromosome matching utilities

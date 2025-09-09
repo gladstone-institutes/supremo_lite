@@ -327,7 +327,7 @@ class TestIntegrationWithPersonalizeFunctions:
                 variants_fn=variants_df,
                 seq_len=50,
                 encode=False,
-                chunk_size=2,
+                n_chunks=2,
             )
         )
 

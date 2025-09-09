@@ -22,7 +22,7 @@ from .variant_utils import (
 from .chromosome_utils import match_chromosomes_with_report, apply_chromosome_mapping
 from .sequence_utils import encode_seq
 from .core import TORCH_AVAILABLE
-from .prediction_alignment import classify_variant_type, parse_vcf_info
+from .variant_utils import classify_variant_type, parse_vcf_info
 
 try:
     import torch
@@ -109,17 +109,18 @@ class VariantApplicator:
     and sequence modifications for SNVs, insertions, and deletions.
     """
 
-    def __init__(self, sequence_str: str, variants_df: pd.DataFrame):
+    def __init__(self, sequence_str: str, variants_df: pd.DataFrame, frozen_tracker: FrozenRegionTracker = None):
         """
         Initialize variant applicator for a single chromosome.
 
         Args:
             sequence_str: Reference sequence as string
             variants_df: DataFrame containing variants for this chromosome
+            frozen_tracker: Optional existing FrozenRegionTracker to preserve overlap state across chunks
         """
         self.sequence = bytearray(sequence_str.encode())  # Mutable sequence
         self.variants = variants_df.sort_values("pos1").reset_index(drop=True)
-        self.frozen_tracker = FrozenRegionTracker()
+        self.frozen_tracker = frozen_tracker if frozen_tracker is not None else FrozenRegionTracker()
         self.cumulative_offset = 0  # Track length changes from applied variants
         self.applied_count = 0
         self.skipped_count = 0
@@ -337,20 +338,17 @@ def _get_reference_chromosomes(reference_fn: Union[str, Dict, Fasta]) -> set:
 
 
 def _load_variants(
-    variants_fn: Union[str, pd.DataFrame], chunk_size: int = 1
+    variants_fn: Union[str, pd.DataFrame], n_chunks: int = 1
 ) -> pd.DataFrame:
     """
     Load variants from file or return as-is if already a DataFrame.
 
     For DataFrames, assumes position column is either 'pos', 'pos1', or the second column.
+    Note: n_chunks parameter is currently unused but maintained for consistency.
     """
     if isinstance(variants_fn, str):
-        if chunk_size == 1:
-            variants_df = read_vcf(variants_fn)
-        else:
-            # For chunked processing, we still need to load all variants first
-            # to do chromosome matching, then we'll chunk during processing
-            variants_df = read_vcf(variants_fn)
+        # Always load all variants - chunking happens during processing
+        variants_df = read_vcf(variants_fn)
         # Rename pos to pos1 for consistency
         if "pos" in variants_df.columns and "pos1" not in variants_df.columns:
             variants_df = variants_df.rename(columns={"pos": "pos1"})
@@ -380,7 +378,7 @@ def _load_variants(
         return variants_df
 
 
-def get_personal_genome(reference_fn, variants_fn, encode=True, chunk_size=1):
+def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1):
     """
     Create a personalized genome by applying variants to a reference genome.
 
@@ -388,25 +386,25 @@ def get_personal_genome(reference_fn, variants_fn, encode=True, chunk_size=1):
         reference_fn: Path to reference genome file or dictionary-like object
         variants_fn: Path to variants file or DataFrame
         encode: Return sequences as one-hot encoded numpy arrays (default: True)
-        chunk_size: Process VCF in chunks of this size (default: 1, meaning load all at once)
+        n_chunks: Number of chunks to split variants for processing (default: 1, meaning load all at once)
 
     Returns:
         If encode=True: A dictionary mapping chromosome names to encoded tensors/arrays
         If encode=False: A dictionary mapping chromosome names to sequence strings
     """
 
-    # For chunk_size > 1, use the chromosome-based chunking approach which solves
+    # For n_chunks > 1, use the chromosome-based chunking approach which solves
     # the adjacent variant coordination problem
-    if chunk_size > 1:
+    if n_chunks > 1:
         return get_personal_genome_chromosome_chunked(
             reference_fn=reference_fn,
             variants_fn=variants_fn,
             encode=encode,
-            chunk_size=chunk_size,
+            n_chunks=n_chunks,
             verbose=False,  # Keep existing function quiet by default
         )
 
-    # Original approach for chunk_size=1 (backward compatibility)
+    # Original approach for n_chunks=1 (backward compatibility)
     reference = _load_reference(reference_fn)
     variants = _load_variants(variants_fn)
 
@@ -469,7 +467,7 @@ def get_personal_genome(reference_fn, variants_fn, encode=True, chunk_size=1):
     return personal_genome
 
 
-def get_alt_sequences(reference_fn, variants_fn, seq_len, encode=True, chunk_size=1, return_metadata=False):
+def get_alt_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=1, return_metadata=False):
     """
     Create sequence windows centered on each variant position with variants applied.
 
@@ -479,7 +477,7 @@ def get_alt_sequences(reference_fn, variants_fn, seq_len, encode=True, chunk_siz
                     For DataFrames, position column can be 'pos', 'pos1', or assumes second column is position.
         seq_len: Length of the sequence window
         encode: Return sequences as one-hot encoded numpy arrays (default: True)
-        chunk_size: Number of variants to process per chunk (default: 1)
+        n_chunks: Number of chunks to split variants into (default: 1)
         return_metadata: If True, return tuple (sequences, metadata_df) instead of just sequences (default: False)
 
     Yields:
@@ -507,7 +505,7 @@ def get_alt_sequences(reference_fn, variants_fn, seq_len, encode=True, chunk_siz
         all_variants = apply_chromosome_mapping(all_variants, mapping)
 
     # Split DataFrame into chunks using numpy array_split
-    n_chunks = max(1, (len(all_variants) + chunk_size - 1) // chunk_size)
+    # n_chunks parameter is used directly
     indices = np.array_split(np.arange(len(all_variants)), n_chunks)
     variant_chunks = (
         all_variants.iloc[chunk_indices].reset_index(drop=True)
@@ -650,7 +648,7 @@ def get_alt_sequences(reference_fn, variants_fn, seq_len, encode=True, chunk_siz
             yield sequences_result
 
 
-def get_ref_sequences(reference_fn, variants_fn, seq_len, encode=True, chunk_size=1, return_metadata=False):
+def get_ref_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=1, return_metadata=False):
     """
     Create reference sequence windows centered on each variant position (no variants applied).
 
@@ -660,7 +658,7 @@ def get_ref_sequences(reference_fn, variants_fn, seq_len, encode=True, chunk_siz
                     For DataFrames, position column can be 'pos', 'pos1', or assumes second column is position.
         seq_len: Length of the sequence window
         encode: Return sequences as one-hot encoded numpy arrays (default: True)
-        chunk_size: Number of variants to process per chunk (default: 1)
+        n_chunks: Number of chunks to split variants into (default: 1)
         return_metadata: If True, return tuple (sequences, metadata_df) instead of just sequences (default: False)
 
     Yields:
@@ -688,7 +686,7 @@ def get_ref_sequences(reference_fn, variants_fn, seq_len, encode=True, chunk_siz
         all_variants = apply_chromosome_mapping(all_variants, mapping)
 
     # Split DataFrame into chunks using numpy array_split
-    n_chunks = max(1, (len(all_variants) + chunk_size - 1) // chunk_size)
+    # n_chunks parameter is used directly
     indices = np.array_split(np.arange(len(all_variants)), n_chunks)
     variant_chunks = (
         all_variants.iloc[chunk_indices].reset_index(drop=True)
@@ -828,7 +826,7 @@ def get_ref_sequences(reference_fn, variants_fn, seq_len, encode=True, chunk_siz
 
 
 def get_alt_ref_sequences(
-    reference_fn, variants_fn, seq_len, encode=True, chunk_size=1
+    reference_fn, variants_fn, seq_len, encode=True, n_chunks=1
 ):
     """
     Create both reference and variant sequence windows for alt/ref ratio calculations.
@@ -842,7 +840,7 @@ def get_alt_ref_sequences(
                     For DataFrames, position column can be 'pos', 'pos1', or assumes second column is position.
         seq_len: Length of the sequence window
         encode: Return sequences as one-hot encoded numpy arrays (default: True)
-        chunk_size: Number of variants to process per chunk (default: 1)
+        n_chunks: Number of chunks to split variants into (default: 1)
 
     Yields:
         Tuple containing (alt_sequences, ref_sequences, metadata_df):
@@ -853,8 +851,8 @@ def get_alt_ref_sequences(
                           'variant_pos0_in_window', 'indel_offset', 'ref', 'alt'
     """
     # Get generators for both reference and variant sequences
-    ref_gen = get_ref_sequences(reference_fn, variants_fn, seq_len, encode, chunk_size)
-    alt_gen = get_alt_sequences(reference_fn, variants_fn, seq_len, encode, chunk_size)
+    ref_gen = get_ref_sequences(reference_fn, variants_fn, seq_len, encode, n_chunks)
+    alt_gen = get_alt_sequences(reference_fn, variants_fn, seq_len, encode, n_chunks)
 
     # Load variants once to get metadata
     all_variants = _load_variants(variants_fn)
@@ -871,8 +869,7 @@ def get_alt_ref_sequences(
         all_variants = apply_chromosome_mapping(all_variants, mapping)
 
     # Process chunks and yield combined results
-    import math
-    n_chunks = math.ceil(len(all_variants) / chunk_size)
+    # n_chunks parameter is used directly
     indices = np.array_split(np.arange(len(all_variants)), n_chunks)
     variant_chunks = (
         all_variants.iloc[chunk_indices].reset_index(drop=True)
@@ -922,7 +919,7 @@ def get_pam_disrupting_personal_sequences(
     max_pam_distance,
     pam_sequence="NGG",
     encode=True,
-    chunk_size=1,
+    n_chunks=1,
 ):
     """
     Generate sequences for variants that disrupt PAM sites.
@@ -934,7 +931,7 @@ def get_pam_disrupting_personal_sequences(
         max_pam_distance: Maximum distance from variant to PAM site
         pam_sequence: PAM sequence pattern (default: 'NGG' for SpCas9)
         encode: Return sequences as one-hot encoded numpy arrays (default: True)
-        chunk_size: Process VCF in chunks of this size (default: 1)
+        n_chunks: Number of chunks to split variants for processing (default: 1)
 
     Returns:
         A dictionary containing:
@@ -944,7 +941,7 @@ def get_pam_disrupting_personal_sequences(
     """
     # Load reference and variants
     reference = _load_reference(reference_fn)
-    variants = _load_variants(variants_fn, chunk_size)
+    variants = _load_variants(variants_fn, n_chunks)
 
     # Get all chromosome names and apply chromosome matching
     ref_chroms = set(reference.keys())
@@ -1103,20 +1100,20 @@ def get_pam_disrupting_personal_sequences(
 
 
 def get_personal_genome_chromosome_chunked(
-    reference_fn, variants_fn, encode=True, chunk_size=50000, verbose=True
+    reference_fn, variants_fn, encode=True, n_chunks=1, verbose=True
 ):
     """
     Create a personalized genome using chromosome-based chunking for memory efficiency.
 
     This function processes variants chromosome by chromosome, ensuring that adjacent
-    variants are processed correctly even when split across chunks. This solves the
-    coordination problem in standard chunking approaches.
+    variants are processed correctly even when split across chunks. FrozenRegionTracker
+    state is preserved across chunks to maintain proper overlapping variant detection.
 
     Args:
         reference_fn: Path to reference genome file or dictionary-like object
         variants_fn: Path to variants file or DataFrame
         encode: Return sequences as one-hot encoded arrays (default: True)
-        chunk_size: Maximum variants per chunk within each chromosome (default: 50000)
+        n_chunks: Number of chunks to split variants within each chromosome (default: 1)
         verbose: Print progress information (default: True)
 
     Returns:
@@ -1129,7 +1126,7 @@ def get_personal_genome_chromosome_chunked(
 
     # Normalize variants input to ensure consistent column naming
     if isinstance(variants_fn, pd.DataFrame):
-        variants_fn = _load_variants(variants_fn, chunk_size=1)
+        variants_fn = _load_variants(variants_fn, n_chunks=1)
 
     # Step 1: Get chromosome information from VCF and reference
     if isinstance(variants_fn, str):
@@ -1208,8 +1205,8 @@ def get_personal_genome_chromosome_chunked(
             print(f"  🧪 Found {len(chrom_variants):,} variants")
 
         # Step 4: Process chromosome (with chunking if needed)
-        if len(chrom_variants) <= chunk_size:
-            # Small chromosome - process all at once
+        if n_chunks == 1:
+            # Process all variants at once (no chunking)
             if verbose:
                 print(f"  ⚡ Processing all variants at once")
 
@@ -1225,24 +1222,23 @@ def get_personal_genome_chromosome_chunked(
                 print(f"  ✅ Applied {applied}/{total} variants ({skipped} skipped)")
 
         else:
-            # Large chromosome - process in chunks sequentially
+            # Process in n_chunks sequentially with preserved FrozenRegionTracker
             if verbose:
-                n_chunks = (len(chrom_variants) + chunk_size - 1) // chunk_size
+                avg_chunk_size = len(chrom_variants) // n_chunks
                 print(
-                    f"  🔄 Large chromosome: processing {n_chunks} chunks of ~{chunk_size:,} variants each"
+                    f"  🔄 Chunked processing: {n_chunks} chunks of ~{avg_chunk_size:,} variants each"
                 )
 
             # Sort variants by position to ensure correct sequential processing
             chrom_variants = chrom_variants.sort_values("pos1").reset_index(drop=True)
 
-            # Start with reference sequence
+            # Start with reference sequence and shared FrozenRegionTracker
             current_sequence = ref_sequence
+            shared_frozen_tracker = FrozenRegionTracker()
             total_applied = 0
             total_skipped = 0
 
-            # Process chunks sequentially
-            n_chunks = (len(chrom_variants) + chunk_size - 1) // chunk_size
-            
+            # Process chunks sequentially, preserving FrozenRegionTracker state
             indices = np.array_split(np.arange(len(chrom_variants)), n_chunks)
 
             for i, chunk_indices in enumerate(indices):
@@ -1254,8 +1250,8 @@ def get_personal_genome_chromosome_chunked(
                 if verbose:
                     print(f"    📦 Chunk {i+1}/{n_chunks}: {len(chunk_df):,} variants")
 
-                # Apply variants to current sequence state
-                applicator = VariantApplicator(current_sequence, chunk_df)
+                # Apply variants to current sequence state with preserved FrozenRegionTracker
+                applicator = VariantApplicator(current_sequence, chunk_df, shared_frozen_tracker)
                 current_sequence, stats = applicator.apply_variants()
 
                 total_applied += stats["applied"]

@@ -7,7 +7,7 @@ be part of the main package.
 
 import numpy as np
 import pandas as pd
-from typing import Dict, List, Tuple, Union, Optional
+from typing import Dict
 
 try:
     import torch
@@ -73,8 +73,10 @@ def create_test_predictions_dataset(
     """
     Create a test dataset with predictions using the MockModel.
     
-    This function is useful for testing and development without requiring
-    a pre-trained model.
+    This demonstrates the proper user workflow:
+    1. Get sequences with get_alt_ref_sequences
+    2. Run model to get predictions
+    3. Use alignment functions to align predictions
     
     Args:
         genome_dict: Dictionary mapping chromosome names to sequences
@@ -92,9 +94,11 @@ def create_test_predictions_dataset(
         raise ImportError("PyTorch is required for MockModel")
     
     # Import here to avoid circular imports
-    from supremo_lite.model_prediction_alignment import predict_and_align_variants
+    from supremo_lite.personalize import get_alt_ref_sequences
+    from supremo_lite.model_prediction_alignment import align_variant_predictions
+    from supremo_lite.variant_utils import classify_variant_type
     
-    # Create test model
+    # Step 1: Create test model
     model = MockModel(
         seq_length=seq_len,
         bin_length=bin_length, 
@@ -103,10 +107,53 @@ def create_test_predictions_dataset(
         seed=seed
     )
     
-    # Generate predictions and align
-    results = predict_and_align_variants(
-        model, genome_dict, vcf_df,
-        seq_len, bin_length, crop_length
+    # Step 2: Generate sequences (this is what users do)
+    sequences_generator = get_alt_ref_sequences(
+        genome_dict, vcf_df, 
+        seq_len=seq_len,
+        encode=True,
+        n_chunks=1
+    )
+    
+    alt_sequences, ref_sequences, metadata = next(sequences_generator)
+    
+    # Add variant type classification to metadata
+    metadata['variant_type'] = metadata.apply(
+        lambda row: classify_variant_type(row['ref'], row['alt']), axis=1
+    )
+    
+    # Step 3: Run model to get predictions (users do this with their own model)
+    model.eval()
+    ref_predictions = []
+    alt_predictions = []
+    
+    with torch.no_grad():
+        for i in range(len(ref_sequences)):
+            # Convert to tensors and add batch dimension
+            if isinstance(ref_sequences[i], torch.Tensor):
+                ref_tensor = ref_sequences[i].unsqueeze(0).float()
+                alt_tensor = alt_sequences[i].unsqueeze(0).float()
+            else:
+                ref_tensor = torch.from_numpy(ref_sequences[i]).unsqueeze(0).float()
+                alt_tensor = torch.from_numpy(alt_sequences[i]).unsqueeze(0).float()
+            
+            # Ensure correct tensor shape
+            if ref_tensor.shape[-1] == 4 and ref_tensor.shape[1] != 4:
+                ref_tensor = ref_tensor.transpose(1, 2)
+                alt_tensor = alt_tensor.transpose(1, 2)
+            
+            ref_pred = model(ref_tensor).cpu().numpy().squeeze(0)
+            alt_pred = model(alt_tensor).cpu().numpy().squeeze(0)
+            
+            ref_predictions.append(ref_pred)
+            alt_predictions.append(alt_pred)
+    
+    # Step 4: Use alignment functions (this is what users should do)
+    results = align_variant_predictions(
+        np.array(ref_predictions),
+        np.array(alt_predictions), 
+        metadata,
+        bin_length, crop_length
     )
     
     return {
@@ -120,28 +167,3 @@ def create_test_predictions_dataset(
             'seed': seed
         }
     }
-
-
-# Test runner for development
-if __name__ == '__main__':
-    if TORCH_AVAILABLE:
-        batch_size = 8
-        seq_length = 512 * 1024
-        bin_length = 32
-        crop_length = 5120 * bin_length
-        n_targets = 2
-
-        crop_bins = crop_length // bin_length
-        n_initial_bins = seq_length // bin_length
-        n_final_bins = n_initial_bins - 2 * crop_bins
-
-        m = MockModel(seq_length, bin_length, crop_length, n_targets)
-        x = torch.rand([batch_size, 4, seq_length])
-
-        y_hat = m(x)
-        assert y_hat.shape[0] == batch_size
-        assert y_hat.shape[1] == n_final_bins
-        assert y_hat.shape[2] == n_targets
-        print(f"MockModel test passed: {y_hat.shape}")
-    else:
-        print("PyTorch not available - skipping MockModel test")
