@@ -469,6 +469,7 @@ def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1):
 
 def get_alt_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=1, return_metadata=False):
     """
+    # TODO: Always return metadata
     Create sequence windows centered on each variant position with variants applied.
 
     Args:
@@ -650,6 +651,8 @@ def get_alt_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=
 
 def get_ref_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=1, return_metadata=False):
     """
+    # TODO: Always return metadata
+    # TODO: Modify the split chunk to include the window start, everything in the VCF + the window specific info
     Create reference sequence windows centered on each variant position (no variants applied).
 
     Args:
@@ -849,6 +852,7 @@ def get_alt_ref_sequences(
             - metadata_df: DataFrame with variant metadata including columns:
                           'chrom', 'window_start', 'window_end', 'variant_pos1', 
                           'variant_pos0_in_window', 'indel_offset', 'ref', 'alt'
+                          TODO: 
     """
     # Get generators for both reference and variant sequences
     ref_gen = get_ref_sequences(reference_fn, variants_fn, seq_len, encode, n_chunks)
