@@ -91,12 +91,18 @@ class TestChunkedPersonalSequences:
         # Should yield 1 result with all 4 variants (snp.vcf has 4 variants)
         assert len(results) == 1
         
+        # Unpack tuple (sequences, metadata)
+        sequences, metadata = results[0]
+        
         # Result should contain all 4 variants
-        assert results[0].shape == (
+        assert sequences.shape == (
             4,
             seq_len,
             4,
         )  # (4 variants, seq_len, 4 nucleotides)
+        
+        # Verify metadata is included
+        assert len(metadata) == 4  # 4 variants worth of metadata
 
     def test_chunked_processing_multiple_variants(self):
         """Test chunking with multiple variants per chunk."""
@@ -117,8 +123,17 @@ class TestChunkedPersonalSequences:
 
         # Should yield 2 chunks: 2, 2 variants (snp.vcf has 4 variants split into 2 chunks)
         assert len(results) == 2
-        assert results[0].shape == (2, seq_len, 4)
-        assert results[1].shape == (2, seq_len, 4)
+        
+        # Unpack tuples (sequences, metadata) for each chunk
+        sequences_1, metadata_1 = results[0]
+        sequences_2, metadata_2 = results[1]
+        
+        assert sequences_1.shape == (2, seq_len, 4)
+        assert sequences_2.shape == (2, seq_len, 4)
+        
+        # Verify metadata for each chunk
+        assert len(metadata_1) == 2  # 2 variants in first chunk
+        assert len(metadata_2) == 2  # 2 variants in second chunk
 
     def test_chunked_processing_with_dataframe(self):
         """Test chunking when variants_fn is a DataFrame."""
@@ -150,9 +165,20 @@ class TestChunkedPersonalSequences:
 
         # Should yield 3 chunks: 2, 1, 1 variants (array_split creates approximately equal chunks)
         assert len(results) == 3
-        assert results[0].shape == (2, seq_len, 4)
-        assert results[1].shape == (1, seq_len, 4)
-        assert results[2].shape == (1, seq_len, 4)
+        
+        # Unpack tuples (sequences, metadata) for each chunk
+        sequences_1, metadata_1 = results[0]
+        sequences_2, metadata_2 = results[1]
+        sequences_3, metadata_3 = results[2]
+        
+        assert sequences_1.shape == (2, seq_len, 4)
+        assert sequences_2.shape == (1, seq_len, 4)
+        assert sequences_3.shape == (1, seq_len, 4)
+        
+        # Verify metadata for each chunk
+        assert len(metadata_1) == 2  # 2 variants in first chunk
+        assert len(metadata_2) == 1  # 1 variant in second chunk
+        assert len(metadata_3) == 1  # 1 variant in third chunk
 
     def test_chunked_processing_no_encoding(self):
         """Test chunked processing without encoding."""
@@ -173,12 +199,21 @@ class TestChunkedPersonalSequences:
 
         # Should yield 2 chunks (snp.vcf has 4 variants split into 2 chunks)
         assert len(results) == 2
-        assert len(results[0]) == 2  # 2 variants in first chunk
-        assert len(results[1]) == 2  # 2 variants in second chunk
+        
+        # Unpack tuples (sequences, metadata) for each chunk
+        sequences_1, metadata_1 = results[0]
+        sequences_2, metadata_2 = results[1]
+        
+        assert len(sequences_1) == 2  # 2 variants in first chunk
+        assert len(sequences_2) == 2  # 2 variants in second chunk
+        
+        # Verify metadata for each chunk
+        assert len(metadata_1) == 2  # 2 variants in first chunk
+        assert len(metadata_2) == 2  # 2 variants in second chunk
 
         # Check format of results
-        for chunk in results:
-            for item in chunk:
+        for sequences, metadata in results:
+            for item in sequences:
                 assert len(item) == 4  # (chrom, start, end, sequence_string)
                 assert isinstance(item[3], str)  # sequence is string
                 assert len(item[3]) == seq_len
@@ -208,8 +243,12 @@ class TestChunkedPersonalSequences:
 
         # Consume generator and verify total results
         all_chunks = list(chunked_results)
-        total_variants = sum(chunk.shape[0] for chunk in all_chunks)
+        total_variants = sum(sequences.shape[0] for sequences, metadata in all_chunks)
         assert total_variants == 4  # snp.vcf has 4 variants
+        
+        # Verify metadata is also returned for each chunk
+        total_metadata = sum(len(metadata) for sequences, metadata in all_chunks)
+        assert total_metadata == 4  # 4 variants worth of metadata
 
 
 class TestChunkedPersonalizeFunctions:

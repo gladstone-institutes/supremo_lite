@@ -333,12 +333,21 @@ class TestIntegrationWithPersonalizeFunctions:
 
         # Should process all 4 variants in 2 chunks
         assert len(results) == 2
-        assert len(results[0]) == 2  # First chunk: 2 variants
-        assert len(results[1]) == 2  # Second chunk: 2 variants
+        
+        # Unpack tuples (sequences, metadata) for each chunk
+        sequences_1, metadata_1 = results[0]
+        sequences_2, metadata_2 = results[1]
+        
+        assert len(sequences_1) == 2  # First chunk: 2 variants
+        assert len(sequences_2) == 2  # Second chunk: 2 variants
+        
+        # Verify metadata for each chunk
+        assert len(metadata_1) == 2  # 2 variants in first chunk
+        assert len(metadata_2) == 2  # 2 variants in second chunk
 
         # Check that sequences were generated
-        for chunk in results:
-            for item in chunk:
+        for sequences, metadata in results:
+            for item in sequences:
                 chrom, start, end, sequence = item
                 assert chrom in ["1", "2", "X"]  # Should use reference chromosome names
                 assert len(sequence) == 50

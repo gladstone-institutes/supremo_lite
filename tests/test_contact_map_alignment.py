@@ -64,7 +64,7 @@ def test_1d_score_alignment():
         # Mock metadata for SNV
         metadata_snv = {
             'variant_type': 'SNV',
-            'variant_pos0_in_window': 100,
+            'variant_offset': 100,
             'position_offset_downstream': 0
         }
         
@@ -102,7 +102,7 @@ def test_1d_score_alignment():
         # Test insertion alignment
         metadata_ins = {
             'variant_type': 'INS',
-            'variant_pos0_in_window': 100,
+            'variant_offset': 100,
             'position_offset_downstream': 32  # 1 bin shift
         }
         
@@ -203,7 +203,7 @@ def test_contact_map_alignment():
     # Test SNV alignment
     metadata_snv = {
         'variant_type': 'SNV',
-        'variant_pos0_in_window': 50,
+        'variant_offset': 50,
         'position_offset_downstream': 0
     }
     
@@ -221,7 +221,7 @@ def test_contact_map_alignment():
     # Test insertion alignment
     metadata_ins = {
         'variant_type': 'INS',
-        'variant_pos0_in_window': 50,
+        'variant_offset': 50,
         'position_offset_downstream': 32
     }
     
@@ -239,7 +239,7 @@ def test_contact_map_alignment():
     # Test deletion alignment
     metadata_del = {
         'variant_type': 'DEL',
-        'variant_pos0_in_window': 50,
+        'variant_offset': 50,
         'position_offset_downstream': -32
     }
     

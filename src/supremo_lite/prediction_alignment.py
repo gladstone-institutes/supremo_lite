@@ -4,12 +4,6 @@ Utilities for aligning model predictions between reference and variant sequences
 This module provides functions to handle the alignment of ML model predictions
 when reference and variant sequences have position offsets due to indels. 
 
-TODO: The user must specify what type of predictions are being input to these functions
-
-The inputs will be 2 tensors for each window of dims: batch : bin : data
-Where data is either a 1D set of prediction scores or a 1D representation of an upper 
-triangular matrix (predicted contact map). For the contact map case we need to treat
-the alignment differently so the user has to specify which of these it is
 
 """
 
@@ -252,7 +246,7 @@ def align_1d_predictions(ref_preds: Union[np.ndarray, 'torch.Tensor'],
     """
     # Extract variant information from metadata
     variant_type = metadata_row.get('variant_type', 'unknown')
-    variant_pos_in_window = metadata_row.get('variant_pos0_in_window', metadata_row.get('effective_variant_start', 0))
+    variant_pos_in_window = metadata_row.get('variant_offset', metadata_row.get('effective_variant_start', 0))
     downstream_offset = metadata_row.get('position_offset_downstream', 0)
     
     # Convert variant position to bin coordinates
@@ -329,7 +323,7 @@ def align_contact_map_predictions(ref_preds: Union[np.ndarray, 'torch.Tensor'],
     """
     # Extract variant information from metadata
     variant_type = metadata_row.get('variant_type', 'unknown')
-    variant_pos_in_window = metadata_row.get('variant_pos0_in_window', metadata_row.get('effective_variant_start', 0))
+    variant_pos_in_window = metadata_row.get('variant_offset', metadata_row.get('effective_variant_start', 0))
     
     # Convert variant position to matrix bin coordinates
     variant_bin = coord_to_matrix_bin(variant_pos_in_window, 

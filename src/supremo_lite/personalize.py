@@ -201,15 +201,40 @@ class VariantApplicator:
 
     def _apply_single_variant(self, variant: pd.Series) -> None:
         """
-        Apply a single variant to the sequence.
+        Apply a single variant to the sequence using variant type classifications.
 
         Args:
-            variant: Series containing variant information (pos, ref, alt)
+            variant: Series containing variant information (pos, ref, alt, variant_type)
         """
-        # 1. VALIDATION CHECKS
-        if variant.alt.startswith("<"):
-            raise ValueError(f"Symbolic variant not supported: {variant.alt}")
+        # 1. VARIANT TYPE VALIDATION
+        variant_type = variant.get('variant_type', 'unknown')
+        
+        # Define supported and unsupported variant types
+        supported_types = {'SNV', 'MNV', 'INS', 'DEL', 'complex'}
+        unsupported_types = {
+            'SV_INV', 'SV_DUP', 'SV_DEL', 'SV_INS', 'SV_CNV', 'SV_BND', 
+            'missing', 'unknown'
+        }
+        
+        # Skip unsupported variant types with warning
+        if variant_type in unsupported_types:
+            warnings.warn(
+                f"Skipping unsupported variant type '{variant_type}' at position {variant.pos1}. "
+                f"Supported types are: {', '.join(sorted(supported_types))}"
+            )
+            self.skipped_count += 1
+            return
+            
+        # Skip unknown variant types with warning
+        if variant_type not in supported_types:
+            warnings.warn(
+                f"Skipping unknown variant type '{variant_type}' at position {variant.pos1}. "
+                f"Supported types are: {', '.join(sorted(supported_types))}"
+            )
+            self.skipped_count += 1
+            return
 
+        # 2. BASIC VALIDATION CHECKS
         if variant.alt == variant.ref:
             self.skipped_count += 1
             return  # Skip ref-only variants
@@ -217,11 +242,11 @@ class VariantApplicator:
         # Handle multiple ALT alleles - take first one
         alt_allele = variant.alt.split(",")[0]
 
-        # 2. COORDINATE CALCULATION
+        # 3. COORDINATE CALCULATION
         genomic_pos = variant.pos1 - 1  # Convert VCF 1-based to 0-based
         buffer_pos = genomic_pos + self.cumulative_offset
 
-        # 3. FROZEN REGION CHECK
+        # 4. FROZEN REGION CHECK
         ref_start = genomic_pos
         ref_end = genomic_pos + len(variant.ref) - 1
 
@@ -231,11 +256,11 @@ class VariantApplicator:
             self.skipped_count += 1
             return  # Skip overlapping variants
 
-        # 4. BOUNDS CHECK
+        # 5. BOUNDS CHECK
         if buffer_pos < 0 or buffer_pos + len(variant.ref) > len(self.sequence):
             raise ValueError(f"Variant position {variant.pos1} out of sequence bounds")
 
-        # 5. REFERENCE VALIDATION
+        # 6. REFERENCE VALIDATION
         expected_ref = self.sequence[
             buffer_pos : buffer_pos + len(variant.ref)
         ].decode()
@@ -245,39 +270,57 @@ class VariantApplicator:
                 f"expected '{variant.ref}', found '{expected_ref}'"
             )
 
-        # 6. SEQUENCE MODIFICATION
-        self._modify_sequence(buffer_pos, variant.ref, alt_allele)
+        # 7. SEQUENCE MODIFICATION
+        self._modify_sequence(buffer_pos, variant.ref, alt_allele, variant_type)
 
-        # 7. UPDATE TRACKING
+        # 8. UPDATE TRACKING
         length_diff = len(alt_allele) - len(variant.ref)
         self.cumulative_offset += length_diff
         self.frozen_tracker.add_range(ref_start, ref_end)
         self.applied_count += 1
 
-    def _modify_sequence(self, pos: int, ref_allele: str, alt_allele: str) -> None:
+    def _modify_sequence(self, pos: int, ref_allele: str, alt_allele: str, variant_type: str) -> None:
         """
-        Modify sequence at specified position with variant alleles.
+        Modify sequence at specified position using variant type classification.
 
         Args:
             pos: Buffer position (0-based)
             ref_allele: Reference allele sequence
             alt_allele: Alternate allele sequence
+            variant_type: Classified variant type (SNV, MNV, INS, DEL, complex)
         """
-        ref_len = len(ref_allele)
-        alt_len = len(alt_allele)
+        # Dispatch based on variant type classification
+        if variant_type in ['SNV', 'MNV']:
+            # Single or multi-nucleotide substitution
+            self.sequence[pos : pos + len(ref_allele)] = alt_allele.encode()
+            
+        elif variant_type == 'INS':
+            # Insertion: replace reference with longer alternate sequence
+            self.sequence[pos : pos + len(ref_allele)] = alt_allele.encode()
+            
+        elif variant_type == 'DEL':
+            # Deletion: replace reference with shorter alternate sequence
+            self.sequence[pos : pos + len(alt_allele)] = alt_allele.encode()
+            del self.sequence[pos + len(alt_allele) : pos + len(ref_allele)]
+            
+        elif variant_type == 'complex':
+            # Complex variant: use length-based logic as fallback
+            ref_len = len(ref_allele)
+            alt_len = len(alt_allele)
 
-        if alt_len == ref_len:
-            # SNV/MNV: Direct substitution
-            self.sequence[pos : pos + ref_len] = alt_allele.encode()
-
-        elif alt_len < ref_len:
-            # Deletion: Replace + remove extra bases
-            self.sequence[pos : pos + alt_len] = alt_allele.encode()
-            del self.sequence[pos + alt_len : pos + ref_len]
-
+            if alt_len == ref_len:
+                # Same length substitution
+                self.sequence[pos : pos + ref_len] = alt_allele.encode()
+            elif alt_len < ref_len:
+                # Deletion-like complex variant
+                self.sequence[pos : pos + alt_len] = alt_allele.encode()
+                del self.sequence[pos + alt_len : pos + ref_len]
+            else:
+                # Insertion-like complex variant
+                self.sequence[pos : pos + ref_len] = alt_allele.encode()
         else:
-            # Insertion: Replace + insert extra bases
-            self.sequence[pos : pos + ref_len] = alt_allele.encode()
+            # This should not happen due to validation in _apply_single_variant
+            raise ValueError(f"Unsupported variant type in sequence modification: {variant_type}")
 
 
 def _load_reference(reference_fn: Union[str, Dict, Fasta]) -> Union[Dict, Fasta]:
@@ -456,9 +499,79 @@ def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1, verb
     return personal_genome
 
 
-def get_alt_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=1, return_metadata=False):
+def _generate_sequence_metadata(chunk_variants, seq_len):
     """
-    # TODO: Always return metadata
+    Generate standardized metadata for sequence functions.
+    
+    This centralizes metadata generation to eliminate duplication across
+    get_alt_sequences, get_ref_sequences, and get_alt_ref_sequences.
+    
+    Args:
+        chunk_variants: DataFrame of variants for this chunk
+        seq_len: Length of the sequence window
+        
+    Returns:
+        pandas.DataFrame: Comprehensive metadata with standardized columns
+    """
+    metadata = []
+    
+    for _, var in chunk_variants.iterrows():
+        # Basic position calculations
+        pos = var["pos1"]  # 1-based VCF position
+        genomic_pos = pos - 1  # Convert to 0-based
+        half_len = seq_len // 2
+        window_start = max(0, genomic_pos - half_len)
+        window_end = window_start + seq_len
+        
+        # Variant classification and length calculations
+        variant_type = var.get('variant_type', 'unknown')
+        ref_length = len(var["ref"])
+        alt_length = len(var["alt"])
+        
+        # Calculate effective variant boundaries for complex variants
+        if variant_type in ['SV_INV', 'SV_DUP', 'SV_BND']:
+            # For structural variants, use full reported range
+            effective_start = genomic_pos
+            effective_end = genomic_pos + ref_length - 1  # 0-based end
+            variant_info = var.get('variant_info', {})
+        else:
+            # For simple variants, use standard boundaries
+            effective_start = genomic_pos  
+            effective_end = genomic_pos + ref_length - 1  # 0-based end
+            variant_info = None
+            
+        # Calculate position offsets
+        upstream_offset = 0  # Positions before variant unaffected
+        downstream_offset = alt_length - ref_length  # Net length change
+        
+        # Position within sequence window (0-based)
+        variant_offset = genomic_pos - window_start
+        
+        metadata.append({
+            "chrom": var["chrom"],
+            "start": window_start,
+            "end": window_end,
+            "variant_pos0": genomic_pos,  # 0-based absolute position
+            "variant_pos1": pos,  # 1-based absolute position  
+            "variant_offset": variant_offset,  # 0-based position within window
+            "ref": var["ref"],
+            "alt": var["alt"],
+            # Enhanced variant type information
+            "variant_type": variant_type,
+            "ref_length": ref_length,
+            "alt_length": alt_length,
+            "effective_variant_start": effective_start - window_start,  # Relative to window
+            "effective_variant_end": effective_end - window_start,      # Relative to window
+            "position_offset_upstream": upstream_offset,
+            "position_offset_downstream": downstream_offset,
+            "structural_variant_info": variant_info,
+        })
+    
+    return pd.DataFrame(metadata)
+
+
+def get_alt_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=1):
+    """
     Create sequence windows centered on each variant position with variants applied.
 
     Args:
@@ -468,14 +581,12 @@ def get_alt_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=
         seq_len: Length of the sequence window
         encode: Return sequences as one-hot encoded numpy arrays (default: True)
         n_chunks: Number of chunks to split variants into (default: 1)
-        return_metadata: If True, return tuple (sequences, metadata_df) instead of just sequences (default: False)
 
     Yields:
-        If return_metadata=False:
-            If encode=True: A tensor/array of shape (chunk_size, seq_len, 4) for each chunk
-            If encode=False: A list of tuples containing (chrom, start, end, sequence_string) for each chunk
-        If return_metadata=True: 
-            Tuple containing (sequences, metadata_df) where metadata_df is a DataFrame with variant information
+        Tuple containing (sequences, metadata_df) where:
+            If encode=True: sequences is a tensor/array of shape (chunk_size, seq_len, 4) for each chunk
+            If encode=False: sequences is a list of tuples containing (chrom, start, end, sequence_string) for each chunk
+            metadata_df is a DataFrame with variant information including position offsets
     """
     # Load reference and variants
     reference = _load_reference(reference_fn)
@@ -506,7 +617,8 @@ def get_alt_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=
     # Process each chunk using vectorized operations
     for chunk_variants in variant_chunks:
         sequences = []
-        metadata = []
+        # Generate standardized metadata using shared function
+        metadata_df = _generate_sequence_metadata(chunk_variants, seq_len)
         
         # Group variants by chromosome for efficient processing
         for chrom, chrom_variants in chunk_variants.groupby("chrom"):
@@ -584,44 +696,6 @@ def get_alt_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=
                         )
                     )
 
-                # Enhanced metadata with variant type information
-                variant_type = var.get('variant_type', 'unknown')
-                ref_length = len(var["ref"])
-                alt_length = len(var["alt"])
-                
-                # Parse INFO field if available for structural variant details
-                variant_info = parse_vcf_info(var.get('info', '')) if 'info' in var else {}
-                
-                # Calculate effective variant boundaries
-                effective_start = genomic_pos  # 0-based start
-                if variant_type in ['SV_INV', 'SV_DUP'] and 'END' in variant_info:
-                    effective_end = variant_info['END'] - 1  # Convert to 0-based
-                else:
-                    effective_end = genomic_pos + ref_length - 1  # 0-based end
-                    
-                # Calculate position offsets
-                upstream_offset = 0  # Positions before variant unaffected
-                downstream_offset = alt_length - ref_length  # Net length change
-
-                metadata.append(
-                    {
-                        "chrom": chrom,
-                        "start": max(0, genomic_pos - half_len),
-                        "end": max(0, genomic_pos - half_len) + seq_len,
-                        "variant_pos": pos,
-                        "ref": var["ref"],
-                        "alt": var["alt"],
-                        # Enhanced variant type information
-                        "variant_type": variant_type,
-                        "ref_length": ref_length,
-                        "alt_length": alt_length,
-                        "effective_variant_start": effective_start - max(0, genomic_pos - half_len),  # Relative to window
-                        "effective_variant_end": effective_end - max(0, genomic_pos - half_len),      # Relative to window
-                        "position_offset_upstream": upstream_offset,
-                        "position_offset_downstream": downstream_offset,
-                        "structural_variant_info": variant_info if variant_type in ['SV_INV', 'SV_DUP', 'SV_BND'] else None,
-                    }
-                )
 
         # Yield chunk results
         if encode and sequences:
@@ -632,18 +706,12 @@ def get_alt_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=
         else:
             sequences_result = sequences
 
-        if return_metadata:
-            # Convert metadata list to DataFrame
-            metadata_df = pd.DataFrame(metadata)
-            yield (sequences_result, metadata_df)
-        else:
-            yield sequences_result
+        # Always return metadata as tuple
+        yield (sequences_result, metadata_df)
 
 
-def get_ref_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=1, return_metadata=False):
+def get_ref_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=1):
     """
-    # TODO: Always return metadata
-    # TODO: Modify the split chunk to include the window start, everything in the VCF + the window specific info
     Create reference sequence windows centered on each variant position (no variants applied).
 
     Args:
@@ -653,14 +721,12 @@ def get_ref_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=
         seq_len: Length of the sequence window
         encode: Return sequences as one-hot encoded numpy arrays (default: True)
         n_chunks: Number of chunks to split variants into (default: 1)
-        return_metadata: If True, return tuple (sequences, metadata_df) instead of just sequences (default: False)
 
     Yields:
-        If return_metadata=False:
-            If encode=True: A tensor/array of shape (chunk_size, seq_len, 4) for each chunk
-            If encode=False: A list of tuples containing (chrom, start, end, sequence_string) for each chunk
-        If return_metadata=True: 
-            Tuple containing (sequences, metadata_df) where metadata_df is a DataFrame with variant information
+        Tuple containing (sequences, metadata_df) where:
+            If encode=True: sequences is a tensor/array of shape (chunk_size, seq_len, 4) for each chunk
+            If encode=False: sequences is a list of tuples containing (chrom, start, end, sequence_string) for each chunk
+            metadata_df is a DataFrame with variant information including position offsets
     """
     # Load reference and variants
     reference = _load_reference(reference_fn)
@@ -691,7 +757,8 @@ def get_ref_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=
     # Process each chunk using vectorized operations
     for chunk_variants in variant_chunks:
         sequences = []
-        metadata = []
+        # Generate standardized metadata using shared function
+        metadata_df = _generate_sequence_metadata(chunk_variants, seq_len)
         
         # Group variants by chromosome for efficient processing
         for chrom, chrom_variants in chunk_variants.groupby("chrom"):
@@ -765,44 +832,6 @@ def get_ref_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=
                         )
                     )
 
-                # Enhanced metadata with variant type information
-                variant_type = var.get('variant_type', 'unknown')
-                ref_length = len(var["ref"])
-                alt_length = len(var["alt"])
-                
-                # Parse INFO field if available for structural variant details
-                variant_info = parse_vcf_info(var.get('info', '')) if 'info' in var else {}
-                
-                # Calculate effective variant boundaries
-                effective_start = genomic_pos  # 0-based start
-                if variant_type in ['SV_INV', 'SV_DUP'] and 'END' in variant_info:
-                    effective_end = variant_info['END'] - 1  # Convert to 0-based
-                else:
-                    effective_end = genomic_pos + ref_length - 1  # 0-based end
-                    
-                # Calculate position offsets
-                upstream_offset = 0  # Positions before variant unaffected
-                downstream_offset = alt_length - ref_length  # Net length change
-
-                metadata.append(
-                    {
-                        "chrom": chrom,
-                        "start": max(0, genomic_pos - half_len),
-                        "end": max(0, genomic_pos - half_len) + seq_len,
-                        "variant_pos": pos,
-                        "ref": var["ref"],
-                        "alt": var["alt"],
-                        # Enhanced variant type information
-                        "variant_type": variant_type,
-                        "ref_length": ref_length,
-                        "alt_length": alt_length,
-                        "effective_variant_start": effective_start - max(0, genomic_pos - half_len),  # Relative to window
-                        "effective_variant_end": effective_end - max(0, genomic_pos - half_len),      # Relative to window
-                        "position_offset_upstream": upstream_offset,
-                        "position_offset_downstream": downstream_offset,
-                        "structural_variant_info": variant_info if variant_type in ['SV_INV', 'SV_DUP', 'SV_BND'] else None,
-                    }
-                )
 
         # Yield chunk results
         if encode and sequences:
@@ -813,12 +842,8 @@ def get_ref_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=
         else:
             sequences_result = sequences
 
-        if return_metadata:
-            # Convert metadata list to DataFrame
-            metadata_df = pd.DataFrame(metadata)
-            yield (sequences_result, metadata_df)
-        else:
-            yield sequences_result
+        # Always return metadata as tuple
+        yield (sequences_result, metadata_df)
 
 
 def get_alt_ref_sequences(
@@ -842,71 +867,23 @@ def get_alt_ref_sequences(
         Tuple containing (alt_sequences, ref_sequences, metadata_df):
             - alt_sequences: Variant sequences (same format as get_alt_sequences)
             - ref_sequences: Reference sequences (same format as get_ref_sequences) 
-            - metadata_df: DataFrame with variant metadata including columns:
-                          'chrom', 'window_start', 'window_end', 'variant_pos1', 
-                          'variant_pos0_in_window', 'indel_offset', 'ref', 'alt'
-                          TODO: 
+            - metadata_df: Enhanced DataFrame with comprehensive variant metadata including columns:
+                          'chrom', 'start', 'end', 'variant_pos0', 'variant_pos1', 'variant_offset',
+                          'ref', 'alt', 'variant_type', 'ref_length', 'alt_length', 
+                          'effective_variant_start', 'effective_variant_end', 
+                          'position_offset_upstream', 'position_offset_downstream', 
+                          'structural_variant_info' 
     """
     # Get generators for both reference and variant sequences
+    # These already handle variant loading, chromosome matching, and chunking
     ref_gen = get_ref_sequences(reference_fn, variants_fn, seq_len, encode, n_chunks)
     alt_gen = get_alt_sequences(reference_fn, variants_fn, seq_len, encode, n_chunks)
 
-    # Load variants once to get metadata
-    all_variants = _load_variants(variants_fn)
-    reference = _load_reference(reference_fn)
-
-    # Handle chromosome matching
-    ref_chroms = set(reference.keys())
-    vcf_chroms = set(all_variants["chrom"].unique())
-    mapping, unmatched = match_chromosomes_with_report(
-        ref_chroms, vcf_chroms, verbose=True
-    )
-
-    if mapping:
-        all_variants = apply_chromosome_mapping(all_variants, mapping)
-
-    # Process chunks and yield combined results
-    # n_chunks parameter is used directly
-    indices = np.array_split(np.arange(len(all_variants)), n_chunks)
-    variant_chunks = (
-        all_variants.iloc[chunk_indices].reset_index(drop=True)
-        for chunk_indices in indices
-        if len(chunk_indices) > 0
-    )
-
-    for chunk_variants, ref_chunk, alt_chunk in zip(variant_chunks, ref_gen, alt_gen):
-        # Build metadata for this chunk
-        metadata = []
-        for _, var in chunk_variants.iterrows():
-            genomic_pos = var["pos1"] - 1  # Convert to 0-based
-            half_len = seq_len // 2
-            window_start_pos = max(0, genomic_pos - half_len)
-            
-            # Calculate position offset due to indel
-            ref_len = len(var["ref"])
-            alt_len = len(var["alt"])
-            indel_offset = alt_len - ref_len
-            
-            # Calculate variant position within the sequence window (0-based)
-            variant_pos_in_window = genomic_pos - window_start_pos
-            
-            metadata.append(
-                {
-                    "chrom": var["chrom"],
-                    "window_start": window_start_pos,
-                    "window_end": window_start_pos + seq_len,
-                    "variant_pos1": var["pos1"],
-                    "variant_pos0_in_window": variant_pos_in_window,
-                    "indel_offset": indel_offset,
-                    "ref": var["ref"],
-                    "alt": var["alt"]
-                }
-            )
-
-        # Convert metadata list to DataFrame
-        metadata_df = pd.DataFrame(metadata)
-        
-        yield (alt_chunk, ref_chunk, metadata_df)
+    # Process chunks from both generators
+    for (ref_chunk, ref_metadata), (alt_chunk, alt_metadata) in zip(ref_gen, alt_gen):
+        # Use the rich metadata from ref_sequences (alt_metadata is identical)
+        # Both now contain standardized metadata with all required columns
+        yield (alt_chunk, ref_chunk, ref_metadata)
 
 
 def get_pam_disrupting_personal_sequences(
