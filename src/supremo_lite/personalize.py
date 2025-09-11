@@ -8,17 +8,11 @@ variants to a reference genome and generating sequence windows around variants.
 import bisect
 import warnings
 import os
-from typing import Dict, List, Tuple, Optional, Union
+from typing import Dict, List, Tuple, Union
 import pandas as pd
 import numpy as np
 from pyfaidx import Fasta
-from .variant_utils import (
-    read_vcf,
-    read_vcf_chunked,
-    get_vcf_chromosomes,
-    read_vcf_chromosome,
-    read_vcf_chromosomes_chunked,
-)
+from .variant_utils import read_vcf
 from .chromosome_utils import match_chromosomes_with_report, apply_chromosome_mapping
 from .sequence_utils import encode_seq
 from .core import TORCH_AVAILABLE
@@ -293,65 +287,21 @@ def _load_reference(reference_fn: Union[str, Dict, Fasta]) -> Union[Dict, Fasta]
     return reference_fn
 
 
-def _load_chromosome_reference(
-    reference_fn: Union[str, Dict, Fasta], chromosome: str
-) -> str:
-    """
-    Load a specific chromosome from reference genome.
-
-    Args:
-        reference_fn: Path to reference file, Fasta object, or dictionary
-        chromosome: Chromosome name to load
-
-    Returns:
-        String sequence for the specified chromosome
-
-    Raises:
-        KeyError: If chromosome not found in reference
-    """
-    reference = _load_reference(reference_fn)
-
-    if chromosome not in reference:
-        available_chroms = (
-            list(reference.keys()) if hasattr(reference, "keys") else ["unknown"]
-        )
-        raise KeyError(
-            f"Chromosome '{chromosome}' not found in reference. "
-            f"Available chromosomes: {sorted(available_chroms)[:10]}..."
-        )
-
-    return str(reference[chromosome])
 
 
-def _get_reference_chromosomes(reference_fn: Union[str, Dict, Fasta]) -> set:
-    """
-    Get set of chromosome names available in reference genome.
-
-    Args:
-        reference_fn: Path to reference file, Fasta object, or dictionary
-
-    Returns:
-        Set of chromosome names
-    """
-    reference = _load_reference(reference_fn)
-    return set(reference.keys())
-
-
-def _load_variants(
-    variants_fn: Union[str, pd.DataFrame], n_chunks: int = 1
-) -> pd.DataFrame:
+def _load_variants(variants_fn: Union[str, pd.DataFrame]) -> pd.DataFrame:
     """
     Load variants from file or return as-is if already a DataFrame.
+    Ensures variant classification happens once during loading.
 
     For DataFrames, assumes position column is either 'pos', 'pos1', or the second column.
-    Note: n_chunks parameter is currently unused but maintained for consistency.
+    If DataFrame lacks variant_type column, classification will be added.
     """
     if isinstance(variants_fn, str):
-        # Always load all variants - chunking happens during processing
-        variants_df = read_vcf(variants_fn)
+        # Always load all variants with classification
+        variants_df = read_vcf(variants_fn, classify_variants=True)
         # Rename pos to pos1 for consistency
-        if "pos" in variants_df.columns and "pos1" not in variants_df.columns:
-            variants_df = variants_df.rename(columns={"pos": "pos1"})
+
         return variants_df
     else:
         # Handle DataFrame input
@@ -375,94 +325,133 @@ def _load_variants(
                 "DataFrame must have at least 2 columns with position in second column"
             )
 
+        # Ensure variant classification exists
+        if 'variant_type' not in variants_df.columns:
+            if len(variants_df) > 0:
+                # Add variant classification to non-empty DataFrame
+                variants_df['variant_type'] = variants_df.apply(
+                    lambda row: classify_variant_type(
+                        row['ref'], 
+                        row['alt'], 
+                        parse_vcf_info(row.get('info', '')) if 'info' in row else None
+                    ), 
+                    axis=1
+                )
+            else:
+                # Handle empty DataFrame - just add empty column
+                variants_df['variant_type'] = pd.Series(dtype='object')
+
         return variants_df
 
 
-def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1):
+def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1, verbose=False):
     """
     Create a personalized genome by applying variants to a reference genome.
 
     Args:
         reference_fn: Path to reference genome file or dictionary-like object
         variants_fn: Path to variants file or DataFrame
-        encode: Return sequences as one-hot encoded numpy arrays (default: True)
-        n_chunks: Number of chunks to split variants for processing (default: 1, meaning load all at once)
+        encode: Return sequences as one-hot encoded arrays (default: True)
+        n_chunks: Number of chunks to split variants into for processing (default: 1)
+        verbose: Print progress information (default: False)
 
     Returns:
         If encode=True: A dictionary mapping chromosome names to encoded tensors/arrays
         If encode=False: A dictionary mapping chromosome names to sequence strings
     """
-
-    # For n_chunks > 1, use the chromosome-based chunking approach which solves
-    # the adjacent variant coordination problem
-    if n_chunks > 1:
-        return get_personal_genome_chromosome_chunked(
-            reference_fn=reference_fn,
-            variants_fn=variants_fn,
-            encode=encode,
-            n_chunks=n_chunks,
-            verbose=False,  # Keep existing function quiet by default
-        )
-
-    # Original approach for n_chunks=1 (backward compatibility)
-    reference = _load_reference(reference_fn)
+    # Load all variants once with classification
     variants = _load_variants(variants_fn)
+    reference = _load_reference(reference_fn)
 
-    # Sort variants by chromosome and position
+    # Sort variants by chromosome and position for efficient processing
     variants = variants.sort_values(["chrom", "pos1"])
 
-    # Get all chromosome names from the reference and VCF
+    # Apply chromosome name matching once
     ref_chroms = set(reference.keys())
     vcf_chroms = set(variants["chrom"].unique())
+    
+    if verbose:
+        print(f"🧬 Processing {len(variants):,} variants across {len(vcf_chroms)} chromosomes")
 
-    # Use chromosome matching to handle name mismatches
     mapping, unmatched = match_chromosomes_with_report(
-        ref_chroms, vcf_chroms, verbose=True
+        ref_chroms, vcf_chroms, verbose=verbose
     )
 
-    # Apply chromosome name mapping to variants
+    # Apply chromosome name mapping to all variants
     if mapping:
         variants = apply_chromosome_mapping(variants, mapping)
 
-    # Build a dictionary of variants grouped by chromosome
-    chrom_to_vars = {}
-    for chrom, group in variants.groupby("chrom"):
-        if chrom in ref_chroms:
-            chrom_to_vars[chrom] = group
-
     # Initialize personalized genome
     personal_genome = {}
+    total_processed = 0
 
-    # Process each chromosome in the reference
-    for chrom in ref_chroms:
+    # Process each chromosome
+    for chrom, chrom_variants in variants.groupby("chrom"):
+        if chrom not in reference:
+            if verbose:
+                print(f"⚠️  Skipping {chrom}: not found in reference")
+            continue
+
         ref_seq = str(reference[chrom])
+        
+        if verbose:
+            print(f"🔄 Processing chromosome {chrom}: {len(chrom_variants):,} variants")
 
-        if chrom in chrom_to_vars:
-            chrom_vars = chrom_to_vars[chrom]
-            applicator = VariantApplicator(ref_seq, chrom_vars)
+        if n_chunks == 1:
+            # Process all variants at once
+            applicator = VariantApplicator(ref_seq, chrom_variants)
             personal_seq, stats = applicator.apply_variants()
+            
+            if verbose and stats["total"] > 0:
+                print(f"  ✅ Applied {stats['applied']}/{stats['total']} variants ({stats['skipped']} skipped)")
 
-            # Report statistics if any variants were processed
-            if stats["total"] > 0:
-                applied = stats["applied"]
-                skipped = stats["skipped"]
-                total = stats["total"]
-                if skipped > 0:
-                    warnings.warn(
-                        f"Chromosome {chrom}: {applied}/{total} variants applied, "
-                        f"{skipped} skipped due to overlaps or errors"
-                    )
-            sequence = personal_seq
-            # Pad sequence with Ns if shorter than reference
-            ref_len = len(ref_seq)
-            seq_len = len(sequence)
-            if seq_len < ref_len:
-                sequence += "N" * (ref_len - seq_len)
         else:
-            sequence = ref_seq
+            # Process in chunks with shared FrozenRegionTracker
+            current_sequence = ref_seq
+            shared_frozen_tracker = FrozenRegionTracker()
+            total_applied = 0
+            total_skipped = 0
 
-        # Apply encoding if requested
-        personal_genome[chrom] = encode_seq(sequence) if encode else sequence
+            # Split chromosome variants into n_chunks
+            indices = np.array_split(np.arange(len(chrom_variants)), n_chunks)
+            
+            if verbose:
+                avg_chunk_size = len(chrom_variants) // n_chunks
+                print(f"  📦 Processing {n_chunks} chunks of ~{avg_chunk_size:,} variants each")
+
+            for i, chunk_indices in enumerate(indices):
+                if len(chunk_indices) == 0:
+                    continue
+
+                chunk_df = chrom_variants.iloc[chunk_indices].reset_index(drop=True)
+                
+                # Apply variants with shared FrozenRegionTracker
+                applicator = VariantApplicator(current_sequence, chunk_df, shared_frozen_tracker)
+                current_sequence, stats = applicator.apply_variants()
+
+                total_applied += stats["applied"]
+                total_skipped += stats["skipped"]
+
+                if verbose:
+                    print(f"    ✅ Chunk {i+1}: {stats['applied']}/{stats['total']} variants applied")
+
+            personal_seq = current_sequence
+            
+            if verbose:
+                print(f"  🎯 Total: {total_applied}/{len(chrom_variants)} variants applied ({total_skipped} skipped)")
+
+        # Store result
+        personal_genome[chrom] = encode_seq(personal_seq) if encode else personal_seq
+        total_processed += len(chrom_variants)
+
+    # Add chromosomes with no variants
+    for chrom in ref_chroms:
+        if chrom not in personal_genome:
+            ref_seq = str(reference[chrom])
+            personal_genome[chrom] = encode_seq(ref_seq) if encode else ref_seq
+
+    if verbose:
+        print(f"🎉 Complete! {len(personal_genome)} chromosomes, {total_processed:,} variants processed")
 
     return personal_genome
 
@@ -596,14 +585,16 @@ def get_alt_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=
                     )
 
                 # Enhanced metadata with variant type information
-                variant_info = parse_vcf_info(var.get('info', ''))
-                variant_type = classify_variant_type(var["ref"], var["alt"], variant_info)
+                variant_type = var.get('variant_type', 'unknown')
                 ref_length = len(var["ref"])
                 alt_length = len(var["alt"])
                 
+                # Parse INFO field if available for structural variant details
+                variant_info = parse_vcf_info(var.get('info', '')) if 'info' in var else {}
+                
                 # Calculate effective variant boundaries
                 effective_start = genomic_pos  # 0-based start
-                if variant_type in ['INV', 'DUP'] and 'END' in variant_info:
+                if variant_type in ['SV_INV', 'SV_DUP'] and 'END' in variant_info:
                     effective_end = variant_info['END'] - 1  # Convert to 0-based
                 else:
                     effective_end = genomic_pos + ref_length - 1  # 0-based end
@@ -628,7 +619,7 @@ def get_alt_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=
                         "effective_variant_end": effective_end - max(0, genomic_pos - half_len),      # Relative to window
                         "position_offset_upstream": upstream_offset,
                         "position_offset_downstream": downstream_offset,
-                        "structural_variant_info": variant_info if variant_type in ['INV', 'DUP', 'BND'] else None,
+                        "structural_variant_info": variant_info if variant_type in ['SV_INV', 'SV_DUP', 'SV_BND'] else None,
                     }
                 )
 
@@ -775,14 +766,16 @@ def get_ref_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=
                     )
 
                 # Enhanced metadata with variant type information
-                variant_info = parse_vcf_info(var.get('info', ''))
-                variant_type = classify_variant_type(var["ref"], var["alt"], variant_info)
+                variant_type = var.get('variant_type', 'unknown')
                 ref_length = len(var["ref"])
                 alt_length = len(var["alt"])
                 
+                # Parse INFO field if available for structural variant details
+                variant_info = parse_vcf_info(var.get('info', '')) if 'info' in var else {}
+                
                 # Calculate effective variant boundaries
                 effective_start = genomic_pos  # 0-based start
-                if variant_type in ['INV', 'DUP'] and 'END' in variant_info:
+                if variant_type in ['SV_INV', 'SV_DUP'] and 'END' in variant_info:
                     effective_end = variant_info['END'] - 1  # Convert to 0-based
                 else:
                     effective_end = genomic_pos + ref_length - 1  # 0-based end
@@ -807,7 +800,7 @@ def get_ref_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=
                         "effective_variant_end": effective_end - max(0, genomic_pos - half_len),      # Relative to window
                         "position_offset_upstream": upstream_offset,
                         "position_offset_downstream": downstream_offset,
-                        "structural_variant_info": variant_info if variant_type in ['INV', 'DUP', 'BND'] else None,
+                        "structural_variant_info": variant_info if variant_type in ['SV_INV', 'SV_DUP', 'SV_BND'] else None,
                     }
                 )
 
@@ -945,7 +938,7 @@ def get_pam_disrupting_personal_sequences(
     """
     # Load reference and variants
     reference = _load_reference(reference_fn)
-    variants = _load_variants(variants_fn, n_chunks)
+    variants = _load_variants(variants_fn)
 
     # Get all chromosome names and apply chromosome matching
     ref_chroms = set(reference.keys())
@@ -1103,191 +1096,3 @@ def get_pam_disrupting_personal_sequences(
     }
 
 
-def get_personal_genome_chromosome_chunked(
-    reference_fn, variants_fn, encode=True, n_chunks=1, verbose=True
-):
-    """
-    Create a personalized genome using chromosome-based chunking for memory efficiency.
-
-    This function processes variants chromosome by chromosome, ensuring that adjacent
-    variants are processed correctly even when split across chunks. FrozenRegionTracker
-    state is preserved across chunks to maintain proper overlapping variant detection.
-
-    Args:
-        reference_fn: Path to reference genome file or dictionary-like object
-        variants_fn: Path to variants file or DataFrame
-        encode: Return sequences as one-hot encoded arrays (default: True)
-        n_chunks: Number of chunks to split variants within each chromosome (default: 1)
-        verbose: Print progress information (default: True)
-
-    Returns:
-        If encode=True: A dictionary mapping chromosome names to encoded tensors/arrays
-        If encode=False: A dictionary mapping chromosome names to sequence strings
-    """
-
-    if verbose:
-        print("🧬 Starting chromosome-based chunked processing...")
-
-    # Normalize variants input to ensure consistent column naming
-    if isinstance(variants_fn, pd.DataFrame):
-        variants_fn = _load_variants(variants_fn, n_chunks=1)
-
-    # Step 1: Get chromosome information from VCF and reference
-    if isinstance(variants_fn, str):
-        vcf_chromosomes = get_vcf_chromosomes(variants_fn)
-        if verbose:
-            print(
-                f"📁 Found {len(vcf_chromosomes)} chromosomes in VCF: {sorted(list(vcf_chromosomes))[:5]}{'...' if len(vcf_chromosomes) > 5 else ''}"
-            )
-    else:
-        # DataFrame input
-        vcf_chromosomes = set(variants_fn["chrom"].unique())
-
-    ref_chromosomes = _get_reference_chromosomes(reference_fn)
-    if verbose:
-        print(f"📚 Found {len(ref_chromosomes)} chromosomes in reference")
-
-    # Step 2: Apply chromosome name matching
-    mapping, unmatched = match_chromosomes_with_report(
-        ref_chromosomes, vcf_chromosomes, verbose=verbose
-    )
-
-    # Step 3: Process each chromosome
-    personal_genome = {}
-    total_processed = 0
-
-    for ref_chrom in sorted(ref_chromosomes):
-        if verbose:
-            print(f"\n🔄 Processing chromosome {ref_chrom}...")
-
-        # Find VCF chromosome name (may be different due to naming conventions)
-        vcf_chrom = None
-        for vcf_chr, ref_chr in mapping.items():
-            if ref_chr == ref_chrom:
-                vcf_chrom = vcf_chr
-                break
-
-        # Load reference sequence for this chromosome only
-        try:
-            ref_sequence = _load_chromosome_reference(reference_fn, ref_chrom)
-            if verbose:
-                print(f"  📖 Loaded reference: {len(ref_sequence):,} bp")
-        except KeyError:
-            if verbose:
-                print(f"  ⚠️  Skipping {ref_chrom}: not found in reference")
-            continue
-
-        if vcf_chrom is None:
-            # No variants for this chromosome
-            if verbose:
-                print(f"  📝 No variants found for {ref_chrom}")
-            personal_genome[ref_chrom] = (
-                encode_seq(ref_sequence) if encode else ref_sequence
-            )
-            continue
-
-        # Load variants for this chromosome only
-        if isinstance(variants_fn, str):
-            chrom_variants = read_vcf_chromosome(variants_fn, vcf_chrom)
-        else:
-            # DataFrame input
-            chrom_variants = variants_fn[variants_fn["chrom"] == vcf_chrom].copy()
-
-        if len(chrom_variants) == 0:
-            if verbose:
-                print(f"  📝 No variants found for {ref_chrom}")
-            personal_genome[ref_chrom] = (
-                encode_seq(ref_sequence) if encode else ref_sequence
-            )
-            continue
-
-        # Apply chromosome mapping to variants
-        if vcf_chrom in mapping:
-            chrom_variants["chrom"] = mapping[vcf_chrom]
-
-        if verbose:
-            print(f"  🧪 Found {len(chrom_variants):,} variants")
-
-        # Step 4: Process chromosome (with chunking if needed)
-        if n_chunks == 1:
-            # Process all variants at once (no chunking)
-            if verbose:
-                print(f"  ⚡ Processing all variants at once")
-
-            applicator = VariantApplicator(ref_sequence, chrom_variants)
-            personal_sequence, stats = applicator.apply_variants()
-
-            if verbose and stats["total"] > 0:
-                applied, skipped, total = (
-                    stats["applied"],
-                    stats["skipped"],
-                    stats["total"],
-                )
-                print(f"  ✅ Applied {applied}/{total} variants ({skipped} skipped)")
-
-        else:
-            # Process in n_chunks sequentially with preserved FrozenRegionTracker
-            if verbose:
-                avg_chunk_size = len(chrom_variants) // n_chunks
-                print(
-                    f"  🔄 Chunked processing: {n_chunks} chunks of ~{avg_chunk_size:,} variants each"
-                )
-
-            # Sort variants by position to ensure correct sequential processing
-            chrom_variants = chrom_variants.sort_values("pos1").reset_index(drop=True)
-
-            # Start with reference sequence and shared FrozenRegionTracker
-            current_sequence = ref_sequence
-            shared_frozen_tracker = FrozenRegionTracker()
-            total_applied = 0
-            total_skipped = 0
-
-            # Process chunks sequentially, preserving FrozenRegionTracker state
-            indices = np.array_split(np.arange(len(chrom_variants)), n_chunks)
-
-            for i, chunk_indices in enumerate(indices):
-                if len(chunk_indices) == 0:
-                    continue
-
-                chunk_df = chrom_variants.iloc[chunk_indices].reset_index(drop=True)
-
-                if verbose:
-                    print(f"    📦 Chunk {i+1}/{n_chunks}: {len(chunk_df):,} variants")
-
-                # Apply variants to current sequence state with preserved FrozenRegionTracker
-                applicator = VariantApplicator(current_sequence, chunk_df, shared_frozen_tracker)
-                current_sequence, stats = applicator.apply_variants()
-
-                total_applied += stats["applied"]
-                total_skipped += stats["skipped"]
-
-                if verbose:
-                    print(
-                        f"      ✅ Applied {stats['applied']}/{stats['total']} variants ({stats['skipped']} skipped)"
-                    )
-
-            personal_sequence = current_sequence
-
-            if verbose:
-                total_vars = len(chrom_variants)
-                print(
-                    f"  🎯 Final: {total_applied}/{total_vars} variants applied ({total_skipped} skipped)"
-                )
-
-        # Step 5: Store result
-        personal_genome[ref_chrom] = (
-            encode_seq(personal_sequence) if encode else personal_sequence
-        )
-        total_processed += len(chrom_variants)
-
-        if verbose:
-            print(
-                f"  ✅ Chromosome {ref_chrom} complete: {len(personal_sequence):,} bp final sequence"
-            )
-
-    if verbose:
-        print(
-            f"\n🎉 Processing complete! {len(personal_genome)} chromosomes, {total_processed:,} total variants processed"
-        )
-
-    return personal_genome

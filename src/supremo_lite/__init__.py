@@ -34,7 +34,6 @@ from .chromosome_utils import (
 # Import personalize functions
 from .personalize import (
     get_personal_genome,
-    get_personal_genome_chromosome_chunked,
     get_alt_sequences,
     get_pam_disrupting_personal_sequences,
     get_alt_ref_sequences
