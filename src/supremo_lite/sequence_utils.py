@@ -6,12 +6,18 @@ DNA sequences.
 """
 
 import numpy as np
-from .core import nt_to_1h, nts, TORCH_AVAILABLE
+from .core import nt_to_1h, nts, TORCH_AVAILABLE, BRISKET_AVAILABLE
 
 try:
     import torch
 except ImportError:
     pass  # Already handled in core module
+
+if BRISKET_AVAILABLE:
+    try:
+        from brisket import encode_seq as brisket_encode_seq
+    except ImportError:
+        pass  # Already handled in core module
 
 
 def encode_seq(seq):
@@ -30,7 +36,7 @@ def encode_seq(seq):
         'C' = [0, 1, 0, 0]
         'G' = [0, 0, 1, 0]
         'T' = [0, 0, 0, 1]
-        'N' = [0.25, 0.25, 0.25, 0.25]
+        'N' = [0, 0, 0, 0]
     """
     if isinstance(seq, list):
         # For a list of sequences, encode each separately and stack
@@ -39,8 +45,18 @@ def encode_seq(seq):
             return torch.from_numpy(encoded).float()
         return encoded
 
-    # For a single sequence, encode each nucleotide
-    encoded = np.array([nt_to_1h[nt] for nt in seq])
+    # For a single sequence, use brisket if available for performance, otherwise fallback
+    if BRISKET_AVAILABLE:
+        try:
+            # Use brisket for fast encoding
+            encoded = brisket_encode_seq(seq.upper())
+            
+        except Exception:
+            # Fallback to original implementation if brisket fails
+            encoded = np.array([nt_to_1h[nt] for nt in seq])
+    else:
+        # Original implementation
+        encoded = np.array([nt_to_1h[nt] for nt in seq])
 
     if TORCH_AVAILABLE:
         return torch.from_numpy(encoded).float()

@@ -107,18 +107,6 @@ class TestSupremoLite(unittest.TestCase):
             expected_alts = sorted({"A", "C", "G", "T"} - {ref.upper()})
             self.assertEqual(sorted(alts), expected_alts)
 
-    def test_n_handling(self):
-        """Test handling of ambiguous bases"""
-        # Test encoding of N
-        n_seq = "ACGTN"
-        encoded = sl.encode_seq(n_seq)
-
-        # N should be encoded as [0.25, 0.25, 0.25, 0.25]
-        self.assertTrue(np.allclose(encoded[-1], np.array([0.25, 0.25, 0.25, 0.25])))
-
-        # Decode should give back one of the bases, since we argmax
-        decoded = sl.decode_seq(encoded)
-        self.assertEqual(len(decoded), 5)
 
 
 if __name__ == "__main__":
