@@ -549,6 +549,14 @@ def _generate_sequence_metadata(chunk_variants, seq_len):
         # Position within sequence window (0-based)
         variant_offset = genomic_pos - window_start
         
+        # Extract SVTYPE and SVLEN from INFO field if available
+        svtype = None
+        svlen = None
+        if 'info' in var and var['info'] and var['info'] != '.':
+            parsed_info = parse_vcf_info(var['info'])
+            svtype = parsed_info.get('SVTYPE')
+            svlen = parsed_info.get('SVLEN')
+        
         metadata.append({
             "chrom": var["chrom"],
             "start": window_start,
@@ -567,6 +575,9 @@ def _generate_sequence_metadata(chunk_variants, seq_len):
             "position_offset_upstream": upstream_offset,
             "position_offset_downstream": downstream_offset,
             "structural_variant_info": variant_info,
+            # Extract specific INFO fields for easier access
+            "svtype": svtype,
+            "svlen": svlen,
         })
     
     return pd.DataFrame(metadata)
@@ -874,7 +885,7 @@ def get_alt_ref_sequences(
                           'ref', 'alt', 'variant_type', 'ref_length', 'alt_length', 
                           'effective_variant_start', 'effective_variant_end', 
                           'position_offset_upstream', 'position_offset_downstream', 
-                          'structural_variant_info' 
+                          'structural_variant_info', 'svtype', 'svlen' 
     """
     # Get generators for both reference and variant sequences
     # These already handle variant loading, chromosome matching, and chunking
