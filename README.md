@@ -7,7 +7,7 @@ A lightweight memory first, model agnostic version of [SuPreMo](https://github.c
 - 🧬 **Personalized Genome Generation**: Apply variants from VCF files to reference genomes
 - 🎯 **Variant-Centered Sequences**: Generate sequence windows around variants
 - ✂️ **PAM Site Analysis**: Identify variants that disrupt CRISPR PAM sites
-- 🧪 **In-Silico Mutagenesis**: Systematic sequence mutation for predictive modeling
+- 🧪 **Saturation Mutagenesis**: Systematic single-nucleotide mutations at every position for predictive modeling
 - 🔧 **Memory Efficient**: Chunked processing for large VCF files
 - 🗺️ **Smart Chromosome Matching**: Automatic handling of chromosome naming differences (chr1 ↔ 1, chrM ↔ MT)
 - ⚡ **PyTorch Integration**: Automatic tensor support when PyTorch is available
@@ -55,7 +55,7 @@ Optional dependencies:
 
 ## Usage
 
-`supremo_lite` provides functionality for generating personalized genome sequences from reference genomes and variant files, as well as performing in-silico mutagenesis. The package supports both PyTorch tensors and NumPy arrays for sequence encoding.
+`supremo_lite` provides functionality for generating personalized genome sequences from reference genomes and variant files, as well as performing saturation mutagenesis. The package supports both PyTorch tensors and NumPy arrays for sequence encoding.
 
 ### Basic Imports
 
@@ -64,6 +64,28 @@ import supremo_lite as sl
 from pyfaidx import Fasta
 import pandas as pd
 ```
+
+### Default Sequence Encoding
+
+`supremo_lite` uses one-hot encoding by default to convert DNA sequences into numerical arrays. The default encoding scheme is:
+
+```python
+# Default one-hot encoding (4-dimensional vectors)
+'A' = [1, 0, 0, 0]  # Position 0
+'C' = [0, 1, 0, 0]  # Position 1  
+'G' = [0, 0, 1, 0]  # Position 2
+'T' = [0, 0, 0, 1]  # Position 3
+
+# Ambiguous or unknown nucleotides (N, Y, R, etc.)
+'N' = [0, 0, 0, 0]  # All zeros for ambiguous bases
+```
+
+**Key Points:**
+- Each nucleotide is represented as a 4-dimensional vector
+- Standard bases (A, C, G, T) use one-hot encoding with exactly one position set to 1
+- Ambiguous bases and unrecognized characters default to `[0, 0, 0, 0]`
+- The encoding is case-insensitive (`'A'` and `'a'` both map to `[1, 0, 0, 0]`)
+- When PyTorch is available, sequences are returned as float32 tensors; otherwise as NumPy arrays
 
 ### 1. Personalized Genome Generation
 
@@ -238,7 +260,7 @@ print(f"Mutated {alt_seqs.shape[0]} positions")
 Work with encoded sequences using utility functions:
 
 ```python
-# Encode a sequence string (uses default encoding)
+# Encode a sequence string (uses default one-hot encoding)
 sequence = "ATCGATCGATCG"
 encoded = sl.encode_seq(sequence)
 print(f"Encoded shape: {encoded.shape}")  # (12, 4)
@@ -270,7 +292,8 @@ import numpy as np
 
 def custom_encoder(seq):
     """
-    Custom encoder example: reverse the default A,C,G,T order to T,G,C,A.
+    Custom encoder example: reverse the default A,C,G,T order to T,G,C,A
+    and use uniform probability for ambiguous bases.
     
     Args:
         seq: DNA sequence string
@@ -280,11 +303,11 @@ def custom_encoder(seq):
     """
     # Custom encoding map (reversed order from supremo_lite default)
     encoding_map = {
-        'A': [0, 0, 0, 1],  # A -> position 3
-        'C': [0, 0, 1, 0],  # C -> position 2
-        'G': [0, 1, 0, 0],  # G -> position 1
-        'T': [1, 0, 0, 0],  # T -> position 0
-        'N': [0.25, 0.25, 0.25, 0.25]   # N (supremo_lite default is all zeros)
+        'A': [0, 0, 0, 1],  # A -> position 3 (default: position 0)
+        'C': [0, 0, 1, 0],  # C -> position 2 (default: position 1)
+        'G': [0, 1, 0, 0],  # G -> position 1 (default: position 2)
+        'T': [1, 0, 0, 0],  # T -> position 0 (default: position 3)
+        'N': [0.25, 0.25, 0.25, 0.25]   # Uniform probability (default: [0,0,0,0])
     }
     
     result = np.array([encoding_map.get(nt.upper(), [0.25, 0.25, 0.25, 0.25) for nt in seq])
@@ -454,7 +477,7 @@ sequences_raw = sl.get_alt_sequences(
 
 ### Sequence Utilities
 
-- `encode_seq(seq, encoder=None)` - Convert nucleotide string to one-hot encoding
+- `encode_seq(seq, encoder=None)` - Convert nucleotide string to one-hot encoding (A→[1,0,0,0], C→[0,1,0,0], G→[0,0,1,0], T→[0,0,0,1], ambiguous→[0,0,0,0])
 - `decode_seq(seq_1h)` - Convert one-hot encoding to nucleotide string
 - `rc(seq_1h)` - Reverse complement encoded sequence
 - `rc_str(seq)` - Reverse complement string
