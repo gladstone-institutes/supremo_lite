@@ -387,7 +387,7 @@ def _load_variants(variants_fn: Union[str, pd.DataFrame]) -> pd.DataFrame:
         return variants_df
 
 
-def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1, verbose=False):
+def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1, verbose=False, encoder=None):
     """
     Create a personalized genome by applying variants to a reference genome.
 
@@ -397,6 +397,8 @@ def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1, verb
         encode: Return sequences as one-hot encoded arrays (default: True)
         n_chunks: Number of chunks to split variants into for processing (default: 1)
         verbose: Print progress information (default: False)
+        encoder: Optional custom encoding function. If provided, should accept a single
+                sequence string and return encoded array with shape (L, 4). Default: None
 
     Returns:
         If encode=True: A dictionary mapping chromosome names to encoded tensors/arrays
@@ -484,14 +486,14 @@ def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1, verb
                 print(f"  🎯 Total: {total_applied}/{len(chrom_variants)} variants applied ({total_skipped} skipped)")
 
         # Store result
-        personal_genome[chrom] = encode_seq(personal_seq) if encode else personal_seq
+        personal_genome[chrom] = encode_seq(personal_seq, encoder) if encode else personal_seq
         total_processed += len(chrom_variants)
 
     # Add chromosomes with no variants
     for chrom in ref_chroms:
         if chrom not in personal_genome:
             ref_seq = str(reference[chrom])
-            personal_genome[chrom] = encode_seq(ref_seq) if encode else ref_seq
+            personal_genome[chrom] = encode_seq(ref_seq, encoder) if encode else ref_seq
 
     if verbose:
         print(f"🎉 Complete! {len(personal_genome)} chromosomes, {total_processed:,} variants processed")
@@ -570,7 +572,7 @@ def _generate_sequence_metadata(chunk_variants, seq_len):
     return pd.DataFrame(metadata)
 
 
-def get_alt_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=1):
+def get_alt_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=1, encoder=None):
     """
     Create sequence windows centered on each variant position with variants applied.
 
@@ -685,7 +687,7 @@ def get_alt_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=
                         window_seq = window_seq[:seq_len]
 
                 if encode:
-                    sequences.append(encode_seq(window_seq))
+                    sequences.append(encode_seq(window_seq, encoder))
                 else:
                     sequences.append(
                         (
@@ -710,7 +712,7 @@ def get_alt_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=
         yield (sequences_result, metadata_df)
 
 
-def get_ref_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=1):
+def get_ref_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=1, encoder=None):
     """
     Create reference sequence windows centered on each variant position (no variants applied).
 
@@ -821,7 +823,7 @@ def get_ref_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=
                         window_seq = window_seq[:seq_len]
 
                 if encode:
-                    sequences.append(encode_seq(window_seq))
+                    sequences.append(encode_seq(window_seq, encoder))
                 else:
                     sequences.append(
                         (
@@ -847,7 +849,7 @@ def get_ref_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=
 
 
 def get_alt_ref_sequences(
-    reference_fn, variants_fn, seq_len, encode=True, n_chunks=1
+    reference_fn, variants_fn, seq_len, encode=True, n_chunks=1, encoder=None
 ):
     """
     Create both reference and variant sequence windows for alt/ref ratio calculations.
@@ -894,6 +896,7 @@ def get_pam_disrupting_personal_sequences(
     pam_sequence="NGG",
     encode=True,
     n_chunks=1,
+    encoder=None,
 ):
     """
     Generate sequences for variants that disrupt PAM sites.
@@ -1037,7 +1040,7 @@ def get_pam_disrupting_personal_sequences(
                     modified_window = modified_window[:seq_len]
 
             # Store PAM-intact sequence
-            final_intact = encode_seq(modified_window) if encode else modified_window
+            final_intact = encode_seq(modified_window, encoder) if encode else modified_window
             pam_intact_sequences.append(
                 (
                     chrom,
@@ -1056,7 +1059,7 @@ def get_pam_disrupting_personal_sequences(
                         disrupted_seq[pam_site + j] = "N"
                 disrupted_seq = "".join(disrupted_seq)
 
-                final_disrupted = encode_seq(disrupted_seq) if encode else disrupted_seq
+                final_disrupted = encode_seq(disrupted_seq, encoder) if encode else disrupted_seq
                 pam_disrupted_sequences.append(
                     (
                         chrom,

@@ -98,7 +98,7 @@ def _read_bed_file(bed_regions: Union[str, pd.DataFrame]) -> pd.DataFrame:
     return bed_df
 
 
-def get_sm_sequences(chrom, start, end, reference_fasta):
+def get_sm_sequences(chrom, start, end, reference_fasta, encoder=None):
     """
     Generate sequences with all alternate nucleotides at every position (saturation mutagenesis).
 
@@ -107,6 +107,8 @@ def get_sm_sequences(chrom, start, end, reference_fasta):
         start: Start position (0-based)
         end: End position (0-based, exclusive)
         reference_fasta: Reference genome object
+        encoder: Optional custom encoding function. If provided, should accept a single
+                sequence string and return encoded array with shape (L, 4). Default: None
 
     Returns:
         Tuple of (reference one-hot, alt one-hot tensor, metadata DataFrame)
@@ -116,7 +118,7 @@ def get_sm_sequences(chrom, start, end, reference_fasta):
     if hasattr(ref_seq, "seq"):  # Handle pyfaidx-like objects
         ref_seq = ref_seq.seq
 
-    ref_1h = encode_seq(ref_seq)
+    ref_1h = encode_seq(ref_seq, encoder)
 
     alt_seqs = []
     metadata = []
@@ -151,7 +153,7 @@ def get_sm_sequences(chrom, start, end, reference_fasta):
 
 
 def get_sm_subsequences(
-    chrom, anchor, anchor_radius, seq_len, reference_fasta, bed_regions=None
+    chrom, anchor, anchor_radius, seq_len, reference_fasta, bed_regions=None, encoder=None
 ):
     """
     Generate sequences with all alternate nucleotides at positions around an anchor
@@ -166,6 +168,8 @@ def get_sm_subsequences(
         bed_regions: Optional BED file path or DataFrame to limit mutagenesis to specific regions.
                     BED format: chrom, start, end (0-based, half-open intervals).
                     If provided, only positions within BED regions will be mutated.
+        encoder: Optional custom encoding function. If provided, should accept a single
+                sequence string and return encoded array with shape (L, 4). Default: None
 
     Returns:
         Tuple of (reference one-hot, alt one-hot tensor, metadata DataFrame)
@@ -187,7 +191,7 @@ def get_sm_subsequences(
         len(ref_seq) == seq_len
     ), f"Expected sequence length {seq_len}, got {len(ref_seq)}"
 
-    ref_1h = encode_seq(ref_seq)
+    ref_1h = encode_seq(ref_seq, encoder)
 
     alt_seqs = []
     metadata = []

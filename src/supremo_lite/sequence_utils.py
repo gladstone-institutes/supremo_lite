@@ -20,18 +20,20 @@ if BRISKET_AVAILABLE:
         pass  # Already handled in core module
 
 
-def encode_seq(seq):
+def encode_seq(seq, encoder=None):
     """
     Convert a nucleotide string to a one-hot encoded tensor/array.
 
     Args:
         seq: A string of nucleotides or a list of such strings
+        encoder: Optional custom encoding function. If provided, should accept a single
+                sequence string and return encoded array with shape (L, 4).
 
     Returns:
         A tensor/array with shape (L, 4) for a single sequence or (N, L, 4) for a list,
         where L is the sequence length and N is the number of sequences.
 
-    Encoding scheme:
+    Encoding scheme (default):
         'A' = [1, 0, 0, 0]
         'C' = [0, 1, 0, 0]
         'G' = [0, 0, 1, 0]
@@ -40,7 +42,14 @@ def encode_seq(seq):
     """
     if isinstance(seq, list):
         # For a list of sequences, encode each separately and stack
-        encoded = np.stack([encode_seq(s) for s in seq])
+        encoded = np.stack([encode_seq(s, encoder) for s in seq])
+        if TORCH_AVAILABLE:
+            return torch.from_numpy(encoded).float()
+        return encoded
+
+    # Use custom encoder if provided
+    if encoder is not None:
+        encoded = encoder(seq)
         if TORCH_AVAILABLE:
             return torch.from_numpy(encoded).float()
         return encoded
@@ -53,6 +62,7 @@ def encode_seq(seq):
             
         except Exception:
             # Fallback to original implementation if brisket fails
+            # TODO: warn user
             encoded = np.array([nt_to_1h[nt] for nt in seq])
     else:
         # Original implementation

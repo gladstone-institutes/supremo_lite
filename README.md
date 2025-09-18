@@ -188,7 +188,7 @@ pam_disrupted_sequences = pam_results['pam_disrupted']
 print(f"Found {len(pam_disrupting_variants)} PAM-disrupting variants")
 ```
 
-### 4. In-Silico Mutagenesis
+### 4. In-Silico Saturation Mutagenesis
 
 Generate sequences with systematic mutations at every position:
 
@@ -238,10 +238,13 @@ print(f"Mutated {alt_seqs.shape[0]} positions")
 Work with encoded sequences using utility functions:
 
 ```python
-# Encode a sequence string
+# Encode a sequence string (uses default encoding)
 sequence = "ATCGATCGATCG"
 encoded = sl.encode_seq(sequence)
 print(f"Encoded shape: {encoded.shape}")  # (12, 4)
+
+# Or with a custom encoder
+# encoded = sl.encode_seq(sequence, encoder=my_custom_encoder)
 
 # Decode back to string
 decoded = sl.decode_seq(encoded)
@@ -258,7 +261,60 @@ batch_encoded = sl.encode_seq(sequences)
 print(f"Batch encoded shape: {batch_encoded.shape}")  # (3, 4, 4)
 ```
 
-### 7. Reading VCF Files
+### 7. Custom Encoding Functions
+
+You can provide your own encoding function for specialized use cases:
+
+```python
+import numpy as np
+
+def custom_encoder(seq):
+    """
+    Custom encoder example: reverse the default A,C,G,T order to T,G,C,A.
+    
+    Args:
+        seq: DNA sequence string
+        
+    Returns:
+        numpy array with shape (L, 4) where L is sequence length
+    """
+    # Custom encoding map (reversed order from supremo_lite default)
+    encoding_map = {
+        'A': [0, 0, 0, 1],  # A -> position 3
+        'C': [0, 0, 1, 0],  # C -> position 2
+        'G': [0, 1, 0, 0],  # G -> position 1
+        'T': [1, 0, 0, 0],  # T -> position 0
+        'N': [0.25, 0.25, 0.25, 0.25]   # N (supremo_lite default is all zeros)
+    }
+    
+    result = np.array([encoding_map.get(nt.upper(), [0.25, 0.25, 0.25, 0.25) for nt in seq])
+    return result.astype(np.float32)
+
+# Use custom encoder with any function
+sequence = "ATCG"
+custom_encoded = sl.encode_seq(sequence, encoder=custom_encoder)
+
+# Works with all personalization and mutagenesis functions
+personal_genome = sl.get_personal_genome(
+    'reference.fa', 
+    'variants.vcf', 
+    encoder=custom_encoder
+)
+
+ref_seq, alt_seqs, metadata = sl.get_sm_sequences(
+    'chr1', 1000, 1100, 
+    reference_fasta, 
+    encoder=custom_encoder
+)
+```
+
+**Custom Encoder Requirements:**
+- Must accept a single sequence string as input
+- Must return a numpy array with shape `(L, 4)` where L is sequence length
+- Should handle uppercase nucleotides (A, C, G, T, N)
+- Return type should be compatible with numpy/torch operations
+
+### 8. Reading VCF Files
 
 Read and process VCF files:
 
@@ -379,11 +435,11 @@ sequences_raw = sl.get_alt_sequences(
 
 ### Core Functions
 
-- `get_personal_genome(reference_fn, variants_fn, encode=True, chunk_size=1)` - Generate personalized genome with chunked processing
-- `get_alt_sequences(reference_fn, variants_fn, seq_len, encode=True, chunk_size=1)` - Generate variant-centered windows  
-- `get_pam_disrupting_personal_sequences(reference_fn, variants_fn, seq_len, max_pam_distance, pam_sequence="NGG", encode=True, chunk_size=1)` - Find PAM-disrupting variants
-- `get_sm_sequences(chrom, start, end, reference_fasta)` - Saturation mutagenesis
-- `get_sm_subsequences(chrom, anchor, anchor_radius, seq_len, reference_fasta)` - Targeted mutagenesis
+- `get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1, verbose=False, encoder=None)` - Generate personalized genome with chunked processing
+- `get_alt_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=1, encoder=None)` - Generate variant-centered windows  
+- `get_pam_disrupting_personal_sequences(reference_fn, variants_fn, seq_len, max_pam_distance, pam_sequence="NGG", encode=True, n_chunks=1, encoder=None)` - Find PAM-disrupting variants
+- `get_sm_sequences(chrom, start, end, reference_fasta, encoder=None)` - Saturation mutagenesis
+- `get_sm_subsequences(chrom, anchor, anchor_radius, seq_len, reference_fasta, bed_regions=None, encoder=None)` - Targeted mutagenesis
 
 ### VCF Processing Functions
 
@@ -398,7 +454,7 @@ sequences_raw = sl.get_alt_sequences(
 
 ### Sequence Utilities
 
-- `encode_seq(seq)` - Convert nucleotide string to one-hot encoding
+- `encode_seq(seq, encoder=None)` - Convert nucleotide string to one-hot encoding
 - `decode_seq(seq_1h)` - Convert one-hot encoding to nucleotide string
 - `rc(seq_1h)` - Reverse complement encoded sequence
 - `rc_str(seq)` - Reverse complement string
