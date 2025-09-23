@@ -10,7 +10,344 @@ import pandas as pd
 import numpy as np
 import re
 import warnings
-from typing import Dict, Optional
+from typing import Dict, Optional, List, Tuple, Union
+from dataclasses import dataclass
+
+
+@dataclass
+class BreakendVariant:
+    """
+    Represents a single breakend variant from a VCF file.
+
+    This class stores all information needed to process a BND variant,
+    including mate relationships and inserted sequences.
+    """
+    id: str                    # VCF ID field (e.g., "bnd_W")
+    chrom: str                 # Chromosome name
+    pos: int                   # 1-based position
+    ref: str                   # Reference allele
+    alt: str                   # Complete ALT field (e.g., "G]17:198982]")
+    mate_id: str               # MATEID from INFO field
+    mate_chrom: str            # Mate chromosome (parsed from ALT)
+    mate_pos: int              # Mate position (parsed from ALT)
+    orientation: str           # Breakend orientation (e.g., "ref_then_mate")
+    inserted_seq: str          # Novel sequence at junction
+    info: str                  # Complete INFO field
+    variant_type: str = "SV_BND"  # Always BND for breakend variants
+
+    def __post_init__(self):
+        """Validate breakend data after initialization."""
+        if not self.id:
+            raise ValueError("Breakend ID cannot be empty")
+        if self.pos <= 0:
+            raise ValueError("Breakend position must be positive")
+        if self.mate_pos <= 0:
+            raise ValueError("Breakend mate position must be positive")
+
+
+@dataclass
+class BreakendPair:
+    """
+    Represents a pair of mated breakend variants that create a novel adjacency.
+
+    This class coordinates the application of both breakends to create
+    complex rearrangements like translocations, inversions, etc.
+    """
+    breakend1: BreakendVariant
+    breakend2: BreakendVariant
+    is_valid: bool = True
+    validation_errors: List[str] = None
+    validation_warnings: List[str] = None
+
+    def __post_init__(self):
+        """Validate that the two breakends form a consistent pair."""
+        if self.validation_errors is None:
+            self.validation_errors = []
+        if self.validation_warnings is None:
+            self.validation_warnings = []
+
+        # Validate mate relationships
+        if self.breakend1.mate_id != self.breakend2.id:
+            self.validation_errors.append(
+                f"Breakend {self.breakend1.id} MATEID {self.breakend1.mate_id} "
+                f"does not match mate ID {self.breakend2.id}"
+            )
+            self.is_valid = False
+
+        if self.breakend2.mate_id != self.breakend1.id:
+            self.validation_errors.append(
+                f"Breakend {self.breakend2.id} MATEID {self.breakend2.mate_id} "
+                f"does not match mate ID {self.breakend1.id}"
+            )
+            self.is_valid = False
+
+        # Validate coordinate consistency
+        if self.breakend1.mate_chrom != self.breakend2.chrom:
+            self.validation_errors.append(
+                f"Breakend {self.breakend1.id} mate chromosome {self.breakend1.mate_chrom} "
+                f"does not match actual chromosome {self.breakend2.chrom}"
+            )
+            self.is_valid = False
+
+        if self.breakend1.mate_pos != self.breakend2.pos:
+            self.validation_errors.append(
+                f"Breakend {self.breakend1.id} mate position {self.breakend1.mate_pos} "
+                f"does not match actual position {self.breakend2.pos}"
+            )
+            self.is_valid = False
+
+    @property
+    def rearrangement_type(self) -> str:
+        """
+        Determine the type of rearrangement represented by this breakend pair.
+
+        Returns:
+            str: Rearrangement type ('translocation', 'inversion', 'duplication', 'complex')
+        """
+        if not self.is_valid:
+            return 'invalid'
+
+        # Check if breakends are on same chromosome
+        if self.breakend1.chrom == self.breakend2.chrom:
+            # Same chromosome - could be inversion, duplication, or deletion
+            pos1, pos2 = self.breakend1.pos, self.breakend2.pos
+            orient1, orient2 = self.breakend1.orientation, self.breakend2.orientation
+
+            # Simple heuristics for now - detailed implementation would need more logic
+            if abs(pos1 - pos2) < 1000:  # Close positions might be duplication
+                return 'duplication'
+            elif orient1 != orient2:  # Different orientations suggest inversion
+                return 'inversion'
+            else:
+                return 'complex'
+        else:
+            # Different chromosomes - translocation
+            return 'translocation'
+
+    def get_affected_regions(self) -> List[Tuple[str, int, int]]:
+        """
+        Get genomic regions affected by this breakend pair.
+
+        Returns:
+            List of tuples (chrom, start, end) for affected regions
+        """
+        regions = []
+
+        # Add region around first breakend
+        regions.append((
+            self.breakend1.chrom,
+            max(1, self.breakend1.pos - 1),  # Include position before breakend
+            self.breakend1.pos + len(self.breakend1.ref)
+        ))
+
+        # Add region around second breakend
+        regions.append((
+            self.breakend2.chrom,
+            max(1, self.breakend2.pos - 1),  # Include position before breakend
+            self.breakend2.pos + len(self.breakend2.ref)
+        ))
+
+        return regions
+
+
+@dataclass
+class Breakend:
+    """Enhanced breakend with classification information."""
+    id: str
+    chrom: str
+    pos: int
+    ref: str
+    alt: str
+    mate_chrom: str
+    mate_pos: int
+    orientation: str
+    inserted_seq: str
+    classification: str  # 'paired', 'missing_mate', 'singleton_insertion'
+    mate_breakend: Optional['Breakend'] = None
+
+    @classmethod
+    def from_breakend_variant(cls, variant: BreakendVariant, classification: str) -> 'Breakend':
+        """Create from BreakendVariant."""
+        return cls(
+            id=variant.id,
+            chrom=variant.chrom,
+            pos=variant.pos,
+            ref=variant.ref,
+            alt=variant.alt,
+            mate_chrom=variant.mate_chrom,
+            mate_pos=variant.mate_pos,
+            orientation=variant.orientation,
+            inserted_seq=variant.inserted_seq,
+            classification=classification,
+            mate_breakend=None
+        )
+
+
+class BNDClassifier:
+    """
+    BND classifier that doesn't depend on MATEID fields.
+
+    Classifies BNDs into categories:
+    1. Paired breakends - have matching mates by coordinates
+    2. Missing mates - reference coordinates not present in VCF (can be inferred)
+    3. Insertions with mates - insertions where mate is present
+    4. Insertions without mates - insertions where mate is missing (inferred)
+    """
+
+    def __init__(self):
+        self.all_breakends = []
+        self.coordinate_index = {}  # Map (chrom, pos) -> breakend
+
+    def classify_all_breakends(self, vcf_path: str) -> Dict[str, List[Breakend]]:
+        """
+        Classify all BND variants from a VCF file.
+
+        Returns:
+            Dict with keys 'paired', 'missing_mate', 'singleton_insertion'
+        """
+        print(f"Loading BND variants from {vcf_path}...")
+
+        # Load VCF with variant classification
+        variants_df = read_vcf(vcf_path, include_info=True, classify_variants=True)
+        bnd_variants = variants_df[variants_df['variant_type'] == 'SV_BND']
+
+        print(f"Found {len(bnd_variants)} BND variants")
+
+        # Parse all breakends and build coordinate index
+        self._parse_and_index_breakends(bnd_variants)
+
+        # Classify breakends
+        classified = {
+            'paired': [],
+            'missing_mate': [],
+            'insertion_with_mate': [],
+            'insertion_missing_mate': []
+        }
+
+        processed_ids = set()
+
+        for breakend in self.all_breakends:
+            if breakend.id in processed_ids:
+                continue
+
+            # Try to find mate by coordinates
+            mate_key = (breakend.mate_chrom, breakend.mate_pos)
+
+            if mate_key in self.coordinate_index:
+                # Found mate - this is a paired breakend
+                mate_breakend = self.coordinate_index[mate_key]
+
+                # Create enhanced breakends for the pair
+                enhanced1 = Breakend.from_breakend_variant(breakend, 'paired')
+                enhanced2 = Breakend.from_breakend_variant(mate_breakend, 'paired')
+
+                enhanced1.mate_breakend = enhanced2
+                enhanced2.mate_breakend = enhanced1
+
+                classified['paired'].extend([enhanced1, enhanced2])
+                processed_ids.add(breakend.id)
+                processed_ids.add(mate_breakend.id)
+
+            else:
+                # No mate found - ALWAYS infer the missing mate and create a fusion
+                # Create an inferred mate breakend
+                inferred_mate = BreakendVariant(
+                    id=f"{breakend.id}_inferred_mate",
+                    chrom=breakend.mate_chrom,
+                    pos=breakend.mate_pos,
+                    ref="N",  # Unknown reference at mate position
+                    alt="<INFERRED>",
+                    mate_id=breakend.id,
+                    mate_chrom=breakend.chrom,
+                    mate_pos=breakend.pos,
+                    orientation=self._infer_mate_orientation(breakend.orientation),
+                    inserted_seq="",  # Novel sequence stays on the original breakend
+                    info=f"INFERRED_FROM={breakend.id}",
+                    variant_type='SV_BND'
+                )
+
+                # Create enhanced breakends for the inferred pair
+                enhanced1 = Breakend.from_breakend_variant(breakend, 'paired')
+                enhanced2 = Breakend.from_breakend_variant(inferred_mate, 'paired')
+
+                enhanced1.mate_breakend = enhanced2
+                enhanced2.mate_breakend = enhanced1
+
+                classified['paired'].extend([enhanced1, enhanced2])
+
+                if breakend.inserted_seq:
+                    print(f"INFO: Inferred missing mate for {breakend.id} with novel sequence '{breakend.inserted_seq}' "
+                          f"-> created fusion with inferred mate at {breakend.mate_chrom}:{breakend.mate_pos}")
+                else:
+                    print(f"INFO: Inferred missing mate for {breakend.id} "
+                          f"-> created fusion with inferred mate at {breakend.mate_chrom}:{breakend.mate_pos}")
+
+                processed_ids.add(breakend.id)
+
+        # Print classification summary
+        print(f"\nBND Classification Summary:")
+        print(f"  Paired breakends (including inferred mates): {len(classified['paired'])}")
+        total_inferred = len([bnd for bnd in classified['paired'] if 'inferred' in bnd.id])
+        print(f"  Inferred mates created: {total_inferred}")
+
+        return classified
+
+    def _infer_mate_orientation(self, original_orientation: str) -> str:
+        """
+        Infer the orientation of a missing mate breakend based on the original breakend's orientation.
+
+        BND orientation pairs (original -> inferred mate):
+        - t[p[ -> ]p]t
+        - t]p] -> [p[t
+        - ]p]t -> t[p[
+        - [p[t -> t]p]
+        """
+        orientation_pairs = {
+            't[p[': ']p]t',
+            't]p]': '[p[t',
+            ']p]t': 't[p[',
+            '[p[t': 't]p]'
+        }
+        return orientation_pairs.get(original_orientation, ']p]t')
+
+    def _parse_and_index_breakends(self, bnd_variants: pd.DataFrame):
+        """Parse breakends and build coordinate index."""
+        for _, variant in bnd_variants.iterrows():
+            try:
+                # Parse ALT field
+                alt_info = parse_breakend_alt(variant['alt'])
+                if not alt_info['is_valid']:
+                    warnings.warn(f"Could not parse ALT field for {variant['id']}: {variant['alt']}")
+                    continue
+
+                # Parse INFO field for optional MATEID
+                info_dict = parse_vcf_info(variant.get('info', ''))
+                mate_id = info_dict.get('MATEID', None)
+
+                # Create BreakendVariant
+                breakend_var = BreakendVariant(
+                    id=variant['id'],
+                    chrom=variant['chrom'],
+                    pos=variant['pos1'],
+                    ref=variant['ref'],
+                    alt=variant['alt'],
+                    mate_id=mate_id,
+                    mate_chrom=alt_info['mate_chrom'],
+                    mate_pos=alt_info['mate_pos'],
+                    orientation=alt_info['orientation'],
+                    inserted_seq=alt_info['inserted_seq'],
+                    info=variant.get('info', ''),
+                    variant_type='SV_BND'
+                )
+
+                self.all_breakends.append(breakend_var)
+
+                # Index by coordinates
+                coord_key = (breakend_var.chrom, breakend_var.pos)
+                self.coordinate_index[coord_key] = breakend_var
+
+            except Exception as e:
+                warnings.warn(f"Error processing breakend {variant['id']}: {e}")
 
 
 def read_vcf(path, include_info=True, classify_variants=True):
@@ -38,7 +375,7 @@ def read_vcf(path, include_info=True, classify_variants=True):
         usecols = [0, 1, 2, 3, 4, 7]  # Include INFO field
         base_columns = ["chrom", "pos1", "id", "ref", "alt", "info"]
     else:
-        usecols = [0, 1, 2, 3, 4]  # Original columns only
+        usecols = [0, 1, 2, 3, 4]  # Include ID field by default
         base_columns = ["chrom", "pos1", "id", "ref", "alt"]
 
     df = pd.read_csv(
@@ -95,7 +432,7 @@ def read_vcf_chunked(path, n_chunks=1, include_info=True, classify_variants=True
         usecols = [0, 1, 2, 3, 4, 7]  # Include INFO field
         base_columns = ["chrom", "pos1", "id", "ref", "alt", "info"]
     else:
-        usecols = [0, 1, 2, 3, 4]  # Original columns only
+        usecols = [0, 1, 2, 3, 4]  # Include ID field by default
         base_columns = ["chrom", "pos1", "id", "ref", "alt"]
 
     # Read full dataframe first
@@ -197,7 +534,7 @@ def read_vcf_chromosome(path, target_chromosome, include_info=True, classify_var
         usecols = [0, 1, 2, 3, 4, 7]  # Include INFO field
         base_columns = ["chrom", "pos1", "id", "ref", "alt", "info"]
     else:
-        usecols = [0, 1, 2, 3, 4]  # Original columns only
+        usecols = [0, 1, 2, 3, 4]  # Include ID field by default
         base_columns = ["chrom", "pos1", "id", "ref", "alt"]
 
     if not chromosome_lines:
@@ -518,6 +855,301 @@ def classify_variant_type(ref_allele: str, alt_allele: str, info_dict: Optional[
     else:
         # Empty allele - should not occur in valid VCF
         return 'unknown'
+
+
+def parse_breakend_alt(alt_allele: str) -> Dict:
+    """
+    Parse breakend ALT field to extract mate information and inserted sequence.
+
+    Args:
+        alt_allele: ALT field from BND variant (e.g., "G]17:198982]", "]13:123456]AGTNNNNNCAT")
+
+    Returns:
+        dict: Parsed breakend information with keys:
+            - 'mate_chrom': Chromosome of mate breakend
+            - 'mate_pos': Position of mate breakend (1-based)
+            - 'orientation': Breakend orientation ('t[p[', 't]p]', ']p]t', '[p[t')
+            - 'inserted_seq': Novel sequence inserted at junction (empty string if none)
+            - 'is_valid': Boolean indicating if ALT field was successfully parsed
+
+    Breakend ALT format examples (VCF 4.2):
+        - t[p[: piece extending to the right of p is joined after t
+        - t]p]: reverse comp piece extending left of p is joined after t
+        - ]p]t: piece extending to the left of p is joined before t
+        - [p[t: reverse comp piece extending right of p is joined before t
+
+    Examples:
+        parse_breakend_alt("G]17:198982]")
+        → {'mate_chrom': '17', 'mate_pos': 198982, 'orientation': 't]p]',
+           'inserted_seq': '', 'is_valid': True}
+
+        parse_breakend_alt("]13:123456]AGTNNNNNCAT")
+        → {'mate_chrom': '13', 'mate_pos': 123456, 'orientation': ']p]t',
+           'inserted_seq': 'AGTNNNNNCAT', 'is_valid': True}
+    """
+    import re
+
+    result = {
+        'mate_chrom': None,
+        'mate_pos': None,
+        'orientation': None,
+        'inserted_seq': '',
+        'is_valid': False
+    }
+
+    if not alt_allele or not isinstance(alt_allele, str):
+        return result
+
+    # Patterns for the four breakend orientations
+    # t[p[ format: sequence + [ + position + [
+    pattern1 = r'^(.+?)\[([^:]+):(\d+)\[$'
+    # t]p] format: sequence + ] + position + ]
+    pattern2 = r'^(.+?)\]([^:]+):(\d+)\]$'
+    # ]p]t format: ] + position + ] + sequence
+    pattern3 = r'^\]([^:]+):(\d+)\](.+?)$'
+    # [p[t format: [ + position + [ + sequence
+    pattern4 = r'^\[([^:]+):(\d+)\[(.+?)$'
+
+    # Try each pattern
+    match = re.match(pattern1, alt_allele)
+    if match:
+        prefix_seq, mate_chrom, mate_pos = match.groups()
+        result['mate_chrom'] = mate_chrom
+        result['mate_pos'] = int(mate_pos)
+        result['orientation'] = 't[p['  # t[p[
+        result['inserted_seq'] = prefix_seq[1:] if len(prefix_seq) > 1 else ''  # Remove reference base
+        result['is_valid'] = True
+        return result
+
+    match = re.match(pattern2, alt_allele)
+    if match:
+        prefix_seq, mate_chrom, mate_pos = match.groups()
+        result['mate_chrom'] = mate_chrom
+        result['mate_pos'] = int(mate_pos)
+        result['orientation'] = 't]p]'  # t]p]
+        result['inserted_seq'] = prefix_seq[1:] if len(prefix_seq) > 1 else ''  # Remove reference base
+        result['is_valid'] = True
+        return result
+
+    match = re.match(pattern3, alt_allele)
+    if match:
+        mate_chrom, mate_pos, suffix_seq = match.groups()
+        result['mate_chrom'] = mate_chrom
+        result['mate_pos'] = int(mate_pos)
+        result['orientation'] = ']p]t'  # ]p]t
+        result['inserted_seq'] = suffix_seq[:-1] if len(suffix_seq) > 1 else ''  # Remove reference base
+        result['is_valid'] = True
+        return result
+
+    match = re.match(pattern4, alt_allele)
+    if match:
+        mate_chrom, mate_pos, suffix_seq = match.groups()
+        result['mate_chrom'] = mate_chrom
+        result['mate_pos'] = int(mate_pos)
+        result['orientation'] = '[p[t'  # [p[t
+        result['inserted_seq'] = suffix_seq[:-1] if len(suffix_seq) > 1 else ''  # Remove reference base
+        result['is_valid'] = True
+        return result
+
+    return result
+
+
+def validate_breakend_pair(bnd1: Dict, bnd2: Dict) -> Dict:
+    """
+    Validate that two breakend variants form a consistent mate pair.
+
+    Args:
+        bnd1: First breakend variant (dict with id, mate_id, chrom, pos, etc.)
+        bnd2: Second breakend variant (dict with id, mate_id, chrom, pos, etc.)
+
+    Returns:
+        dict: Validation result with keys:
+            - 'is_valid': Boolean indicating if pair is valid
+            - 'errors': List of validation error messages
+            - 'warnings': List of validation warning messages
+    """
+    result = {
+        'is_valid': True,
+        'errors': [],
+        'warnings': []
+    }
+
+    # Check that they reference each other as mates
+    if bnd1.get('mate_id') != bnd2.get('id'):
+        result['errors'].append(f"BND {bnd1.get('id')} MATEID {bnd1.get('mate_id')} does not match mate ID {bnd2.get('id')}")
+        result['is_valid'] = False
+
+    if bnd2.get('mate_id') != bnd1.get('id'):
+        result['errors'].append(f"BND {bnd2.get('id')} MATEID {bnd2.get('mate_id')} does not match mate ID {bnd1.get('id')}")
+        result['is_valid'] = False
+
+    # Check that mate positions are consistent with actual positions
+    if bnd1.get('mate_chrom') != bnd2.get('chrom'):
+        result['errors'].append(f"BND {bnd1.get('id')} mate chromosome {bnd1.get('mate_chrom')} does not match actual chromosome {bnd2.get('chrom')}")
+        result['is_valid'] = False
+
+    if bnd1.get('mate_pos') != bnd2.get('pos'):
+        result['errors'].append(f"BND {bnd1.get('id')} mate position {bnd1.get('mate_pos')} does not match actual position {bnd2.get('pos')}")
+        result['is_valid'] = False
+
+    # Check orientation consistency (complex logic depending on rearrangement type)
+    orientation1 = bnd1.get('orientation')
+    orientation2 = bnd2.get('orientation')
+
+    # For now, just warn about complex orientation validation - this would need detailed implementation
+    if orientation1 and orientation2:
+        result['warnings'].append(f"Orientation validation not fully implemented: {orientation1} vs {orientation2}")
+
+    return result
+
+
+def create_breakend_pairs(variants_df: pd.DataFrame) -> List[BreakendPair]:
+    """
+    Create BreakendPair objects from BND variants in a DataFrame.
+
+    This function pairs breakend variants based on coordinate matching rather than MATEID,
+    making it more robust and not dependent on optional INFO fields.
+
+    Args:
+        variants_df: DataFrame containing BND variants with variant_type='SV_BND'
+
+    Returns:
+        List of BreakendPair objects representing valid breakend pairs
+
+    Notes:
+        - Pairs breakends by matching coordinates from ALT field parsing
+        - Does not require MATEID field to be present
+        - Issues warnings for unpaired or invalid breakends
+    """
+    # Filter for BND variants only
+    bnd_variants = variants_df[variants_df['variant_type'] == 'SV_BND'].copy()
+
+    if len(bnd_variants) == 0:
+        return []
+
+    # Parse all breakend variants
+    breakend_variants = []
+    for _, variant in bnd_variants.iterrows():
+        try:
+            # Parse ALT field to get mate information
+            breakend_info = parse_breakend_alt(variant['alt'])
+
+            if not breakend_info['is_valid']:
+                warnings.warn(f"Could not parse breakend ALT field for variant {variant['id']}: {variant['alt']}")
+                continue
+
+            # Parse INFO field for optional MATEID (but don't require it)
+            info_dict = parse_vcf_info(variant.get('info', ''))
+            mate_id = info_dict.get('MATEID', None)
+
+            # Create BreakendVariant object
+            breakend = BreakendVariant(
+                id=variant['id'],
+                chrom=variant['chrom'],
+                pos=variant['pos1'],
+                ref=variant['ref'],
+                alt=variant['alt'],
+                mate_id=mate_id,  # May be None
+                mate_chrom=breakend_info['mate_chrom'],
+                mate_pos=breakend_info['mate_pos'],
+                orientation=breakend_info['orientation'],
+                inserted_seq=breakend_info['inserted_seq'],
+                info=variant.get('info', ''),
+                variant_type='SV_BND'
+            )
+            breakend_variants.append(breakend)
+
+        except Exception as e:
+            warnings.warn(f"Error processing breakend variant {variant['id']}: {e}")
+            continue
+
+    # Create pairs by coordinate matching
+    pairs = []
+    used_breakends = set()
+
+    for i, bnd1 in enumerate(breakend_variants):
+        if bnd1.id in used_breakends:
+            continue
+
+        # Find mate by coordinate matching
+        mate_found = False
+        for j, bnd2 in enumerate(breakend_variants):
+            if i == j or bnd2.id in used_breakends:
+                continue
+
+            # Check if these breakends are mates based on coordinates
+            if (bnd1.mate_chrom == bnd2.chrom and bnd1.mate_pos == bnd2.pos and
+                bnd2.mate_chrom == bnd1.chrom and bnd2.mate_pos == bnd1.pos):
+
+                try:
+                    # Create pair (validation happens in BreakendPair.__post_init__)
+                    pair = BreakendPair(bnd1, bnd2)
+                    pairs.append(pair)
+                    used_breakends.add(bnd1.id)
+                    used_breakends.add(bnd2.id)
+                    mate_found = True
+                    break
+
+                except Exception as e:
+                    warnings.warn(f"Invalid breakend pair {bnd1.id}-{bnd2.id}: {e}")
+                    continue
+
+        if not mate_found:
+            warnings.warn(f"No mate found for breakend {bnd1.id} at {bnd1.chrom}:{bnd1.pos}")
+
+    return pairs
+
+
+def load_breakend_variants(variants_fn: Union[str, pd.DataFrame]) -> Tuple[pd.DataFrame, List[Tuple]]:
+    """
+    Load variants and separate BND variants into pairs using enhanced classifier.
+
+    Args:
+        variants_fn: Path to VCF file or DataFrame with variant data
+
+    Returns:
+        Tuple of (standard_variants_df, breakend_pairs_list)
+        - standard_variants_df: DataFrame with non-BND variants
+        - breakend_pairs_list: List of tuples (bnd1, bnd2) for BND pairs
+    """
+    # Import here to avoid circular imports
+    from .personalize import _load_variants
+
+    # Load all variants with proper normalization and classification
+    if isinstance(variants_fn, str):
+        all_variants = read_vcf(variants_fn, include_info=True, classify_variants=True)
+        vcf_path = variants_fn
+    else:
+        # Use the existing _load_variants function which properly handles
+        # DataFrame normalization (pos->pos1, variant_type, etc.)
+        all_variants = _load_variants(variants_fn)
+        vcf_path = None
+
+    # Separate BND and standard variants
+    bnd_variants = all_variants[all_variants['variant_type'] == 'SV_BND']
+    standard_variants = all_variants[all_variants['variant_type'] != 'SV_BND']
+
+    # Create breakend pairs using enhanced classifier
+    breakend_pairs = []
+    if len(bnd_variants) > 0 and vcf_path:
+        classifier = BNDClassifier()
+        classified_breakends = classifier.classify_all_breakends(vcf_path)
+
+        # Convert classified breakends to pairs
+        paired_breakends = classified_breakends['paired']
+        processed_ids = set()
+
+        for breakend in paired_breakends:
+            if breakend.id in processed_ids:
+                continue
+
+            if breakend.mate_breakend:
+                pair = (breakend, breakend.mate_breakend)
+                breakend_pairs.append(pair)
+                processed_ids.add(breakend.id)
+                processed_ids.add(breakend.mate_breakend.id)
+
+    return standard_variants, breakend_pairs
 
 
 def _filter_multiallelic_variants(df: pd.DataFrame) -> pd.DataFrame:

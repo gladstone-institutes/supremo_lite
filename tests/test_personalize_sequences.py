@@ -85,6 +85,27 @@ class TestPersonalizeGenome(unittest.TestCase):
                 f"Mismatch in {chrom} for deletion variants",
             )
 
+    def test_bnd_variants(self):
+        """Test personalization with BND (breakend) variants."""
+        # Paths for BND test
+        bnd_vcf = os.path.join(self.data_dir, "bnd", "bnd.vcf")
+        bnd_expected = os.path.join(self.data_dir, "bnd", "bnd_expected_output.fa")
+
+        # Create personalized genome
+        personalized = sl.get_personal_genome(self.reference_fa, bnd_vcf, encode=False)
+
+        # Load expected output
+        expected = Fasta(bnd_expected)
+
+        # Compare each chromosome
+        for chrom in expected.keys():
+            self.assertIn(chrom, personalized)
+            self.assertEqual(
+                personalized[chrom],
+                str(expected[chrom]),
+                f"Mismatch in {chrom} for BND variants",
+            )
+
     def test_multi_overlapping_variants(self):
         """
         Test personalization with multiple overlapping variants where some should be skipped.
