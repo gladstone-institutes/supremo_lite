@@ -209,7 +209,7 @@ class BNDClassifier:
 
         # Load VCF with variant classification
         variants_df = read_vcf(vcf_path, include_info=True, classify_variants=True)
-        bnd_variants = variants_df[variants_df['variant_type'] == 'SV_BND']
+        bnd_variants = variants_df[variants_df['variant_type'].isin(['SV_BND', 'SV_BND_INS'])]
 
         print(f"Found {len(bnd_variants)} BND variants")
 
@@ -704,6 +704,7 @@ def classify_variant_type(ref_allele: str, alt_allele: str, info_dict: Optional[
         - 'SV_INS': Insertion structural variant
         - 'SV_CNV': Copy number variant
         - 'SV_BND': Breakend/translocation
+        - 'SV_BND_INS': Breakend/translocation with inserted sequence
         - 'SNV': Single nucleotide variant
         - 'MNV': Milti-nucleotide variant (alt len = ref len but no prefix)
         - 'INS': Sequence insertion
@@ -726,6 +727,7 @@ def classify_variant_type(ref_allele: str, alt_allele: str, info_dict: Optional[
         # Structural variants
         classify_variant_type('N', '<INV>') → 'SV_INV'
         classify_variant_type('G', 'G]17:198982]') → 'SV_BND'
+        classify_variant_type('T', ']chr2:20]ATCGT') → 'SV_BND_INS'
         
         # Special cases
         classify_variant_type('T', '*') → 'missing'
@@ -776,7 +778,16 @@ def classify_variant_type(ref_allele: str, alt_allele: str, info_dict: Optional[
     # Format examples: A[chr2:1000[, ]chr1:100]T, etc.
     breakend_pattern = r'[\[\]]'
     if re.search(breakend_pattern, alt):
-        return 'SV_BND'
+        # Check if BND has inserted sequence by parsing the ALT field
+        try:
+            breakend_info = parse_breakend_alt(alt)
+            if breakend_info['is_valid'] and breakend_info['inserted_seq']:
+                return 'SV_BND_INS'  # BND with insertion
+            else:
+                return 'SV_BND'      # Standard BND
+        except:
+            # If parsing fails, default to standard BND
+            return 'SV_BND'
     
     # PRIORITY 4: Check SVTYPE in INFO field for additional SV classification
     if info_dict and 'SVTYPE' in info_dict:
@@ -1021,8 +1032,8 @@ def create_breakend_pairs(variants_df: pd.DataFrame) -> List[BreakendPair]:
         - Does not require MATEID field to be present
         - Issues warnings for unpaired or invalid breakends
     """
-    # Filter for BND variants only
-    bnd_variants = variants_df[variants_df['variant_type'] == 'SV_BND'].copy()
+    # Filter for BND variants only (including BND with insertions)
+    bnd_variants = variants_df[variants_df['variant_type'].isin(['SV_BND', 'SV_BND_INS'])].copy()
 
     if len(bnd_variants) == 0:
         return []
@@ -1125,9 +1136,9 @@ def load_breakend_variants(variants_fn: Union[str, pd.DataFrame]) -> Tuple[pd.Da
         all_variants = _load_variants(variants_fn)
         vcf_path = None
 
-    # Separate BND and standard variants
-    bnd_variants = all_variants[all_variants['variant_type'] == 'SV_BND']
-    standard_variants = all_variants[all_variants['variant_type'] != 'SV_BND']
+    # Separate BND and standard variants (including BND with insertions)
+    bnd_variants = all_variants[all_variants['variant_type'].isin(['SV_BND', 'SV_BND_INS'])]
+    standard_variants = all_variants[~all_variants['variant_type'].isin(['SV_BND', 'SV_BND_INS'])]
 
     # Create breakend pairs using enhanced classifier
     breakend_pairs = []

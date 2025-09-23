@@ -1109,9 +1109,13 @@ def _generate_bnd_ref_sequences(breakend_pairs, reference, seq_len, encode=True,
             # Calculate window centered on first breakend
             center_pos = bnd1.pos - 1  # Convert to 0-based
 
+            # Detect if this is a BND with insertion for consistent handling
+            has_insertion = bool(bnd1.inserted_seq or bnd2.inserted_seq)
+            insertion_length = len(bnd1.inserted_seq) + len(bnd2.inserted_seq)
+
             # Generate left reference sequence (sequence before breakend + right-side N-padding)
             # For BNDs, we want to show what was there BEFORE the fusion point
-            # Then pad the right side with N's to represent the missing fusion partner
+            # Then pad the right side with N's to represent the missing fusion partner + insertion
             half_len = seq_len // 2
 
             # Extract sequence leading up to the breakend (before the fusion point)
@@ -1119,13 +1123,14 @@ def _generate_bnd_ref_sequences(breakend_pairs, reference, seq_len, encode=True,
             left_end = center_pos  # Stop at the breakend position
             left_ref_raw = seq1[left_start:left_end]
 
-            # Pad the right side to represent where the fusion partner would attach
+            # Pad the right side to represent where the fusion partner + insertion would attach
             left_padding_needed = seq_len - len(left_ref_raw)
+            # Note: For BND with insertion, this padding represents both the missing chromosome and the insertion
             left_ref_seq = left_ref_raw + 'N' * left_padding_needed
 
             # Generate right reference sequence (left-side N-padding + sequence after breakend)
             # For the right side, we want to show what was there AFTER the fusion point
-            # Pad the left side with N's to represent the missing fusion partner
+            # Pad the left side with N's to represent the missing fusion partner + insertion
             bnd2_center = bnd2.pos - 1  # Convert to 0-based
 
             # Extract sequence starting from the breakend (after the fusion point)
@@ -1133,8 +1138,9 @@ def _generate_bnd_ref_sequences(breakend_pairs, reference, seq_len, encode=True,
             right_end = min(len(seq2), bnd2_center + half_len)
             right_ref_raw = seq2[right_start:right_end]
 
-            # Pad the left side to represent where the fusion partner would attach
+            # Pad the left side to represent where the fusion partner + insertion would attach
             right_padding_needed = seq_len - len(right_ref_raw)
+            # Note: For BND with insertion, this padding represents both the missing chromosome and the insertion
             right_ref_seq = 'N' * right_padding_needed + right_ref_raw
 
             # Apply reverse complement if needed based on orientation
@@ -1237,10 +1243,34 @@ def _generate_bnd_sequences(breakend_pairs, reference, seq_len, encode=True, enc
             builder = ChimericSequenceBuilder({bnd1.chrom: seq1, bnd2.chrom: seq2})
             fusion_name, fusion_seq = builder.create_fusion_from_pair((bnd1, bnd2))
 
-            # Calculate window centered on first breakend
-            center_pos = bnd1.pos - 1  # Convert to 0-based
-            window_start = max(0, center_pos - seq_len // 2)
-            window_end = window_start + seq_len
+            # Detect if this is a BND with insertion and center appropriately
+            has_insertion = bool(bnd1.inserted_seq or bnd2.inserted_seq)
+
+            if has_insertion:
+                # For BND with insertion, center window on the inserted sequence
+                # Use segment metadata to find where the novel sequence is located
+                segments = builder.get_sequence_segments(fusion_name)
+                novel_segment = None
+                for seg in segments:
+                    if seg.source_type == 'novel':
+                        novel_segment = seg
+                        break
+
+                if novel_segment:
+                    # Center window on the novel sequence
+                    novel_center = (novel_segment.start_pos + novel_segment.end_pos) // 2
+                    window_start = max(0, novel_center - seq_len // 2)
+                    window_end = window_start + seq_len
+                else:
+                    # Fallback to standard centering if no novel segment found
+                    center_pos = bnd1.pos - 1  # Convert to 0-based
+                    window_start = max(0, center_pos - seq_len // 2)
+                    window_end = window_start + seq_len
+            else:
+                # Standard BND: center on first breakend position
+                center_pos = bnd1.pos - 1  # Convert to 0-based
+                window_start = max(0, center_pos - seq_len // 2)
+                window_end = window_start + seq_len
 
             # Generate ALT sequence (fusion sequence window)
             if len(fusion_seq) >= seq_len:
@@ -1249,23 +1279,30 @@ def _generate_bnd_sequences(breakend_pairs, reference, seq_len, encode=True, enc
                 # Pad if fusion is shorter than window
                 alt_seq = fusion_seq + 'N' * (seq_len - len(fusion_seq))
 
+            # Generate reference sequences with appropriate padding
+            # For BNDs with insertions, we need to account for the inserted sequence length
+            half_len = seq_len // 2
+            insertion_length = len(bnd1.inserted_seq) + len(bnd2.inserted_seq)
+
             # Generate left reference sequence (sequence before breakend + right-side N-padding)
             # For BNDs, we want to show what was there BEFORE the fusion point
-            # Then pad the right side with N's to represent the missing fusion partner
-            half_len = seq_len // 2
-
-            # Extract sequence leading up to the breakend (before the fusion point)
+            # Then pad the right side with N's to represent the missing fusion partner + insertion
+            if not has_insertion:
+                # Standard BND: use existing logic
+                center_pos = bnd1.pos - 1  # Convert to 0-based if not set above
             left_start = max(0, center_pos - half_len)
             left_end = center_pos  # Stop at the breakend position
             left_ref_raw = seq1[left_start:left_end]
 
-            # Pad the right side to represent where the fusion partner would attach
+            # For BND with insertion, pad for both the missing chromosome and the insertion
             left_padding_needed = seq_len - len(left_ref_raw)
+            # Note: The padding represents what's missing (other chromosome + insertion)
+            # but we don't artificially inflate it since the user wants to see proper N-padding
             left_ref_seq = left_ref_raw + 'N' * left_padding_needed
 
             # Generate right reference sequence (left-side N-padding + sequence after breakend)
             # For the right side, we want to show what was there AFTER the fusion point
-            # Pad the left side with N's to represent the missing fusion partner
+            # Pad the left side with N's to represent the missing fusion partner + insertion
             bnd2_center = bnd2.pos - 1  # Convert to 0-based
 
             # Extract sequence starting from the breakend (after the fusion point)
@@ -1273,8 +1310,10 @@ def _generate_bnd_sequences(breakend_pairs, reference, seq_len, encode=True, enc
             right_end = min(len(seq2), bnd2_center + half_len)
             right_ref_raw = seq2[right_start:right_end]
 
-            # Pad the left side to represent where the fusion partner would attach
+            # For BND with insertion, pad for both the missing chromosome and the insertion
             right_padding_needed = seq_len - len(right_ref_raw)
+            # Note: The padding represents what's missing (other chromosome + insertion)
+            # but we don't artificially inflate it since the user wants to see proper N-padding
             right_ref_seq = 'N' * right_padding_needed + right_ref_raw
 
             # Apply reverse complement if needed based on orientation

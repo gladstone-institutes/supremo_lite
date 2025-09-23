@@ -99,12 +99,17 @@ class TestVariantClassification:
         
     def test_breakend_classification(self):
         """Test breakend (BND) variant classification."""
-        # Standard breakend notation
+        # Standard breakend notation (no insertions)
         assert classify_variant_type('A', 'A[chr2:1000[') == 'SV_BND'
         assert classify_variant_type('T', ']chr1:100]T') == 'SV_BND'
         assert classify_variant_type('G', 'G]chr3:500]') == 'SV_BND'
         assert classify_variant_type('C', '[chrX:200[C') == 'SV_BND'
-        
+
+        # Breakend with insertions should be classified as SV_BND_INS
+        assert classify_variant_type('T', ']chr2:20]ATCGT') == 'SV_BND_INS'
+        assert classify_variant_type('GCAT', 'GCAT[chr5:100[') == 'SV_BND_INS'
+        assert classify_variant_type('A', '[chr1:50[ANNNCAT') == 'SV_BND_INS'
+
         # With INFO field
         info_bnd = {'SVTYPE': 'BND', 'CHR2': 'chr2', 'POS2': 1000}
         assert classify_variant_type('A', 'A[chr2:1000[', info_bnd) == 'SV_BND'
@@ -146,7 +151,10 @@ class TestVariantClassification:
         assert classify_variant_type('ATCG', 'GCTA', info_sv) == 'SV_INV'
         
         # Breakend notation should override sequence-based classification
-        assert classify_variant_type('ATCG', 'ATCG[chr2:1000[') == 'SV_BND'
+        # Standard BND without insertion
+        assert classify_variant_type('G', 'G]chr2:1000]') == 'SV_BND'
+        # BND with insertion should be classified as SV_BND_INS
+        assert classify_variant_type('ATCG', 'ATCG[chr2:1000[') == 'SV_BND_INS'
 
 
 class TestInfoFieldParsing:

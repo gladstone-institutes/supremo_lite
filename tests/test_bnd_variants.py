@@ -30,7 +30,8 @@ class TestBreakendParsing(unittest.TestCase):
 
         # Load the actual BND variants from the VCF file
         self.variants_df = read_vcf(self.bnd_vcf, include_info=True, classify_variants=True)
-        self.bnd_variants = self.variants_df[self.variants_df['variant_type'] == 'SV_BND']
+        self.bnd_variants = self.variants_df[self.variants_df['variant_type'].isin(['SV_BND', 'SV_BND_INS'])]
+        
 
     def test_parse_breakend_alt_patterns(self):
         """Test parsing of different breakend ALT patterns using actual VCF data."""
