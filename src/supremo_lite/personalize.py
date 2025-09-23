@@ -1109,24 +1109,33 @@ def _generate_bnd_ref_sequences(breakend_pairs, reference, seq_len, encode=True,
             # Calculate window centered on first breakend
             center_pos = bnd1.pos - 1  # Convert to 0-based
 
-            # Generate left reference sequence (from bnd1 location + N-padding)
-            left_start = max(0, center_pos - seq_len // 2)
-            left_end = min(len(seq1), left_start + seq_len)
+            # Generate left reference sequence (sequence before breakend + right-side N-padding)
+            # For BNDs, we want to show what was there BEFORE the fusion point
+            # Then pad the right side with N's to represent the missing fusion partner
+            half_len = seq_len // 2
+
+            # Extract sequence leading up to the breakend (before the fusion point)
+            left_start = max(0, center_pos - half_len)
+            left_end = center_pos  # Stop at the breakend position
             left_ref_raw = seq1[left_start:left_end]
 
-            # Pad right side with Ns for missing portion
-            n_padding = seq_len - len(left_ref_raw)
-            left_ref_seq = left_ref_raw + 'N' * n_padding
+            # Pad the right side to represent where the fusion partner would attach
+            left_padding_needed = seq_len - len(left_ref_raw)
+            left_ref_seq = left_ref_raw + 'N' * left_padding_needed
 
-            # Generate right reference sequence (N-padding + from bnd2 location)
+            # Generate right reference sequence (left-side N-padding + sequence after breakend)
+            # For the right side, we want to show what was there AFTER the fusion point
+            # Pad the left side with N's to represent the missing fusion partner
             bnd2_center = bnd2.pos - 1  # Convert to 0-based
-            right_start = max(0, bnd2_center - seq_len // 2)
-            right_end = min(len(seq2), right_start + seq_len)
+
+            # Extract sequence starting from the breakend (after the fusion point)
+            right_start = bnd2_center  # Start at the breakend position
+            right_end = min(len(seq2), bnd2_center + half_len)
             right_ref_raw = seq2[right_start:right_end]
 
-            # Pad left side with Ns for missing portion
-            n_padding = seq_len - len(right_ref_raw)
-            right_ref_seq = 'N' * n_padding + right_ref_raw
+            # Pad the left side to represent where the fusion partner would attach
+            right_padding_needed = seq_len - len(right_ref_raw)
+            right_ref_seq = 'N' * right_padding_needed + right_ref_raw
 
             # Apply reverse complement if needed based on orientation
             if bnd1.orientation in ['t]p]', '[p[t']:  # orientations requiring RC
@@ -1240,24 +1249,33 @@ def _generate_bnd_sequences(breakend_pairs, reference, seq_len, encode=True, enc
                 # Pad if fusion is shorter than window
                 alt_seq = fusion_seq + 'N' * (seq_len - len(fusion_seq))
 
-            # Generate left reference sequence (from bnd1 location + N-padding)
-            left_start = max(0, center_pos - seq_len // 2)
-            left_end = min(len(seq1), left_start + seq_len)
+            # Generate left reference sequence (sequence before breakend + right-side N-padding)
+            # For BNDs, we want to show what was there BEFORE the fusion point
+            # Then pad the right side with N's to represent the missing fusion partner
+            half_len = seq_len // 2
+
+            # Extract sequence leading up to the breakend (before the fusion point)
+            left_start = max(0, center_pos - half_len)
+            left_end = center_pos  # Stop at the breakend position
             left_ref_raw = seq1[left_start:left_end]
 
-            # Pad right side with Ns for missing portion
-            n_padding = seq_len - len(left_ref_raw)
-            left_ref_seq = left_ref_raw + 'N' * n_padding
+            # Pad the right side to represent where the fusion partner would attach
+            left_padding_needed = seq_len - len(left_ref_raw)
+            left_ref_seq = left_ref_raw + 'N' * left_padding_needed
 
-            # Generate right reference sequence (N-padding + from bnd2 location)
+            # Generate right reference sequence (left-side N-padding + sequence after breakend)
+            # For the right side, we want to show what was there AFTER the fusion point
+            # Pad the left side with N's to represent the missing fusion partner
             bnd2_center = bnd2.pos - 1  # Convert to 0-based
-            right_start = max(0, bnd2_center - seq_len // 2)
-            right_end = min(len(seq2), right_start + seq_len)
+
+            # Extract sequence starting from the breakend (after the fusion point)
+            right_start = bnd2_center  # Start at the breakend position
+            right_end = min(len(seq2), bnd2_center + half_len)
             right_ref_raw = seq2[right_start:right_end]
 
-            # Pad left side with Ns for missing portion
-            n_padding = seq_len - len(right_ref_raw)
-            right_ref_seq = 'N' * n_padding + right_ref_raw
+            # Pad the left side to represent where the fusion partner would attach
+            right_padding_needed = seq_len - len(right_ref_raw)
+            right_ref_seq = 'N' * right_padding_needed + right_ref_raw
 
             # Apply reverse complement if needed based on orientation
             if bnd1.orientation in ['t]p]', '[p[t']:  # orientations requiring RC
@@ -1705,12 +1723,12 @@ def get_alt_ref_sequences(
 
     Yields:
         Tuple containing (alt_sequences, ref_sequences, metadata_df):
-            For standard variants (backward compatible):
+            For standard variants:
             - alt_sequences: Variant sequences with mutations applied
             - ref_sequences: Reference sequences without mutations
             - metadata_df: Variant metadata
 
-            For BND variants (new structure):
+            For BND variants:
             - alt_sequences: Fusion sequences from breakend pairs
             - ref_sequences: Tuple of (left_ref_sequences, right_ref_sequences)
             - metadata_df: BND metadata with orientation and mate information
