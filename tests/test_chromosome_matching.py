@@ -249,7 +249,7 @@ class TestChromosomeMatchingReport:
 
             # Should generate a warning for unmatched chromosomes
             assert len(w) == 1
-            assert "Could not match" in str(w[0].message)
+            assert "Skipped" in str(w[0].message)
             assert "chr22" in str(w[0].message)
 
         expected_mapping = {"chr1": "1", "chr2": "2"}

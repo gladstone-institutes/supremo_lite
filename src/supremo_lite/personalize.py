@@ -273,6 +273,7 @@ class VariantApplicator:
         self.cumulative_offset = 0  # Track length changes from applied variants
         self.applied_count = 0
         self.skipped_count = 0
+        self.skipped_variants = []  # List of (vcf_line, chrom, pos1, ref, alt, reason) tuples
 
     def apply_variants(self) -> Tuple[str, Dict[str, int]]:
         """
@@ -285,13 +286,20 @@ class VariantApplicator:
             try:
                 self._apply_single_variant(variant)
             except Exception as e:
-                warnings.warn(f"Cannot apply variant at {variant.pos1}: {e}")
+                # Extract concise error message and context
+                vcf_line = variant.get('vcf_line', '?')
+                chrom = variant.get('chrom', self.chrom)
+                error_msg = str(e).split(':')[0] if ':' in str(e) else str(e)
+                warnings.warn(f"Skipped variant at {chrom}:{variant.pos1} (VCF line {vcf_line}): {error_msg}")
                 self.skipped_count += 1
+                # Record skip details for reporting
+                self.skipped_variants.append((vcf_line, chrom, variant.pos1, variant.ref, variant.alt, 'validation_error'))
 
         stats = {
             "applied": self.applied_count,
             "skipped": self.skipped_count,
             "total": len(self.variants),
+            "skipped_variants": self.skipped_variants,
         }
 
         return self.sequence.decode(), stats
@@ -368,34 +376,28 @@ class VariantApplicator:
         supported_types = {'SNV', 'MNV', 'INS', 'DEL', 'complex', 'SV_DUP', 'SV_INV', 'SV_BND_DUP', 'SV_BND_INV'}
 
         # Handle variants that should be processed elsewhere or are unsupported
+        vcf_line = variant.get('vcf_line', '?')
+        chrom = variant.get('chrom', self.chrom)
+
         if variant_type in ['SV_BND']:
-            warnings.warn(
-                f"BND variant ({variant_type}) at position {variant.pos1} reached standard variant processing. "
-                f"BND variants are processed separately via breakend pair logic."
-            )
+            warnings.warn(f"Skipped variant at {chrom}:{variant.pos1} (VCF line {vcf_line}): type '{variant_type}' not supported")
             self.skipped_count += 1
+            self.skipped_variants.append((vcf_line, chrom, variant.pos1, variant.ref, variant.alt, 'unsupported_type'))
             return
         elif variant_type in {'SV_DEL', 'SV_INS', 'SV_CNV'}:
-            warnings.warn(
-                f"Structural variant type '{variant_type}' at position {variant.pos1} is not supported. "
-                f"Supported standard variant types: {', '.join(sorted(supported_types))}. "
-                f"Note: BND structural variants are supported separately."
-            )
+            warnings.warn(f"Skipped variant at {chrom}:{variant.pos1} (VCF line {vcf_line}): type '{variant_type}' not supported")
             self.skipped_count += 1
+            self.skipped_variants.append((vcf_line, chrom, variant.pos1, variant.ref, variant.alt, 'unsupported_type'))
             return
         elif variant_type in {'missing', 'unknown'}:
-            warnings.warn(
-                f"Skipping variant with '{variant_type}' type at position {variant.pos1}. "
-                f"Supported types: {', '.join(sorted(supported_types))}, BND (processed separately)"
-            )
+            warnings.warn(f"Skipped variant at {chrom}:{variant.pos1} (VCF line {vcf_line}): type '{variant_type}' not supported")
             self.skipped_count += 1
+            self.skipped_variants.append((vcf_line, chrom, variant.pos1, variant.ref, variant.alt, 'missing_type'))
             return
         elif variant_type not in supported_types:
-            warnings.warn(
-                f"Skipping unknown variant type '{variant_type}' at position {variant.pos1}. "
-                f"Supported types: {', '.join(sorted(supported_types))}, BND (processed separately)"
-            )
+            warnings.warn(f"Skipped variant at {chrom}:{variant.pos1} (VCF line {vcf_line}): type '{variant_type}' not supported")
             self.skipped_count += 1
+            self.skipped_variants.append((vcf_line, chrom, variant.pos1, variant.ref, variant.alt, 'unsupported_type'))
             return
 
         # 2. STRUCTURAL VARIANT INFO PARSING
@@ -440,6 +442,10 @@ class VariantApplicator:
             ref_end
         ):
             self.skipped_count += 1
+            # Record skip details for reporting
+            vcf_line = variant.get('vcf_line', '?')
+            chrom = variant.get('chrom', self.chrom)
+            self.skipped_variants.append((vcf_line, chrom, variant.pos1, variant.ref, variant.alt, 'overlap'))
             return  # Skip overlapping variants
 
         # 6. BOUNDS CHECK
@@ -1026,9 +1032,51 @@ def _preprocess_bnd_derived_variants(chrom_variants, vcf_path=None, verbose=Fals
     return result_variants
 
 
+def _format_skipped_variant_report(skipped_variants_list):
+    """
+    Format skipped variant details for reporting.
+
+    Args:
+        skipped_variants_list: List of (vcf_line, chrom, pos1, ref, alt, reason) tuples
+
+    Returns:
+        Formatted string with grouped skip reasons
+    """
+    if not skipped_variants_list:
+        return ""
+
+    from collections import defaultdict
+
+    # Group by reason
+    by_reason = defaultdict(list)
+    for vcf_line, chrom, pos1, ref, alt, reason in skipped_variants_list:
+        by_reason[reason].append((vcf_line, chrom, pos1, ref, alt))
+
+    # Format output
+    lines = []
+    reason_labels = {
+        'overlap': 'overlap with previous variant',
+        'unsupported_type': 'unsupported variant type',
+        'validation_error': 'validation error',
+        'missing_type': 'missing/unknown type'
+    }
+
+    for reason, variants in sorted(by_reason.items()):
+        label = reason_labels.get(reason, reason)
+        # Group by position for concise output
+        by_pos = defaultdict(list)
+        for vcf_line, chrom, pos1, ref, alt in variants:
+            by_pos[f"{chrom}:{pos1}"].append(vcf_line)
+
+        for pos, vcf_lines in sorted(by_pos.items()):
+            vcf_lines_str = ', '.join(map(str, sorted(vcf_lines)))
+            lines.append(f"     • {label}: VCF line(s) {vcf_lines_str} at {pos}")
+
+    return '\n'.join(lines)
+
+
 def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1, verbose=False, encoder=None):
     """
-    # TODO: The order of the chromsomes needs to be preserved in the output - currently it outputs modified chromosomes first
     Create a personalized genome by applying variants to a reference genome.
 
     This function implements multi-phase variant processing with proper frozen region tracking:
@@ -1046,6 +1094,11 @@ def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1, verb
         - Later variants overlapping frozen regions are skipped with warnings
         - BND breakpoints in frozen regions cause entire BND to be skipped
 
+    Output chromosome ordering:
+        - Chromosomes are returned in the same order as the reference genome
+        - BND-generated fusion sequences appear after all original chromosomes
+        - Leftover sequences (from consumed chromosomes) follow fusion sequences
+
     Args:
         reference_fn: Path to reference genome file or dictionary-like object
         variants_fn: Path to variants file or DataFrame. Supports VCF 4.2 format
@@ -1060,6 +1113,8 @@ def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1, verb
         If encode=True: A dictionary mapping chromosome names to encoded tensors/arrays
         If encode=False: A dictionary mapping chromosome names to sequence strings
 
+        The dictionary preserves reference genome chromosome order, with any fusion
+        or leftover sequences appended at the end.
 
     Examples:
         # Apply variants with proper ordering and conflict resolution
@@ -1067,6 +1122,11 @@ def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1, verb
 
         # Get raw sequences without encoding
         personal_genome = get_personal_genome('reference.fa', 'variants.vcf', encode=False)
+
+        # Verify chromosome order is preserved
+        ref_chroms = list(pyfaidx.Fasta('reference.fa').keys())
+        personal_chroms = list(personal_genome.keys())
+        assert personal_chroms[:len(ref_chroms)] == ref_chroms  # Original order preserved
     """
     # Load ALL variants with classification
     from .variant_utils import group_variants_by_semantic_type
@@ -1163,8 +1223,12 @@ def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1, verb
                 applicator = VariantApplicator(ref_seq, processed_variants,
                                              offset_tracker=offset_tracker, chrom=chrom)
                 personal_seq, stats = applicator.apply_variants()
-                # TODO: If variants are skipped the reason must be provided along with the line number for the input VCF
+
                 if verbose and stats["total"] > 0:
+                    # Report skipped variants if any
+                    if stats['skipped'] > 0 and stats.get('skipped_variants'):
+                        print(f"  ⚠️  Skipped {stats['skipped']} variant(s):")
+                        print(_format_skipped_variant_report(stats['skipped_variants']))
                     print(f"  ✅ Applied {stats['applied']}/{stats['total']} variants ({stats['skipped']} skipped)")
 
             else:
@@ -1176,6 +1240,7 @@ def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1, verb
                 shared_frozen_tracker = FrozenRegionTracker()
                 total_applied = 0
                 total_skipped = 0
+                all_skipped_variants = []
 
                 indices = np.array_split(np.arange(len(processed_variants)), n_chunks)
 
@@ -1195,6 +1260,7 @@ def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1, verb
 
                     total_applied += stats["applied"]
                     total_skipped += stats["skipped"]
+                    all_skipped_variants.extend(stats.get("skipped_variants", []))
 
                     if verbose:
                         print(f"    ✅ Chunk {i+1}: {stats['applied']}/{stats['total']} variants applied")
@@ -1202,6 +1268,10 @@ def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1, verb
                 personal_seq = current_sequence
 
                 if verbose:
+                    # Report skipped variants if any
+                    if total_skipped > 0 and all_skipped_variants:
+                        print(f"  ⚠️  Skipped {total_skipped} variant(s):")
+                        print(_format_skipped_variant_report(all_skipped_variants))
                     print(f"  🎯 Total: {total_applied}/{len(processed_variants)} variants applied ({total_skipped} skipped)")
 
             modified_sequences[chrom] = personal_seq
@@ -1410,14 +1480,31 @@ def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1, verb
             modified_sequences.update(leftover_sequences)
 
     # FINAL STEP: Encode sequences and create output
-    for chrom, seq in modified_sequences.items():
-        if encode:
-            if encoder:
-                personal_genome[chrom] = encoder(seq)
+    # Preserve reference chromosome order, then append fusion/leftover sequences
+    reference_chroms = list(reference.keys())
+
+    # First, add chromosomes in reference order
+    for chrom in reference_chroms:
+        if chrom in modified_sequences:
+            seq = modified_sequences[chrom]
+            if encode:
+                if encoder:
+                    personal_genome[chrom] = encoder(seq)
+                else:
+                    personal_genome[chrom] = encode_seq(seq)
             else:
-                personal_genome[chrom] = encode_seq(seq)
-        else:
-            personal_genome[chrom] = seq
+                personal_genome[chrom] = seq
+
+    # Then, add fusion and leftover sequences (not in original reference)
+    for chrom, seq in modified_sequences.items():
+        if chrom not in reference_chroms:
+            if encode:
+                if encoder:
+                    personal_genome[chrom] = encoder(seq)
+                else:
+                    personal_genome[chrom] = encode_seq(seq)
+            else:
+                personal_genome[chrom] = seq
 
     if verbose:
         total_variants = len(variants_df)

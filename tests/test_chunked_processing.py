@@ -329,6 +329,88 @@ class TestChunkedPersonalizeFunctions:
         assert len(result1["pam_intact"]) == len(result2["pam_intact"])
         assert len(result1["pam_disrupted"]) == len(result2["pam_disrupted"])
 
+    def test_chromosome_order_preservation(self):
+        """Test that get_personal_genome preserves reference chromosome order."""
+        # test_genome.fa has chromosomes in order: chr1, chr2, chr3, chr4, chr5
+        # Apply variants only to chr3 and chr5 (not chr1, chr2, chr4)
+        # to verify that ALL chromosomes maintain original order
+
+        variants_df = pd.DataFrame({
+            "chrom": ["chr3", "chr5", "chr3"],  # Intentionally not sorted
+            "pos": [10, 15, 30],
+            "id": [".", ".", "."],
+            "ref": ["A", "T", "A"],  # Actual bases: chr3[9]=A, chr5[14]=T, chr3[29]=A
+            "alt": ["C", "G", "G"],
+        })
+
+        reference = get_test_reference()
+
+        # Test with encode=False to get sequence strings
+        result = sl.get_personal_genome(
+            reference_fn=reference,
+            variants_fn=variants_df,
+            encode=False
+        )
+
+        # Verify all chromosomes are present
+        assert len(result) == 5
+        assert "chr1" in result
+        assert "chr2" in result
+        assert "chr3" in result
+        assert "chr4" in result
+        assert "chr5" in result
+
+        # Verify chromosome order matches reference order
+        result_chroms = list(result.keys())
+        expected_order = ["chr1", "chr2", "chr3", "chr4", "chr5"]
+        assert result_chroms == expected_order, \
+            f"Expected chromosome order {expected_order}, but got {result_chroms}"
+
+        # Verify unmodified chromosomes still have original sequences
+        from pyfaidx import Fasta
+        ref = Fasta(reference)
+        assert result["chr1"] == str(ref["chr1"])  # No variants
+        assert result["chr2"] == str(ref["chr2"])  # No variants
+        assert result["chr4"] == str(ref["chr4"])  # No variants
+
+        # Verify modified chromosomes are different from reference
+        assert result["chr3"] != str(ref["chr3"])  # Has variants
+        assert result["chr5"] != str(ref["chr5"])  # Has variants
+
+    def test_chromosome_order_with_encoded_output(self):
+        """Test chromosome order preservation with encoded output."""
+        variants_df = pd.DataFrame({
+            "chrom": ["chr5", "chr2"],  # Reverse order to test sorting
+            "pos": [10, 20],
+            "id": [".", "."],
+            "ref": ["A", "A"],  # Actual bases: chr5[9]=A, chr2[19]=A
+            "alt": ["G", "C"],
+        })
+
+        reference = get_test_reference()
+
+        # Test with encode=True (default)
+        result = sl.get_personal_genome(
+            reference_fn=reference,
+            variants_fn=variants_df,
+            encode=True
+        )
+
+        # Verify chromosome order is preserved even with encoding
+        result_chroms = list(result.keys())
+        expected_order = ["chr1", "chr2", "chr3", "chr4", "chr5"]
+        assert result_chroms == expected_order, \
+            f"Expected chromosome order {expected_order}, but got {result_chroms}"
+
+        # Verify that results are encoded (should be arrays/tensors, not strings)
+        import numpy as np
+        for chrom in result_chroms:
+            assert hasattr(result[chrom], "shape"), \
+                f"{chrom} should be encoded as array/tensor, not string"
+            # One-hot encoding should have shape (length, 4)
+            assert result[chrom].shape[1] == 4, \
+                f"{chrom} should have 4 channels for one-hot encoding"
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

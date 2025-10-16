@@ -569,7 +569,9 @@ def read_vcf(path, include_info=True, classify_variants=True):
     
     # TODO: use the read_tsv built in functionality for this instead
     with open(path, "r") as f:
-        lines = [l for l in f if not l.startswith("##")]
+        all_lines = f.readlines()
+        header_count = sum(1 for l in all_lines if l.startswith("##"))
+        lines = [l for l in all_lines if not l.startswith("##")]
 
     # Determine columns to read based on parameters
     if include_info:
@@ -588,6 +590,10 @@ def read_vcf(path, include_info=True, classify_variants=True):
 
     # Set column names
     df.columns = base_columns
+
+    # Add VCF line numbers for debugging (1-indexed, accounting for header lines)
+    # Line number = header_lines + 1 (column header) + 1 (1-indexed) + row_index
+    df['vcf_line'] = df.index + header_count + 2
 
     # Validate that pos1 column is numeric
     if not pd.api.types.is_numeric_dtype(df["pos1"]):

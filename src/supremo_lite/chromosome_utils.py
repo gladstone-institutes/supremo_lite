@@ -225,9 +225,7 @@ def match_chromosomes_with_report(
         print(report)
 
     if unmatched:
-        warnings.warn(
-            f"Could not match {len(unmatched)} VCF chromosomes to reference: "
-            f"{sorted(unmatched)}. These variants will be skipped."
-        )
+        chrom_list = ', '.join(sorted(unmatched))
+        warnings.warn(f"Skipped {len(unmatched)} chromosome(s) not in reference: {chrom_list}")
 
     return mapping, unmatched
