@@ -1534,7 +1534,7 @@ def _generate_sequence_metadata(chunk_variants, seq_len):
         pandas.DataFrame: Comprehensive metadata with standardized columns
     """
     metadata = []
-    
+
     for _, var in chunk_variants.iterrows():
         # Basic position calculations
         pos = var["pos1"]  # 1-based VCF position
@@ -1542,61 +1542,31 @@ def _generate_sequence_metadata(chunk_variants, seq_len):
         half_len = seq_len // 2
         window_start = max(0, genomic_pos - half_len)
         window_end = window_start + seq_len
-        
-        # Variant classification and length calculations
+
+        # Variant classification
         variant_type = var.get('variant_type', 'unknown')
-        ref_length = len(var["ref"])
-        alt_length = len(var["alt"])
-        
-        # Calculate effective variant boundaries for complex variants
-        if variant_type in ['SV_INV', 'SV_DUP', 'SV_BND', 'SV_BND_DUP', 'SV_BND_INV']:
-            # For structural variants, use full reported range
-            effective_start = genomic_pos
-            effective_end = genomic_pos + ref_length - 1  # 0-based end
-            variant_info = var.get('variant_info', {})
-        else:
-            # For simple variants, use standard boundaries
-            effective_start = genomic_pos  
-            effective_end = genomic_pos + ref_length - 1  # 0-based end
-            variant_info = None
-            
-        # Calculate position offsets
-        upstream_offset = 0  # Positions before variant unaffected
-        downstream_offset = alt_length - ref_length  # Net length change
-        
-        # Position within sequence window (0-based)
-        variant_offset = genomic_pos - window_start
-        
-        # Extract SVTYPE and SVLEN from INFO field if available
-        svtype = None
-        svlen = None
-        if 'info' in var and var['info'] and var['info'] != '.':
-            parsed_info = parse_vcf_info(var['info'])
-            svtype = parsed_info.get('SVTYPE')
-            svlen = parsed_info.get('SVLEN')
-        
-        metadata.append({
+
+        # Build minimal metadata dictionary
+        meta_dict = {
             "chrom": var["chrom"],
-            "start": window_start,
-            "end": window_end,
+            "window_start": window_start,
+            "window_end": window_end,
             "variant_pos0": genomic_pos,  # 0-based absolute position
-            "variant_pos1": pos,  # 1-based absolute position  
-            "variant_offset": variant_offset,  # 0-based position within window
+            "variant_pos1": pos,  # 1-based absolute position
             "ref": var["ref"],
             "alt": var["alt"],
-            # Enhanced variant type information
             "variant_type": variant_type,
-            "ref_length": ref_length,
-            "alt_length": alt_length,
-            "effective_variant_start": effective_start - window_start,  # Relative to window
-            "effective_variant_end": effective_end - window_start,      # Relative to window
-            "position_offset_upstream": upstream_offset,
-            "position_offset_downstream": downstream_offset,
-            "structural_variant_info": variant_info,
-            # Extract specific INFO fields for easier access
-            "svtype": svtype,
-            "svlen": svlen,
-        })
+        }
+
+        # Add sym_variant_end ONLY for symbolic alleles (<INV>, <DUP>, etc.)
+        if variant_type.startswith('SV_') and '<' in var["alt"]:
+            if 'info' in var and var['info'] and var['info'] != '.':
+                parsed_info = parse_vcf_info(var['info'])
+                sym_end = parsed_info.get('END')
+                if sym_end is not None:
+                    meta_dict["sym_variant_end"] = sym_end
+
+        metadata.append(meta_dict)
     
     return pd.DataFrame(metadata)
 
@@ -1691,11 +1661,10 @@ def _generate_bnd_ref_sequences(breakend_pairs, reference, seq_len, encode=True,
             window_end = window_start + seq_len
             metadata.append({
                 'chrom': bnd1.chrom,
-                'start': window_start,
-                'end': window_end,
+                'window_start': window_start,
+                'window_end': window_end,
                 'variant_pos0': center_pos,
                 'variant_pos1': bnd1.pos,
-                'variant_offset': seq_len // 2,
                 'ref': bnd1.ref,
                 'alt': bnd1.alt,
                 'variant_type': 'SV_BND',
@@ -1864,11 +1833,10 @@ def _generate_bnd_sequences(breakend_pairs, reference, seq_len, encode=True, enc
             # Create metadata for this BND
             metadata.append({
                 'chrom': bnd1.chrom,
-                'start': window_start,
-                'end': window_end,
+                'window_start': window_start,
+                'window_end': window_end,
                 'variant_pos0': center_pos,
                 'variant_pos1': bnd1.pos,
-                'variant_offset': seq_len // 2,
                 'ref': bnd1.ref,
                 'alt': bnd1.alt,
                 'variant_type': 'SV_BND',
@@ -2294,12 +2262,34 @@ def get_alt_ref_sequences(
             For standard variants:
             - alt_sequences: Variant sequences with mutations applied
             - ref_sequences: Reference sequences without mutations
-            - metadata_df: Variant metadata
+            - metadata_df: Variant metadata (pandas DataFrame)
 
             For BND variants:
             - alt_sequences: Fusion sequences from breakend pairs
             - ref_sequences: Tuple of (left_ref_sequences, right_ref_sequences)
             - metadata_df: BND metadata with orientation and mate information
+
+    Metadata DataFrame columns:
+        Standard fields (all variants):
+            - chrom: Chromosome name (str)
+            - window_start: Window start position, 0-based (int)
+            - window_end: Window end position, 0-based exclusive (int)
+            - variant_pos0: Variant position, 0-based (int)
+            - variant_pos1: Variant position, 1-based VCF standard (int)
+            - ref: Reference allele (str)
+            - alt: Alternate allele (str)
+            - variant_type: Variant classification (str)
+                Examples: 'SNV', 'INS', 'DEL', 'MNV', 'SV_INV', 'SV_DUP', 'SV_BND'
+
+        Additional field for symbolic alleles (<INV>, <DUP>, etc.):
+            - sym_variant_end: END position from INFO field, 1-based (int, optional)
+
+        BND-specific fields:
+            - mate_chrom: Mate breakend chromosome (str)
+            - mate_pos: Mate breakend position, 1-based (int)
+            - orientation_1: First breakend orientation (str)
+            - orientation_2: Second breakend orientation (str)
+            - fusion_name: Fusion sequence identifier (str, optional)
     """
     # Get generators for both reference and variant sequences
     # These already handle variant loading, chromosome matching, and chunking consistently

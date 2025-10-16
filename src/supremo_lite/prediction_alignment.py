@@ -797,8 +797,8 @@ def align_predictions_by_coordinate(
         metadata_row: Dictionary with variant information containing:
             - 'variant_type': Type of variant (SNV, INS, DEL, DUP, INV, BND)
             - 'window_start': Start position of window (0-based)
-            - 'effective_variant_start': Variant position relative to window start
-            - 'svlen': Length of structural variant (if applicable)
+            - 'variant_pos0': Variant position (0-based, absolute genomic coordinate)
+            - 'svlen': Length of structural variant (optional, for symbolic alleles)
         bin_size: Number of base pairs per prediction bin (REQUIRED, model-specific)
             Examples: 2048 for Akita
         prediction_type: Type of predictions ("1D" or "2D")
@@ -823,7 +823,7 @@ def align_predictions_by_coordinate(
         ...     ref_preds=ref_scores,
         ...     alt_preds=alt_scores,
         ...     metadata_row={'variant_type': 'INS', 'window_start': 0,
-        ...                   'effective_variant_start': 500, 'svlen': 100},
+        ...                   'variant_pos0': 500, 'svlen': 100},
         ...     bin_size=128,
         ...     prediction_type="1D"
         ... )
@@ -833,7 +833,7 @@ def align_predictions_by_coordinate(
         ...     ref_preds=ref_contact_map,
         ...     alt_preds=alt_contact_map,
         ...     metadata_row={'variant_type': 'DEL', 'window_start': 0,
-        ...                   'effective_variant_start': 50000, 'svlen': -2048},
+        ...                   'variant_pos0': 50000, 'svlen': -2048},
         ...     bin_size=2048,
         ...     prediction_type="2D",
         ...     matrix_size=448,
@@ -845,7 +845,7 @@ def align_predictions_by_coordinate(
         ...     ref_preds=ref_contact_map,
         ...     alt_preds=alt_contact_map,
         ...     metadata_row={'variant_type': 'INS', 'window_start': 0,
-        ...                   'effective_variant_start': 1000, 'svlen': 500},
+        ...                   'variant_pos0': 1000, 'svlen': 500},
         ...     bin_size=1000,
         ...     prediction_type="2D",
         ...     matrix_size=512
@@ -863,11 +863,17 @@ def align_predictions_by_coordinate(
     # Extract variant information from metadata
     variant_type = metadata_row.get('variant_type', 'unknown')
     window_start = metadata_row.get('window_start', 0)
-    effective_variant_start = metadata_row.get('effective_variant_start', 0)
-    svlen = metadata_row.get('svlen', 0)
+    variant_pos0 = metadata_row.get('variant_pos0')
 
-    # Calculate absolute position
-    abs_variant_pos = window_start + effective_variant_start
+    # For backward compatibility, check for effective_variant_start (deprecated)
+    if variant_pos0 is not None:
+        abs_variant_pos = variant_pos0
+    else:
+        # Fall back to old field name if present (for backward compatibility)
+        effective_variant_start = metadata_row.get('effective_variant_start', 0)
+        abs_variant_pos = window_start + effective_variant_start
+
+    svlen = metadata_row.get('svlen', 0)
 
     # Create VariantPosition object
     var_pos = VariantPosition(

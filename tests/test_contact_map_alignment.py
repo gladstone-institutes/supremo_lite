@@ -64,7 +64,7 @@ def test_1d_score_alignment():
         metadata_snv = {
             'variant_type': 'SNV',
             'window_start': 0,
-            'effective_variant_start': 100,
+            'variant_pos0': 100,
             'svlen': 0
         }
         
@@ -103,7 +103,7 @@ def test_1d_score_alignment():
         metadata_ins = {
             'variant_type': 'INS',
             'window_start': 0,
-            'effective_variant_start': 100,
+            'variant_pos0': 100,
             'svlen': 32  # 1 bin insertion
         }
 
@@ -190,7 +190,7 @@ def test_contact_map_alignment():
     metadata_snv = {
         'variant_type': 'SNV',
         'window_start': 0,
-        'effective_variant_start': 50,
+        'variant_pos0': 50,
         'svlen': 0
     }
 
@@ -209,7 +209,7 @@ def test_contact_map_alignment():
     metadata_ins = {
         'variant_type': 'INS',
         'window_start': 0,
-        'effective_variant_start': 50,
+        'variant_pos0': 50,
         'svlen': 32
     }
 
@@ -228,7 +228,7 @@ def test_contact_map_alignment():
     metadata_del = {
         'variant_type': 'DEL',
         'window_start': 0,
-        'effective_variant_start': 50,
+        'variant_pos0': 50,
         'svlen': -32  # Negative for deletion
     }
 
@@ -279,7 +279,7 @@ def test_error_handling():
     metadata_contact = {
         'variant_type': 'SNV',
         'window_start': 0,
-        'effective_variant_start': 50,
+        'variant_pos0': 50,
         'svlen': 0
     }
     try:
@@ -297,7 +297,7 @@ def test_error_handling():
     metadata_unsupported = {
         'variant_type': 'BND',
         'window_start': 0,
-        'effective_variant_start': 50,
+        'variant_pos0': 50,
         'svlen': 0
     }
     try:
