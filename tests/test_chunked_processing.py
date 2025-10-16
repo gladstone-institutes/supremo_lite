@@ -31,7 +31,7 @@ class TestChunkedVCFReading:
         # Should have only one chunk (snp.vcf has 4 variants)
         assert len(chunks) == 1
         assert len(chunks[0]) == 4
-        assert list(chunks[0].columns) == ['chrom', 'pos1', 'id', 'ref', 'alt', 'info', 'variant_type']
+        assert list(chunks[0].columns) == ['chrom', 'pos1', 'id', 'ref', 'alt', 'info', 'vcf_line', 'variant_type']
         assert chunks[0]["chrom"].iloc[0] == "chr1"
         assert chunks[0]["pos1"].iloc[0] == 2
 

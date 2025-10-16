@@ -1300,7 +1300,7 @@ def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1, verb
         if vcf_path:
             from .variant_utils import BNDClassifier
             classifier = BNDClassifier()
-            classified_breakends = classifier.classify_all_breakends(vcf_path)
+            classified_breakends = classifier.classify_all_breakends(vcf_path, verbose=verbose)
 
             # Extract all paired breakends (including those with inferred mates)
             all_paired_breakends = classified_breakends['paired']

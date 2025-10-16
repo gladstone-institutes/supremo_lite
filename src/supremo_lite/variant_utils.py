@@ -198,20 +198,23 @@ class BNDClassifier:
         self.all_breakends = []
         self.coordinate_index = {}  # Map (chrom, pos) -> breakend
 
-    def classify_all_breakends(self, vcf_path: str) -> Dict[str, List[Breakend]]:
+    def classify_all_breakends(self, vcf_path: str, verbose: bool = False) -> Dict[str, List[Breakend]]:
         """
         Classify all BND variants from a VCF file.
+
+        Args:
+            vcf_path: Path to VCF file containing BND variants
+            verbose: Print detailed classification information (default: False)
 
         Returns:
             Dict with keys 'paired', 'missing_mate', 'singleton_insertion'
         """
-        # TODO: This function needs to respect the verbose arguement
-
         # Load VCF with variant classification
         variants_df = read_vcf(vcf_path, include_info=True, classify_variants=True)
         bnd_variants = variants_df[variants_df['variant_type'].isin(['SV_BND', 'SV_BND_INS'])]
 
-        print(f"Found {len(bnd_variants)} BND variants")
+        if verbose:
+            print(f"Found {len(bnd_variants)} BND variants")
 
         # Parse all breakends and build coordinate index
         self._parse_and_index_breakends(bnd_variants)
@@ -275,12 +278,13 @@ class BNDClassifier:
 
                 classified['paired'].extend([enhanced1, enhanced2])
 
-                if breakend.inserted_seq:
-                    print(f"INFO: Inferred missing mate for {breakend.id} with novel sequence '{breakend.inserted_seq}' "
-                          f"-> created fusion with inferred mate at {breakend.mate_chrom}:{breakend.mate_pos}")
-                else:
-                    print(f"INFO: Inferred missing mate for {breakend.id} "
-                          f"-> created fusion with inferred mate at {breakend.mate_chrom}:{breakend.mate_pos}")
+                if verbose:
+                    if breakend.inserted_seq:
+                        print(f"  INFO: Inferred missing mate for {breakend.id} with novel sequence '{breakend.inserted_seq}' "
+                              f"-> created fusion with inferred mate at {breakend.mate_chrom}:{breakend.mate_pos}")
+                    else:
+                        print(f"  INFO: Inferred missing mate for {breakend.id} "
+                              f"-> created fusion with inferred mate at {breakend.mate_chrom}:{breakend.mate_pos}")
 
                 processed_ids.add(breakend.id)
 
@@ -304,12 +308,13 @@ class BNDClassifier:
         classified['inv_breakends'] = inv_breakends
 
         # Print classification summary
-        print(f"\nBND Classification Summary:")
-        print(f"  Paired breakends (true translocations): {len(classified['paired'])}")
-        print(f"  Duplication breakends (SV_BND_DUP): {len(dup_breakends)}")
-        print(f"  Inversion breakends (SV_BND_INV): {len(inv_breakends)}")
-        total_inferred = len([bnd for bnd in classified['paired'] + dup_breakends + inv_breakends if 'inferred' in bnd.id])
-        print(f"  Inferred mates created: {total_inferred}")
+        if verbose:
+            print(f"\nBND Classification Summary:")
+            print(f"  Paired breakends (true translocations): {len(classified['paired'])}")
+            print(f"  Duplication breakends (SV_BND_DUP): {len(dup_breakends)}")
+            print(f"  Inversion breakends (SV_BND_INV): {len(inv_breakends)}")
+            total_inferred = len([bnd for bnd in classified['paired'] + dup_breakends + inv_breakends if 'inferred' in bnd.id])
+            print(f"  Inferred mates created: {total_inferred}")
 
         return classified
 
@@ -549,6 +554,33 @@ class BNDClassifier:
                 warnings.warn(f"Error processing breakend {variant['id']}: {e}")
 
 
+def _count_vcf_header_lines(path: str) -> int:
+    """
+    Count the number of header lines in a VCF file.
+
+    VCF files have two types of header lines:
+    - Lines starting with ## (metadata)
+    - Line starting with #CHROM (column header)
+
+    Args:
+        path: Path to VCF file
+
+    Returns:
+        Number of lines to skip (all ## lines + the #CHROM line)
+    """
+    with open(path, "r") as f:
+        header_count = 0
+        for line in f:
+            if line.startswith("##"):
+                header_count += 1
+            elif line.startswith("#"):
+                header_count += 1  # Skip the #CHROM header line
+                break
+            else:
+                break  # Reached data lines
+    return header_count
+
+
 def read_vcf(path, include_info=True, classify_variants=True):
     """
     Read VCF file into pandas DataFrame with enhanced variant classification.
@@ -566,13 +598,6 @@ def read_vcf(path, include_info=True, classify_variants=True):
         - variant_type column uses VCF 4.2 compliant classification
         - Compatible with existing code expecting basic 5-column format
     """
-    
-    # TODO: use the read_tsv built in functionality for this instead
-    with open(path, "r") as f:
-        all_lines = f.readlines()
-        header_count = sum(1 for l in all_lines if l.startswith("##"))
-        lines = [l for l in all_lines if not l.startswith("##")]
-
     # Determine columns to read based on parameters
     if include_info:
         usecols = [0, 1, 2, 3, 4, 7]  # Include INFO field
@@ -581,19 +606,21 @@ def read_vcf(path, include_info=True, classify_variants=True):
         usecols = [0, 1, 2, 3, 4]  # Include ID field by default
         base_columns = ["chrom", "pos1", "id", "ref", "alt"]
 
-    # TODO: use read_tsv instead
-    df = pd.read_csv(
-        io.StringIO("".join(lines)),
-        sep="\t",
-        usecols=usecols,
+    # Count header lines for VCF line tracking (needed for vcf_line column)
+    header_count = _count_vcf_header_lines(path)
+
+    # Read VCF using pandas with comment='#' to skip all header lines automatically
+    df = pd.read_table(
+        path,
+        comment='#',
+        header=None,
+        names=base_columns,
+        usecols=usecols
     )
 
-    # Set column names
-    df.columns = base_columns
-
     # Add VCF line numbers for debugging (1-indexed, accounting for header lines)
-    # Line number = header_lines + 1 (column header) + 1 (1-indexed) + row_index
-    df['vcf_line'] = df.index + header_count + 2
+    # Line number = header_lines + 1 (for 1-indexing) + row_index
+    df['vcf_line'] = df.index + header_count + 1
 
     # Validate that pos1 column is numeric
     if not pd.api.types.is_numeric_dtype(df["pos1"]):
@@ -632,10 +659,6 @@ def read_vcf_chunked(path, n_chunks=1, include_info=True, classify_variants=True
     Yields:
         DataFrame chunks with columns: chrom, pos1, id, ref, alt, [info], [variant_type]
     """
-    with open(path, "r") as f:
-        # Skip header lines
-        lines = [l for l in f if not l.startswith("##")]
-
     # Determine columns to read based on parameters
     if include_info:
         usecols = [0, 1, 2, 3, 4, 7]  # Include INFO field
@@ -644,24 +667,32 @@ def read_vcf_chunked(path, n_chunks=1, include_info=True, classify_variants=True
         usecols = [0, 1, 2, 3, 4]  # Include ID field by default
         base_columns = ["chrom", "pos1", "id", "ref", "alt"]
 
-    # Read full dataframe first
-    full_df = pd.read_csv(
-        io.StringIO("".join(lines)), sep="\t", usecols=usecols
+    # Count header lines for VCF line tracking (needed for vcf_line column)
+    header_count = _count_vcf_header_lines(path)
+
+    # Read VCF using pandas with comment='#' to skip all header lines automatically
+    full_df = pd.read_table(
+        path,
+        comment='#',
+        header=None,
+        names=base_columns,
+        usecols=usecols
     )
 
     # Handle empty DataFrame
     if len(full_df) == 0:
         return
 
-    # Set column names
-    full_df.columns = base_columns
+    # Add VCF line numbers for debugging (1-indexed, accounting for header lines)
+    # Line number = header_lines + 1 (for 1-indexing) + row_index
+    full_df['vcf_line'] = full_df.index + header_count + 1
 
     # Validate that pos1 column is numeric
     if not pd.api.types.is_numeric_dtype(full_df["pos1"]):
         raise ValueError(
             f"Position column (second column) must be numeric, got {full_df['pos1'].dtype}"
         )
-    
+
     # Filter out multiallelic variants (ALT alleles containing commas)
     full_df = _filter_multiallelic_variants(full_df)
 
@@ -862,7 +893,7 @@ def group_variants_by_semantic_type(variants_df: pd.DataFrame, vcf_path: Optiona
     if len(bnd_variants) > 0 and vcf_path:
         # Use BNDClassifier to get semantic classifications
         classifier = BNDClassifier()
-        classified_breakends = classifier.classify_all_breakends(vcf_path)
+        classified_breakends = classifier.classify_all_breakends(vcf_path, verbose=False)
 
         # Extract variant IDs for each semantic type
         dup_bnd_ids = {b.id for b in classified_breakends.get('dup_breakends', [])}
@@ -1427,7 +1458,7 @@ def load_breakend_variants(variants_fn: Union[str, pd.DataFrame]) -> Tuple[pd.Da
     breakend_pairs = []
     if len(bnd_variants) > 0 and vcf_path:
         classifier = BNDClassifier()
-        classified_breakends = classifier.classify_all_breakends(vcf_path)
+        classified_breakends = classifier.classify_all_breakends(vcf_path, verbose=False)
 
         # Convert classified breakends to pairs
         paired_breakends = classified_breakends['paired']
