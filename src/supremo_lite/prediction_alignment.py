@@ -2,14 +2,21 @@
 Utilities for aligning model predictions between reference and variant sequences.
 
 This module provides functions to handle the alignment of ML model predictions
-when reference and variant sequences have position offsets due to indels. 
+when reference and variant sequences have position offsets due to structural variants.
 
+The alignment logic properly handles:
+- 1D predictions (chromatin accessibility, TF binding, etc.)
+- 2D contact maps (Hi-C, Micro-C predictions)
+- All variant types: SNV, INS, DEL, DUP, INV, BND
 
+Key principle: Users must specify all model-specific parameters (bin_size, diag_offset)
+as these vary across different prediction models.
 """
 
 import numpy as np
 import warnings
 from typing import Tuple, List, Optional, Union
+from dataclasses import dataclass
 
 try:
     import torch
@@ -18,77 +25,705 @@ except ImportError:
     TORCH_AVAILABLE = False
 
 
-def coord_to_bin_offset(coord, window_start, bin_length:int, crop_length:int):
+@dataclass
+class VariantPosition:
     """
-    Convert genomic coordinate to prediction bin offset.
-    
-    This function maps a genomic coordinate within a sequence window to the 
-    corresponding bin index in model predictions, accounting for binning and 
-    edge cropping.
-    
+    Container for variant position information in both REF and ALT sequences.
+
+    This class encapsulates the essential positional information needed to align
+    predictions across reference and alternate sequences that may differ in length.
+
+    Attributes:
+        ref_pos: Position in reference sequence (base pairs, 0-based)
+        alt_pos: Position in alternate sequence (base pairs, 0-based)
+        svlen: Length of structural variant (base pairs, signed for DEL/INS)
+        variant_type: Type of variant ('SNV', 'INS', 'DEL', 'DUP', 'INV', 'BND')
+    """
+    ref_pos: int
+    alt_pos: int
+    svlen: int
+    variant_type: str
+
+    def get_bin_positions(self, bin_size: int) -> Tuple[int, int, int]:
+        """
+        Convert base pair positions to bin indices.
+
+        Args:
+            bin_size: Number of base pairs per prediction bin
+
+        Returns:
+            Tuple of (ref_bin, alt_start_bin, alt_end_bin)
+        """
+        ref_bin = int(np.ceil(self.ref_pos / bin_size))
+        alt_start_bin = int(np.ceil(self.alt_pos / bin_size))
+        alt_end_bin = int(np.ceil((self.alt_pos + abs(self.svlen)) / bin_size))
+        return ref_bin, alt_start_bin, alt_end_bin
+
+
+class PredictionAligner1D:
+    """
+    Aligns reference and alternate 1D prediction vectors for variant comparison.
+
+    Handles alignment of 1D genomic predictions (e.g., chromatin accessibility,
+    transcription factor binding, epigenetic marks) between reference and variant
+    sequences that may differ in length due to structural variants.
+
+    The aligner uses a masking strategy where positions that exist in one sequence
+    but not the other are marked with NaN values, enabling direct comparison of
+    corresponding genomic positions.
+
     Args:
-        coord: Genomic coordinate within the window (0-based)
-        window_start: Start coordinate of the sequence window (0-based)
-        bin_length: Number of base pairs per prediction bin (default: 32)
-        crop_length: Number of bins cropped from each edge during prediction (default: 16)
-        
-    Returns:
-        int: Bin offset in the prediction array (can be negative if coord is in cropped region)
-        
+        target_size: Expected number of bins in the prediction output
+        bin_size: Number of base pairs per prediction bin (model-specific)
+
     Example:
-        # For a 1000bp window with 32bp bins and 16-bin cropping:
-        # Bin 0 covers positions 512-543 (after cropping first 16 bins = 512bp)
-        coord_to_bin_offset(520, 0, 32, 16)  # Returns 0 (first non-cropped bin)
+        >>> aligner = PredictionAligner1D(target_size=896, bin_size=128)
+        >>> ref_aligned, alt_aligned = aligner.align_predictions(
+        ...     ref_pred, alt_pred, 'INS', variant_position
+        ... )
     """
-    return (coord - window_start) // bin_length - crop_length
+
+    def __init__(self, target_size: int, bin_size: int):
+        """
+        Initialize the 1D prediction aligner.
+
+        Args:
+            target_size: Expected number of bins in prediction (e.g., 896 for Enformer)
+            bin_size: Base pairs per bin (e.g., 128 for Enformer)
+        """
+        self.target_size = target_size
+        self.bin_size = bin_size
+
+    def align_predictions(
+        self,
+        ref_pred: Union[np.ndarray, 'torch.Tensor'],
+        alt_pred: Union[np.ndarray, 'torch.Tensor'],
+        svtype: str,
+        var_pos: VariantPosition
+    ) -> Tuple[Union[np.ndarray, 'torch.Tensor'], Union[np.ndarray, 'torch.Tensor']]:
+        """
+        Main entry point for 1D prediction alignment.
+
+        Args:
+            ref_pred: Reference prediction vector (length N)
+            alt_pred: Alternate prediction vector (length N)
+            svtype: Variant type ('DEL', 'DUP', 'INS', 'INV', 'SNV')
+            var_pos: Variant position information
+
+        Returns:
+            Tuple of (aligned_ref, aligned_alt) vectors with NaN masking applied
+
+        Raises:
+            ValueError: For unsupported variant types or if using BND (use align_bnd_predictions)
+        """
+        if svtype == 'BND' or svtype == 'SV_BND':
+            raise ValueError("Use align_bnd_predictions() for breakends")
+
+        # Normalize variant type names
+        svtype_normalized = svtype.replace('SV_', '')
+
+        if svtype_normalized in ['DEL', 'DUP', 'INS']:
+            return self._align_indel_predictions(ref_pred, alt_pred, svtype_normalized, var_pos)
+        elif svtype_normalized == 'INV':
+            return self._align_inversion_predictions(ref_pred, alt_pred, var_pos)
+        elif svtype_normalized in ['SNV', 'MNV']:
+            # SNVs don't change coordinates, direct alignment
+            is_torch = TORCH_AVAILABLE and torch.is_tensor(ref_pred)
+            if is_torch:
+                return ref_pred.clone(), alt_pred.clone()
+            else:
+                return ref_pred.copy(), alt_pred.copy()
+        else:
+            raise ValueError(f"Unknown variant type: {svtype}")
+
+    def _align_indel_predictions(
+        self,
+        ref_pred: Union[np.ndarray, 'torch.Tensor'],
+        alt_pred: Union[np.ndarray, 'torch.Tensor'],
+        svtype: str,
+        var_pos: VariantPosition
+    ) -> Tuple[Union[np.ndarray, 'torch.Tensor'], Union[np.ndarray, 'torch.Tensor']]:
+        """
+        Align predictions for insertions, deletions, and duplications.
+
+        Strategy:
+        1. For DEL: Swap REF/ALT (deletion removes from REF)
+        2. Insert NaN bins in shorter sequence
+        3. Crop edges to maintain target size
+        4. For DEL: Swap back
+
+        This ensures that positions present in one sequence but not the other
+        are marked with NaN, enabling fair comparison of overlapping regions.
+        """
+        is_torch = TORCH_AVAILABLE and torch.is_tensor(ref_pred)
+
+        # Convert to numpy for manipulation
+        if is_torch:
+            ref_np = ref_pred.detach().cpu().numpy()
+            alt_np = alt_pred.detach().cpu().numpy()
+        else:
+            ref_np = ref_pred
+            alt_np = alt_pred
+
+        # Swap for deletions (treat as insertion in reverse)
+        if svtype == 'DEL':
+            ref_np, alt_np = alt_np, ref_np
+            var_pos = VariantPosition(var_pos.alt_pos, var_pos.ref_pos, var_pos.svlen, svtype)
+
+        # Get bin positions
+        ref_bin, alt_start_bin, alt_end_bin = var_pos.get_bin_positions(self.bin_size)
+        bins_to_add = alt_end_bin - alt_start_bin
+
+        # Insert NaN bins in REF where variant exists in ALT
+        ref_masked = self._insert_nan_bins(ref_np, ref_bin, bins_to_add)
+
+        # Crop to maintain target size
+        ref_masked = self._crop_vector(ref_masked, ref_bin, alt_start_bin)
+        alt_masked = alt_np.copy()
+
+        # Swap back for deletions
+        if svtype == 'DEL':
+            ref_masked, alt_masked = alt_masked, ref_masked
+
+        self._validate_size(ref_masked, alt_masked)
+
+        # Convert back to torch if needed
+        if is_torch:
+            ref_masked = torch.from_numpy(ref_masked).to(ref_pred.device).type(ref_pred.dtype)
+            alt_masked = torch.from_numpy(alt_masked).to(alt_pred.device).type(alt_pred.dtype)
+
+        return ref_masked, alt_masked
+
+    def _insert_nan_bins(
+        self,
+        vector: np.ndarray,
+        position: int,
+        num_bins: int
+    ) -> np.ndarray:
+        """
+        Insert NaN values at specified position in vector.
+
+        Args:
+            vector: Input prediction vector
+            position: Position to insert NaN values (bin index)
+            num_bins: Number of NaN values to insert
+
+        Returns:
+            Vector with NaN values inserted
+        """
+        result = vector.copy()
+        for offset in range(num_bins):
+            insert_pos = position + offset
+            result = np.insert(result, insert_pos, np.nan)
+        return result
+
+    def _crop_vector(
+        self,
+        vector: np.ndarray,
+        ref_bin: int,
+        alt_bin: int
+    ) -> np.ndarray:
+        """
+        Crop vector edges to maintain target size.
+
+        After inserting NaN bins, the vector is longer than expected.
+        This function crops from edges proportionally to center the variant.
+
+        Args:
+            vector: Vector to crop
+            ref_bin: Reference bin position
+            alt_bin: Alternate bin position
+
+        Returns:
+            Cropped vector of target_size length
+        """
+        remove_left = ref_bin - alt_bin
+        remove_right = len(vector) - self.target_size - remove_left
+
+        # Apply cropping
+        start = max(0, remove_left)
+        end = len(vector) - max(0, remove_right)
+        return vector[start:end]
+
+    def _align_inversion_predictions(
+        self,
+        ref_pred: Union[np.ndarray, 'torch.Tensor'],
+        alt_pred: Union[np.ndarray, 'torch.Tensor'],
+        var_pos: VariantPosition
+    ) -> Tuple[Union[np.ndarray, 'torch.Tensor'], Union[np.ndarray, 'torch.Tensor']]:
+        """
+        Align predictions for inversions.
+
+        Strategy:
+        1. Mask the inverted region in both vectors with NaN
+        2. This allows comparison of only the flanking (unaffected) regions
+
+        For strand-aware models, inversions can significantly affect predictions
+        because regulatory elements now appear on the opposite strand. We mask
+        the inverted region to focus comparison on unaffected flanking sequences.
+        """
+        is_torch = TORCH_AVAILABLE and torch.is_tensor(ref_pred)
+
+        # Convert to numpy for manipulation
+        if is_torch:
+            ref_np = ref_pred.detach().cpu().numpy()
+            alt_np = alt_pred.detach().cpu().numpy()
+        else:
+            ref_np = ref_pred.copy()
+            alt_np = alt_pred.copy()
+
+        var_start, _, var_end = var_pos.get_bin_positions(self.bin_size)
+
+        # Mask inverted region in both REF and ALT
+        ref_np[var_start:var_end + 1] = np.nan
+        alt_np[var_start:var_end + 1] = np.nan
+
+        self._validate_size(ref_np, alt_np)
+
+        # Convert back to torch if needed
+        if is_torch:
+            ref_np = torch.from_numpy(ref_np).to(ref_pred.device).type(ref_pred.dtype)
+            alt_np = torch.from_numpy(alt_np).to(alt_pred.device).type(alt_pred.dtype)
+
+        return ref_np, alt_np
+
+    def align_bnd_predictions(
+        self,
+        left_ref: Union[np.ndarray, 'torch.Tensor'],
+        right_ref: Union[np.ndarray, 'torch.Tensor'],
+        bnd_alt: Union[np.ndarray, 'torch.Tensor'],
+        breakpoint_bin: int
+    ) -> Tuple[Union[np.ndarray, 'torch.Tensor'], Union[np.ndarray, 'torch.Tensor']]:
+        """
+        Align predictions for breakends (chromosomal rearrangements).
+
+        BNDs join two distant loci, so we create a chimeric reference
+        prediction from the two separate loci for comparison with the fusion ALT.
+
+        Args:
+            left_ref: Prediction from left locus
+            right_ref: Prediction from right locus
+            bnd_alt: Prediction from joined (alternate) sequence
+            breakpoint_bin: Bin position of breakpoint
+
+        Returns:
+            Tuple of (chimeric_ref, alt) vectors
+        """
+        is_torch = TORCH_AVAILABLE and torch.is_tensor(left_ref)
+
+        # Convert to numpy for manipulation
+        if is_torch:
+            left_np = left_ref.detach().cpu().numpy()
+            right_np = right_ref.detach().cpu().numpy()
+            alt_np = bnd_alt.detach().cpu().numpy()
+        else:
+            left_np = left_ref
+            right_np = right_ref
+            alt_np = bnd_alt
+
+        # Extract the relevant portions from each reference
+        left_portion = left_np[:breakpoint_bin]
+        right_portion = right_np[-(self.target_size - breakpoint_bin):]
+
+        # Assemble chimeric reference
+        ref_chimeric = np.concatenate([left_portion, right_portion])
+
+        # Insert NaN at breakpoint to mark the transition
+        ref_chimeric[breakpoint_bin] = np.nan
+
+        self._validate_size(ref_chimeric, alt_np)
+
+        # Convert back to torch if needed
+        if is_torch:
+            ref_chimeric = torch.from_numpy(ref_chimeric).to(left_ref.device).type(left_ref.dtype)
+            alt_np = torch.from_numpy(alt_np).to(bnd_alt.device).type(bnd_alt.dtype)
+
+        return ref_chimeric, alt_np
+
+    def _validate_size(self, ref_vector: np.ndarray, alt_vector: np.ndarray):
+        """
+        Validate that vectors are the correct size.
+
+        Args:
+            ref_vector: Reference prediction vector
+            alt_vector: Alternate prediction vector
+
+        Raises:
+            ValueError: If either vector has incorrect size
+        """
+        if len(ref_vector) != self.target_size:
+            raise ValueError(
+                f"Reference vector wrong size: {len(ref_vector)} vs {self.target_size}"
+            )
+        if len(alt_vector) != self.target_size:
+            raise ValueError(
+                f"Alternate vector wrong size: {len(alt_vector)} vs {self.target_size}"
+            )
 
 
-def bin_offset_to_coord(bin_offset, window_start, bin_length:int, crop_length:int):
+class PredictionAligner2D:
     """
-    Convert prediction bin offset to genomic coordinate.
-    
-    This function maps a bin index in model predictions back to the corresponding
-    genomic coordinate, accounting for binning and edge cropping.
-    
+    Aligns reference and alternate prediction matrices for variant comparison.
+
+    Handles alignment of 2D genomic predictions (e.g., Hi-C contact maps,
+    Micro-C predictions) between reference and variant sequences that may
+    differ in length due to structural variants.
+
+    The aligner uses a masking strategy where matrix rows and columns that
+    exist in one sequence but not the other are marked with NaN values.
+
     Args:
-        bin_offset: Bin index in the prediction array
-        window_start: Start coordinate of the sequence window (0-based) 
-        bin_length: Number of base pairs per prediction bin (default: 32)
-        crop_length: Number of bins cropped from each edge during prediction (default: 16)
-        
-    Returns:
-        int: Genomic coordinate at the start of the bin
-        
+        target_size: Expected matrix dimension (NxN)
+        bin_size: Number of base pairs per matrix bin (model-specific)
+        diag_offset: Number of diagonal bins to mask (model-specific)
+
     Example:
-        # For a 1000bp window with 32bp bins and 16-bin cropping:
-        bin_offset_to_coord(0, 0, 32, 16)  # Returns 512 (start of first non-cropped bin)
+        >>> aligner = PredictionAligner2D(
+        ...     target_size=448,
+        ...     bin_size=2048,
+        ...     diag_offset=2
+        ... )
+        >>> ref_aligned, alt_aligned = aligner.align_predictions(
+        ...     ref_matrix, alt_matrix, 'DEL', variant_position
+        ... )
     """
-    return (bin_offset + crop_length) * bin_length + window_start
+
+    def __init__(self, target_size: int, bin_size: int, diag_offset: int):
+        """
+        Initialize the 2D prediction aligner.
+
+        Args:
+            target_size: Matrix dimension (e.g., 448 for Akita)
+            bin_size: Base pairs per bin (e.g., 2048 for Akita)
+            diag_offset: Diagonal masking offset (e.g., 2 for Akita)
+        """
+        self.target_size = target_size
+        self.bin_size = bin_size
+        self.diag_offset = diag_offset
+
+    def align_predictions(
+        self,
+        ref_pred: Union[np.ndarray, 'torch.Tensor'],
+        alt_pred: Union[np.ndarray, 'torch.Tensor'],
+        svtype: str,
+        var_pos: VariantPosition
+    ) -> Tuple[Union[np.ndarray, 'torch.Tensor'], Union[np.ndarray, 'torch.Tensor']]:
+        """
+        Main entry point for 2D matrix alignment.
+
+        Args:
+            ref_pred: Reference prediction matrix (NxN)
+            alt_pred: Alternate prediction matrix (NxN)
+            svtype: Variant type ('DEL', 'DUP', 'INS', 'INV', 'SNV')
+            var_pos: Variant position information
+
+        Returns:
+            Tuple of (aligned_ref, aligned_alt) matrices with NaN masking applied
+
+        Raises:
+            ValueError: For unsupported variant types or if using BND (use align_bnd_matrices)
+        """
+        if svtype == 'BND' or svtype == 'SV_BND':
+            raise ValueError("Use align_bnd_matrices() for breakends")
+
+        # Normalize variant type names
+        svtype_normalized = svtype.replace('SV_', '')
+
+        if svtype_normalized in ['DEL', 'DUP', 'INS']:
+            return self._align_indel_matrices(ref_pred, alt_pred, svtype_normalized, var_pos)
+        elif svtype_normalized == 'INV':
+            return self._align_inversion_matrices(ref_pred, alt_pred, var_pos)
+        elif svtype_normalized in ['SNV', 'MNV']:
+            # SNVs don't change coordinates, direct alignment
+            is_torch = TORCH_AVAILABLE and torch.is_tensor(ref_pred)
+            if is_torch:
+                return ref_pred.clone(), alt_pred.clone()
+            else:
+                return ref_pred.copy(), alt_pred.copy()
+        else:
+            raise ValueError(f"Unknown variant type: {svtype}")
+
+    def _align_indel_matrices(
+        self,
+        ref_pred: Union[np.ndarray, 'torch.Tensor'],
+        alt_pred: Union[np.ndarray, 'torch.Tensor'],
+        svtype: str,
+        var_pos: VariantPosition
+    ) -> Tuple[Union[np.ndarray, 'torch.Tensor'], Union[np.ndarray, 'torch.Tensor']]:
+        """
+        Align matrices for insertions, deletions, and duplications.
+
+        Strategy:
+        1. For DEL: Swap REF/ALT (deletion removes from REF)
+        2. Insert NaN bins (rows AND columns) in shorter matrix
+        3. Crop edges to maintain target size
+        4. For DEL: Swap back
+        """
+        is_torch = TORCH_AVAILABLE and torch.is_tensor(ref_pred)
+
+        # Convert to numpy for manipulation
+        if is_torch:
+            ref_np = ref_pred.detach().cpu().numpy()
+            alt_np = alt_pred.detach().cpu().numpy()
+        else:
+            ref_np = ref_pred
+            alt_np = alt_pred
+
+        # Swap for deletions (treat as insertion in reverse)
+        if svtype == 'DEL':
+            ref_np, alt_np = alt_np, ref_np
+            var_pos = VariantPosition(var_pos.alt_pos, var_pos.ref_pos, var_pos.svlen, svtype)
+
+        # Get bin positions
+        ref_bin, alt_start_bin, alt_end_bin = var_pos.get_bin_positions(self.bin_size)
+        bins_to_add = alt_end_bin - alt_start_bin
+
+        # Insert NaN bins in REF where variant exists in ALT
+        ref_masked = self._insert_nan_bins(ref_np, ref_bin, bins_to_add)
+
+        # Crop to maintain target size
+        ref_masked = self._crop_matrix(ref_masked, ref_bin, alt_start_bin)
+        alt_masked = alt_np.copy()
+
+        # Swap back for deletions
+        if svtype == 'DEL':
+            ref_masked, alt_masked = alt_masked, ref_masked
+
+        self._validate_size(ref_masked, alt_masked)
+
+        # Convert back to torch if needed
+        if is_torch:
+            ref_masked = torch.from_numpy(ref_masked).to(ref_pred.device).type(ref_pred.dtype)
+            alt_masked = torch.from_numpy(alt_masked).to(alt_pred.device).type(alt_pred.dtype)
+
+        return ref_masked, alt_masked
+
+    def _insert_nan_bins(
+        self,
+        matrix: np.ndarray,
+        position: int,
+        num_bins: int
+    ) -> np.ndarray:
+        """
+        Insert NaN bins (rows and columns) at specified position.
+
+        For 2D matrices, we must insert both rows AND columns to maintain
+        the square matrix structure and properly mask interactions.
+        """
+        result = matrix.copy()
+        for offset in range(num_bins):
+            insert_pos = position + offset
+            result = np.insert(result, insert_pos, np.nan, axis=0)
+            result = np.insert(result, insert_pos, np.nan, axis=1)
+        return result
+
+    def _crop_matrix(
+        self,
+        matrix: np.ndarray,
+        ref_bin: int,
+        alt_bin: int
+    ) -> np.ndarray:
+        """
+        Crop matrix edges to maintain target size.
+
+        After inserting NaN bins, the matrix is larger than expected.
+        This function crops from edges proportionally to center the variant.
+        """
+        remove_left = ref_bin - alt_bin
+        remove_right = len(matrix) - self.target_size - remove_left
+
+        # Apply cropping
+        start = max(0, remove_left)
+        end = len(matrix) - max(0, remove_right)
+        return matrix[start:end, start:end]
+
+    def _align_inversion_matrices(
+        self,
+        ref_pred: Union[np.ndarray, 'torch.Tensor'],
+        alt_pred: Union[np.ndarray, 'torch.Tensor'],
+        var_pos: VariantPosition
+    ) -> Tuple[Union[np.ndarray, 'torch.Tensor'], Union[np.ndarray, 'torch.Tensor']]:
+        """
+        Align matrices for inversions.
+
+        Strategy: Mask the inverted region in both REF and ALT matrices using
+        a cross-pattern (mask entire rows AND columns at the inversion position).
+
+        Why cross-masking?
+        - Inversions reverse the sequence, creating geometric rotation in contact maps
+        - Masking rows removes interactions with the inverted region (one dimension)
+        - Masking columns removes interactions from the inverted region (other dimension)
+        - This ensures only flanking regions (unaffected by inversion) are compared
+
+        The same NaN pattern is mirrored to ALT so both matrices have identical
+        masked regions, enabling fair comparison of the unaffected areas.
+        """
+        is_torch = TORCH_AVAILABLE and hasattr(ref_pred, 'device')
+
+        # Convert to numpy for manipulation
+        if is_torch:
+            ref_np = ref_pred.detach().cpu().numpy()
+            alt_np = alt_pred.detach().cpu().numpy()
+        else:
+            ref_np = ref_pred.copy()
+            alt_np = alt_pred.copy()
+
+        var_start, _, var_end = var_pos.get_bin_positions(self.bin_size)
+
+        # Mask inverted region in REF (cross-pattern: rows + columns)
+        ref_np[var_start:var_end + 1, :] = np.nan
+        ref_np[:, var_start:var_end + 1] = np.nan
+
+        # Mirror NaN pattern to ALT (correct approach)
+        nan_mask = ref_np.copy()
+        nan_mask[np.invert(np.isnan(nan_mask))] = 0  # Non-NaN → 0, NaN stays NaN
+        alt_np = alt_np + nan_mask  # Adding NaN propagates NaN to ALT
+
+        self._validate_size(ref_np, alt_np)
+
+        # Convert back to torch if needed
+        if is_torch:
+            ref_np = torch.from_numpy(ref_np).to(ref_pred.device).type(ref_pred.dtype)
+            alt_np = torch.from_numpy(alt_np).to(alt_pred.device).type(alt_pred.dtype)
+
+        return ref_np, alt_np
+
+    def align_bnd_matrices(
+        self,
+        left_ref: Union[np.ndarray, 'torch.Tensor'],
+        right_ref: Union[np.ndarray, 'torch.Tensor'],
+        bnd_alt: Union[np.ndarray, 'torch.Tensor'],
+        breakpoint_bin: int
+    ) -> Tuple[Union[np.ndarray, 'torch.Tensor'], Union[np.ndarray, 'torch.Tensor']]:
+        """
+        Align matrices for breakends (chromosomal rearrangements).
+
+        BNDs join two distant loci, so we create a chimeric reference
+        matrix from the two separate loci.
+
+        Args:
+            left_ref: Prediction from left locus
+            right_ref: Prediction from right locus
+            bnd_alt: Prediction from joined (alternate) sequence
+            breakpoint_bin: Bin position of breakpoint
+
+        Returns:
+            Tuple of (chimeric_ref, alt) matrices
+        """
+        is_torch = TORCH_AVAILABLE and hasattr(left_ref, 'device')
+
+        # Convert to numpy for manipulation
+        if is_torch:
+            left_np = left_ref.detach().cpu().numpy()
+            right_np = right_ref.detach().cpu().numpy()
+            alt_np = bnd_alt.detach().cpu().numpy()
+        else:
+            left_np = left_ref
+            right_np = right_ref
+            alt_np = bnd_alt
+
+        # Assemble chimeric matrix from two loci
+        ref_chimeric = self._assemble_chimeric_matrix(
+            left_np,
+            right_np,
+            breakpoint_bin
+        )
+
+        self._validate_size(ref_chimeric, alt_np)
+
+        # Convert back to torch if needed
+        if is_torch:
+            ref_chimeric = torch.from_numpy(ref_chimeric).to(left_ref.device).type(left_ref.dtype)
+            alt_np = torch.from_numpy(alt_np).to(bnd_alt.device).type(bnd_alt.dtype)
+
+        return ref_chimeric, alt_np
+
+    def _assemble_chimeric_matrix(
+        self,
+        left_matrix: np.ndarray,
+        right_matrix: np.ndarray,
+        breakpoint: int
+    ) -> np.ndarray:
+        """
+        Assemble chimeric matrix from two loci.
+
+        Structure:
+        - Upper left quadrant: left locus
+        - Lower right quadrant: right locus
+        - Upper right/lower left quadrants: NaN (no trans prediction)
+        """
+        matrix = np.zeros((self.target_size, self.target_size))
+
+        # Fill upper left quadrant (left locus)
+        matrix[:breakpoint, :breakpoint] = left_matrix[:breakpoint, :breakpoint]
+
+        # Fill lower right quadrant (right locus)
+        matrix[breakpoint:, breakpoint:] = right_matrix[breakpoint:, breakpoint:]
+
+        # Fill transition quadrants with NaN
+        matrix[:breakpoint, breakpoint:] = np.nan
+        matrix[breakpoint:, :breakpoint] = np.nan
+
+        # Mask diagonals as specified by model
+        for offset in range(-self.diag_offset + 1, self.diag_offset):
+            if offset < 0:
+                np.fill_diagonal(matrix[abs(offset):, :], np.nan)
+            else:
+                np.fill_diagonal(matrix[:, offset:], np.nan)
+
+        return matrix
+
+    def _validate_size(self, ref_matrix: np.ndarray, alt_matrix: np.ndarray):
+        """
+        Validate that matrices are the correct size.
+
+        Args:
+            ref_matrix: Reference prediction matrix
+            alt_matrix: Alternate prediction matrix
+
+        Raises:
+            ValueError: If either matrix has incorrect size
+        """
+        if ref_matrix.shape[0] != self.target_size:
+            raise ValueError(
+                f"Reference matrix wrong size: {ref_matrix.shape[0]} vs {self.target_size}"
+            )
+        if alt_matrix.shape[0] != self.target_size:
+            raise ValueError(
+                f"Alternate matrix wrong size: {alt_matrix.shape[0]} vs {self.target_size}"
+            )
 
 
-def vector_to_contact_matrix(vector: Union[np.ndarray, 'torch.Tensor'], matrix_size: int) -> Union[np.ndarray, 'torch.Tensor']:
+# =============================================================================
+# Utility Functions for Contact Maps
+# =============================================================================
+
+def vector_to_contact_matrix(
+    vector: Union[np.ndarray, 'torch.Tensor'],
+    matrix_size: int
+) -> Union[np.ndarray, 'torch.Tensor']:
     """
     Convert flattened upper triangular vector to full contact matrix.
-    
-    This function reconstructs a full symmetric contact matrix from its upper 
+
+    This function reconstructs a full symmetric contact matrix from its upper
     triangular representation, following the pattern used in genomic contact map models.
-    
+
     Args:
         vector: Flattened upper triangular matrix (length = matrix_size * (matrix_size + 1) / 2)
         matrix_size: Dimension of the output square matrix
-        
+
     Returns:
         Full symmetric contact matrix of shape (matrix_size, matrix_size)
-        
+
     Example:
-        # For a 3x3 matrix, vector contains [M[0,0], M[0,1], M[0,2], M[1,1], M[1,2], M[2,2]]
-        vector = np.array([1, 2, 3, 4, 5, 6])
-        matrix = vector_to_contact_matrix(vector, 3)
-        # Result: [[1, 2, 3], [2, 4, 5], [3, 5, 6]]
+        >>> # For a 3x3 matrix, vector contains [M[0,0], M[0,1], M[0,2], M[1,1], M[1,2], M[2,2]]
+        >>> vector = np.array([1, 2, 3, 4, 5, 6])
+        >>> matrix = vector_to_contact_matrix(vector, 3)
+        >>> # Result: [[1, 2, 3], [2, 4, 5], [3, 5, 6]]
     """
     # Handle both PyTorch tensors and NumPy arrays
-    is_torch = TORCH_AVAILABLE and hasattr(vector, 'device')
-    
+    is_torch = TORCH_AVAILABLE and torch.is_tensor(vector)
+
     if is_torch:
         matrix = torch.zeros((matrix_size, matrix_size), dtype=vector.dtype, device=vector.device)
         triu_indices = torch.triu_indices(matrix_size, matrix_size)
@@ -101,31 +736,33 @@ def vector_to_contact_matrix(vector: Union[np.ndarray, 'torch.Tensor'], matrix_s
         matrix[triu_indices] = vector
         # Make symmetric by copying upper triangle to lower
         matrix = matrix + matrix.T - np.diag(np.diag(matrix))
-    
+
     return matrix
 
 
-def contact_matrix_to_vector(matrix: Union[np.ndarray, 'torch.Tensor']) -> Union[np.ndarray, 'torch.Tensor']:
+def contact_matrix_to_vector(
+    matrix: Union[np.ndarray, 'torch.Tensor']
+) -> Union[np.ndarray, 'torch.Tensor']:
     """
     Convert full contact matrix to flattened upper triangular vector.
-    
+
     This function extracts the upper triangular portion of a contact matrix,
     which is the standard representation for genomic contact maps.
-    
+
     Args:
         matrix: Full symmetric contact matrix of shape (N, N)
-        
+
     Returns:
         Flattened upper triangular vector of length N * (N + 1) / 2
-        
+
     Example:
-        matrix = np.array([[1, 2, 3], [2, 4, 5], [3, 5, 6]])
-        vector = contact_matrix_to_vector(matrix)
-        # Result: [1, 2, 3, 4, 5, 6]
+        >>> matrix = np.array([[1, 2, 3], [2, 4, 5], [3, 5, 6]])
+        >>> vector = contact_matrix_to_vector(matrix)
+        >>> # Result: [1, 2, 3, 4, 5, 6]
     """
     # Handle both PyTorch tensors and NumPy arrays
-    is_torch = TORCH_AVAILABLE and hasattr(matrix, 'device')
-    
+    is_torch = TORCH_AVAILABLE and torch.is_tensor(matrix)
+
     if is_torch:
         triu_indices = torch.triu_indices(matrix.shape[0], matrix.shape[1])
         return matrix[triu_indices[0], triu_indices[1]]
@@ -134,440 +771,151 @@ def contact_matrix_to_vector(matrix: Union[np.ndarray, 'torch.Tensor']) -> Union
         return matrix[triu_indices]
 
 
-def coord_to_matrix_bin(coord: int, window_start: int, bin_length: int, crop_length: int) -> int:
-    """
-    Convert genomic coordinate to contact matrix bin index.
-    
-    This function maps a genomic coordinate to the corresponding bin index
-    in a contact matrix, accounting for binning and edge cropping.
-    
-    Args:
-        coord: Genomic coordinate within the window (0-based)
-        window_start: Start coordinate of the sequence window (0-based)
-        bin_length: Number of base pairs per bin
-        crop_length: Number of bins cropped from each edge
-        
-    Returns:
-        Matrix bin index (0-based within the contact matrix)
-    """
-    return coord_to_bin_offset(coord, window_start, bin_length, crop_length)
 
-
-def mask_contact_matrix_for_variant(matrix: Union[np.ndarray, 'torch.Tensor'], 
-                                   variant_bin: int, 
-                                   variant_type: str,
-                                   mask_size: int = 1) -> Union[np.ndarray, 'torch.Tensor']:
-    """
-    Apply variant-specific masking to contact matrix.
-    
-    This function inserts NaN values in the contact matrix to represent
-    structural changes caused by genomic variants.
-    
-    Args:
-        matrix: Contact matrix to mask
-        variant_bin: Bin index where variant occurs
-        variant_type: Type of variant ('INS', 'DEL', etc.)
-        mask_size: Number of bins to mask (default: 1)
-        
-    Returns:
-        Masked contact matrix with NaN values at affected positions
-    """
-    # Handle both PyTorch tensors and NumPy arrays
-    is_torch = TORCH_AVAILABLE and hasattr(matrix, 'device')
-    
-    masked_matrix = matrix.copy() if not is_torch else matrix.clone()
-    
-    if variant_type in ['INS', 'DEL']:
-        # Mask both row and column for the affected bin(s)
-        end_bin = variant_bin + mask_size
-        if is_torch:
-            masked_matrix[variant_bin:end_bin, :] = float('nan')
-            masked_matrix[:, variant_bin:end_bin] = float('nan')
-        else:
-            masked_matrix[variant_bin:end_bin, :] = np.nan
-            masked_matrix[:, variant_bin:end_bin] = np.nan
-    
-    return masked_matrix
-
-
-def align_predictions_by_coordinate(ref_preds: Union[np.ndarray, 'torch.Tensor'], 
-                                   alt_preds: Union[np.ndarray, 'torch.Tensor'],
-                                   metadata_row,
-                                   bin_length: int,
-                                   crop_length: int,
-                                   prediction_type: str,
-                                   matrix_size: Optional[int] = None) -> Tuple[Union[np.ndarray, 'torch.Tensor'], Union[np.ndarray, 'torch.Tensor']]:
+def align_predictions_by_coordinate(
+    ref_preds: Union[np.ndarray, 'torch.Tensor'],
+    alt_preds: Union[np.ndarray, 'torch.Tensor'],
+    metadata_row: dict,
+    bin_size: int,
+    prediction_type: str,
+    matrix_size: Optional[int] = None,
+    diag_offset: int = 0
+) -> Tuple[Union[np.ndarray, 'torch.Tensor'], Union[np.ndarray, 'torch.Tensor']]:
     """
     Align reference and alt predictions using coordinate transformation and variant type awareness.
-    
-    This enhanced function uses precise coordinate mapping to align predictions,
-    accounting for different variant types and their effects on sequence coordinates.
-    Supports both 1D prediction scores and 2D contact map predictions.
-    
+
+    This is the main public API for prediction alignment. It handles both 1D prediction
+    vectors (e.g., chromatin accessibility, TF binding) and 2D matrices (e.g., Hi-C contact maps),
+    routing to the appropriate alignment strategy based on variant type.
+
+    IMPORTANT: Model-specific parameters (bin_size, matrix_size) must be explicitly
+    provided by the user. There are no defaults because these vary across different models.
+
     Args:
         ref_preds: Reference predictions array (from model with edge cropping)
-        alt_preds: Alt predictions array (same length as ref_preds)
-        metadata_row: Row from metadata DataFrame with variant information
-        bin_length: Number of base pairs per prediction bin (default: 32)
-        crop_length: Number of bins cropped from each edge during prediction (default: 16)
-        prediction_type: Type of predictions ("scores" for 1D, "contact_map" for 2D)
-        matrix_size: Size of contact matrix (required for contact_map type)
-        
+        alt_preds: Alt predictions array (same shape as ref_preds)
+        metadata_row: Dictionary with variant information containing:
+            - 'variant_type': Type of variant (SNV, INS, DEL, DUP, INV, BND)
+            - 'window_start': Start position of window (0-based)
+            - 'effective_variant_start': Variant position relative to window start
+            - 'svlen': Length of structural variant (if applicable)
+        bin_size: Number of base pairs per prediction bin (REQUIRED, model-specific)
+            Examples: 2048 for Akita
+        prediction_type: Type of predictions ("1D" or "2D")
+            - "1D": Vector predictions (chromatin accessibility, TF binding, etc.)
+            - "2D": Matrix predictions (Hi-C contact maps, Micro-C, etc.)
+        matrix_size: Size of contact matrix (REQUIRED for 2D type)
+            Examples: 448 for Akita
+        diag_offset: Number of diagonal bins to mask (default: 0 for no masking)
+            Set to 0 if your model doesn't mask diagonals, or to model-specific value
+            Examples: 2 for Akita, 0 for models without diagonal masking
+
     Returns:
-        Tuple of (aligned_ref_preds, aligned_alt_preds) aligned at bin level
-        
-    Note:
-        This function now works at the prediction bin level rather than expanding
-        to base-pair resolution, providing more accurate alignment for model predictions.
+        Tuple of (aligned_ref_preds, aligned_alt_preds) with NaN masking applied
+        at positions that differ between reference and alternate sequences
+
+    Raises:
+        ValueError: If prediction_type is invalid, required parameters are missing,
+            or variant type is unsupported
+
+    Example (1D predictions):
+        >>> ref_aligned, alt_aligned = align_predictions_by_coordinate(
+        ...     ref_preds=ref_scores,
+        ...     alt_preds=alt_scores,
+        ...     metadata_row={'variant_type': 'INS', 'window_start': 0,
+        ...                   'effective_variant_start': 500, 'svlen': 100},
+        ...     bin_size=128,
+        ...     prediction_type="1D"
+        ... )
+
+    Example (2D contact maps with diagonal masking):
+        >>> ref_aligned, alt_aligned = align_predictions_by_coordinate(
+        ...     ref_preds=ref_contact_map,
+        ...     alt_preds=alt_contact_map,
+        ...     metadata_row={'variant_type': 'DEL', 'window_start': 0,
+        ...                   'effective_variant_start': 50000, 'svlen': -2048},
+        ...     bin_size=2048,
+        ...     prediction_type="2D",
+        ...     matrix_size=448,
+        ...     diag_offset=2  # Optional: use 0 if no diagonal masking
+        ... )
+
+    Example (2D contact maps without diagonal masking):
+        >>> ref_aligned, alt_aligned = align_predictions_by_coordinate(
+        ...     ref_preds=ref_contact_map,
+        ...     alt_preds=alt_contact_map,
+        ...     metadata_row={'variant_type': 'INS', 'window_start': 0,
+        ...                   'effective_variant_start': 1000, 'svlen': 500},
+        ...     bin_size=1000,
+        ...     prediction_type="2D",
+        ...     matrix_size=512
+        ...     # diag_offset defaults to 0 (no masking)
+        ... )
     """
     # Validate prediction type and parameters
-    if prediction_type not in ["scores", "contact_map"]:
-        raise ValueError(f"prediction_type must be 'scores' or 'contact_map', got '{prediction_type}'")
-    
-    if prediction_type == "contact_map" and matrix_size is None:
-        raise ValueError("matrix_size must be provided for contact_map prediction type")
-    
-    # Route to appropriate alignment function based on prediction type
-    if prediction_type == "scores":
-        return align_1d_predictions(ref_preds, alt_preds, metadata_row, bin_length, crop_length)
-    else:  # contact_map
-        return align_contact_map_predictions(ref_preds, alt_preds, metadata_row, bin_length, crop_length, matrix_size)
+    if prediction_type not in ["1D", "2D"]:
+        raise ValueError(f"prediction_type must be '1D' or '2D', got '{prediction_type}'")
 
+    if prediction_type == "2D":
+        if matrix_size is None:
+            raise ValueError("matrix_size must be provided for 2D prediction type")
 
-def align_1d_predictions(ref_preds: Union[np.ndarray, 'torch.Tensor'], 
-                        alt_preds: Union[np.ndarray, 'torch.Tensor'],
-                        metadata_row,
-                        bin_length: int,
-                        crop_length: int) -> Tuple[Union[np.ndarray, 'torch.Tensor'], Union[np.ndarray, 'torch.Tensor']]:
-    """
-    Align 1D prediction scores between reference and alt sequences.
-    
-    This function handles the original prediction alignment logic for 1D prediction arrays.
-    """
     # Extract variant information from metadata
     variant_type = metadata_row.get('variant_type', 'unknown')
-    variant_pos_in_window = metadata_row.get('variant_offset', metadata_row.get('effective_variant_start', 0))
-    downstream_offset = metadata_row.get('position_offset_downstream', 0)
-    
-    # Convert variant position to bin coordinates
-    variant_bin = coord_to_bin_offset(variant_pos_in_window, 
-                                     window_start=0,
-                                     bin_length=bin_length, 
-                                     crop_length=crop_length)
-    
-    # Apply alignment strategy based on variant type
-    if variant_type in ['SNV', 'MNV']:
-        # SNVs don't change coordinates, direct alignment
-        is_torch = TORCH_AVAILABLE and hasattr(ref_preds, 'device')
+    window_start = metadata_row.get('window_start', 0)
+    effective_variant_start = metadata_row.get('effective_variant_start', 0)
+    svlen = metadata_row.get('svlen', 0)
+
+    # Calculate absolute position
+    abs_variant_pos = window_start + effective_variant_start
+
+    # Create VariantPosition object
+    var_pos = VariantPosition(
+        ref_pos=abs_variant_pos,
+        alt_pos=abs_variant_pos,
+        svlen=svlen if svlen is not None else 0,
+        variant_type=variant_type
+    )
+
+    # Determine target size from predictions
+    if prediction_type == "1D":
+        target_size = len(ref_preds)
+        aligner = PredictionAligner1D(target_size=target_size, bin_size=bin_size)
+        return aligner.align_predictions(ref_preds, alt_preds, variant_type, var_pos)
+    else:  # 2D
+        # Check if predictions are 1D (flattened upper triangular) or 2D (full matrix)
+        is_torch = TORCH_AVAILABLE and torch.is_tensor(ref_preds)
+
         if is_torch:
-            return ref_preds.clone(), alt_preds.clone()
+            ndim = len(ref_preds.shape)
         else:
-            return ref_preds.copy(), alt_preds.copy()
-        
-    elif variant_type in ['INS', 'DEL']:
-        # Handle indel-type variants with coordinate shifts
-        return align_indel_variants(ref_preds, alt_preds, variant_bin, downstream_offset, bin_length)
-        
-    elif variant_type == 'INV':
-        # Inversions: sequence is reversed but coordinates maintained
-        # TODO: Implement
-        # Unknown variant type, raise error to prevent unsupported usage
-        raise ValueError(f"Unsupported variant type: '{variant_type}'. "
-                        f"Supported types are: SNV, INS, DEL")
+            ndim = ref_preds.ndim
 
-        
-    elif variant_type == 'DUP':
-        # Duplications: sequence is duplicated, extending downstream
-        # TODO: Implement
-        # Unknown variant type, raise error to prevent unsupported usage
-        raise ValueError(f"Unsupported variant type: '{variant_type}'. "
-                        f"Supported types are: SNV, INS, DEL")
+        # If 1D, convert to 2D matrix
+        if ndim == 1:
+            ref_matrix = vector_to_contact_matrix(ref_preds, matrix_size)
+            alt_matrix = vector_to_contact_matrix(alt_preds, matrix_size)
 
-        
-    elif variant_type == 'BND':
-        # Breakends: complex rearrangements, may need special handling
-        # TODO: Implement
-        # Unknown variant type, raise error to prevent unsupported usage
-        raise ValueError(f"Unsupported variant type: '{variant_type}'. "
-                        f"Supported types are: SNV, INS, DEL")
+            # Align matrices
+            aligner = PredictionAligner2D(
+                target_size=matrix_size,
+                bin_size=bin_size,
+                diag_offset=diag_offset
+            )
+            aligned_ref_matrix, aligned_alt_matrix = aligner.align_predictions(
+                ref_matrix, alt_matrix, variant_type, var_pos
+            )
 
-        
-    else:
-        # Unknown variant type, raise error to prevent unsupported usage
-        raise ValueError(f"Unsupported variant type: '{variant_type}'. "
-                        f"Supported types are: SNV, INS, DEL")
+            # Convert back to flattened format
+            aligned_ref_vector = contact_matrix_to_vector(aligned_ref_matrix)
+            aligned_alt_vector = contact_matrix_to_vector(aligned_alt_matrix)
 
-
-def align_contact_map_predictions(ref_preds: Union[np.ndarray, 'torch.Tensor'], 
-                                 alt_preds: Union[np.ndarray, 'torch.Tensor'],
-                                 metadata_row,
-                                 bin_length: int,
-                                 crop_length: int,
-                                 matrix_size: int) -> Tuple[Union[np.ndarray, 'torch.Tensor'], Union[np.ndarray, 'torch.Tensor']]:
-    """
-    Align contact map predictions between reference and alt sequences.
-    
-    This function handles alignment of 2D contact map predictions, which are typically
-    represented as flattened upper triangular matrices.
-    
-    Args:
-        ref_preds: Reference contact map predictions (flattened upper triangular)
-        alt_preds: Alt contact map predictions (same format as ref_preds)
-        metadata_row: Row from metadata DataFrame with variant information
-        bin_length: Number of base pairs per bin
-        crop_length: Number of bins cropped from each edge
-        matrix_size: Size of the contact matrix (e.g., 448 for Akita)
-        
-    Returns:
-        Tuple of (aligned_ref_preds, aligned_alt_preds) for contact map predictions
-    """
-    # Extract variant information from metadata
-    variant_type = metadata_row.get('variant_type', 'unknown')
-    variant_pos_in_window = metadata_row.get('variant_offset', metadata_row.get('effective_variant_start', 0))
-    
-    # Convert variant position to matrix bin coordinates
-    variant_bin = coord_to_matrix_bin(variant_pos_in_window, 
-                                     window_start=0,
-                                     bin_length=bin_length, 
-                                     crop_length=crop_length)
-    
-    # Apply alignment strategy based on variant type
-    if variant_type in ['SNV', 'MNV']:
-        return align_contact_map_snv(ref_preds, alt_preds, variant_bin, matrix_size)
-        
-    elif variant_type == 'INS':
-        return align_contact_map_insertion(ref_preds, alt_preds, variant_bin, matrix_size, metadata_row)
-        
-    elif variant_type == 'DEL':
-        return align_contact_map_deletion(ref_preds, alt_preds, variant_bin, matrix_size, metadata_row)
-        
-    else:
-        # Unknown variant type, raise error to prevent unsupported usage
-        raise ValueError(f"Unsupported variant type for contact maps: '{variant_type}'. "
-                        f"Supported types are: SNV, MNV, INS, DEL")
-
-
-def align_contact_map_snv(ref_preds: Union[np.ndarray, 'torch.Tensor'], 
-                         alt_preds: Union[np.ndarray, 'torch.Tensor'],
-                         variant_bin: int,
-                         matrix_size: int) -> Tuple[Union[np.ndarray, 'torch.Tensor'], Union[np.ndarray, 'torch.Tensor']]:
-    """
-    Align contact map predictions for SNV/MNV variants.
-    
-    For SNVs and MNVs, there are no coordinate changes, so the contact maps
-    can be directly aligned without structural modifications.
-    
-    Args:
-        ref_preds: Reference contact map predictions (flattened)
-        alt_preds: Alt contact map predictions (flattened)
-        variant_bin: Bin index where variant occurs (for future use)
-        matrix_size: Size of the contact matrix
-        
-    Returns:
-        Directly aligned contact map predictions
-    """
-    # SNVs don't change genomic coordinates, so direct alignment is appropriate
-    is_torch = TORCH_AVAILABLE and hasattr(ref_preds, 'device')
-    
-    if is_torch:
-        return ref_preds.clone(), alt_preds.clone()
-    else:
-        return ref_preds.copy(), alt_preds.copy()
-
-
-def align_contact_map_insertion(ref_preds: Union[np.ndarray, 'torch.Tensor'], 
-                               alt_preds: Union[np.ndarray, 'torch.Tensor'],
-                               variant_bin: int,
-                               matrix_size: int,
-                               metadata_row) -> Tuple[Union[np.ndarray, 'torch.Tensor'], Union[np.ndarray, 'torch.Tensor']]:
-    """
-    Align contact map predictions for insertion variants.
-    
-    For insertions, the contact map matrix needs to be modified to account for
-    the new interaction space created by the inserted sequence.
-    
-    Args:
-        ref_preds: Reference contact map predictions (flattened)
-        alt_preds: Alt contact map predictions (flattened)
-        variant_bin: Bin index where insertion occurs
-        matrix_size: Size of the contact matrix
-        metadata_row: Metadata with insertion details
-        
-    Returns:
-        Aligned contact map predictions with insertion effects
-    """
-    # Convert to matrices for easier manipulation
-    ref_matrix = vector_to_contact_matrix(ref_preds, matrix_size)
-    alt_matrix = vector_to_contact_matrix(alt_preds, matrix_size)
-    
-    # For insertions, mask the alt matrix at the insertion site
-    # This represents the fact that new interactions are created
-    masked_alt_matrix = mask_contact_matrix_for_variant(alt_matrix, variant_bin, 'INS')
-    
-    # Convert back to flattened format
-    is_torch = TORCH_AVAILABLE and hasattr(ref_preds, 'device')
-    
-    if is_torch:
-        aligned_ref = contact_matrix_to_vector(ref_matrix)
-        aligned_alt = contact_matrix_to_vector(masked_alt_matrix)
-    else:
-        aligned_ref = contact_matrix_to_vector(ref_matrix)
-        aligned_alt = contact_matrix_to_vector(masked_alt_matrix)
-    
-    return aligned_ref, aligned_alt
-
-
-def align_contact_map_deletion(ref_preds: Union[np.ndarray, 'torch.Tensor'], 
-                              alt_preds: Union[np.ndarray, 'torch.Tensor'],
-                              variant_bin: int,
-                              matrix_size: int,
-                              metadata_row) -> Tuple[Union[np.ndarray, 'torch.Tensor'], Union[np.ndarray, 'torch.Tensor']]:
-    """
-    Align contact map predictions for deletion variants.
-    
-    For deletions, the contact map matrix needs to be modified to account for
-    the loss of interaction space due to the deleted sequence.
-    
-    Args:
-        ref_preds: Reference contact map predictions (flattened)
-        alt_preds: Alt contact map predictions (flattened)
-        variant_bin: Bin index where deletion occurs
-        matrix_size: Size of the contact matrix
-        metadata_row: Metadata with deletion details
-        
-    Returns:
-        Aligned contact map predictions with deletion effects
-    """
-    # Convert to matrices for easier manipulation
-    ref_matrix = vector_to_contact_matrix(ref_preds, matrix_size)
-    alt_matrix = vector_to_contact_matrix(alt_preds, matrix_size)
-    
-    # For deletions, mask the reference matrix at the deletion site
-    # This represents the loss of interactions in the deleted region
-    masked_ref_matrix = mask_contact_matrix_for_variant(ref_matrix, variant_bin, 'DEL')
-    
-    # Convert back to flattened format
-    aligned_ref = contact_matrix_to_vector(masked_ref_matrix)
-    aligned_alt = contact_matrix_to_vector(alt_matrix)
-    
-    return aligned_ref, aligned_alt
-
-
-def align_indel_variants(ref_preds: Union[np.ndarray, 'torch.Tensor'], alt_preds: Union[np.ndarray, 'torch.Tensor'], 
-                        variant_bin: int, downstream_offset: int,
-                        bin_length: int) -> Tuple[Union[np.ndarray, 'torch.Tensor'], Union[np.ndarray, 'torch.Tensor']]:
-    """
-    Align predictions for indel variants (insertions, deletions, complex).
-    
-    Args:
-        ref_preds: Reference predictions
-        alt_preds: Alt predictions  
-        variant_bin: Bin index where variant occurs
-        downstream_offset: Coordinate offset for downstream positions
-        bin_length: Base pairs per bin
-        
-    Returns:
-        Aligned (ref_preds, alt_preds) accounting for coordinate shifts
-    """
-    # Handle PyTorch tensors and NumPy arrays
-    is_torch = TORCH_AVAILABLE and hasattr(ref_preds, 'device')
-    
-    if downstream_offset == 0:
-        # No coordinate shift needed
-        if is_torch:
-            return ref_preds.clone(), alt_preds.clone()
+            return aligned_ref_vector, aligned_alt_vector
         else:
-            return ref_preds.copy(), alt_preds.copy()
-    
-    # Create aligned alt predictions array
-    if is_torch:
-        aligned_alt_preds = torch.zeros_like(alt_preds)
-    else:
-        aligned_alt_preds = np.zeros_like(alt_preds)
-    
-    # Calculate bin shift from coordinate offset
-    bin_shift = downstream_offset // bin_length
-    
-    for i in range(len(alt_preds)):
-        if i <= variant_bin:
-            # Upstream and at variant: no shift needed
-            aligned_alt_preds[i] = alt_preds[i]
-        else:
-            # Downstream: apply bin shift
-            shifted_idx = i - bin_shift
-            if 0 <= shifted_idx < len(alt_preds):
-                aligned_alt_preds[i] = alt_preds[shifted_idx]
-            else:
-                # Shifted outside array bounds
-                aligned_alt_preds[i] = 0.0
-    
-    if is_torch:
-        return ref_preds.clone(), aligned_alt_preds
-    else:
-        return ref_preds.copy(), aligned_alt_preds
-
-
-def align_inversion_variant(ref_preds: np.ndarray, alt_preds: np.ndarray,
-                           variant_bin: int, metadata_row) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Align predictions for inversion variants.
-    
-    For inversions, the sequence is reversed but coordinates are maintained.
-    This may require special handling depending on the model's behavior.
-    
-    Args:
-        ref_preds: Reference predictions
-        alt_preds: Alt predictions
-        variant_bin: Bin index where inversion starts
-        metadata_row: Metadata with inversion details
-        
-    Returns:
-        Aligned predictions for inversion variant
-    """
-    # For now, treat as no coordinate shift (sequence reversal may not affect predictions)
-    # Future enhancement: could reverse prediction values within inverted region
-    return ref_preds.copy(), alt_preds.copy()
-
-
-def align_duplication_variant(ref_preds: np.ndarray, alt_preds: np.ndarray,
-                             variant_bin: int, metadata_row) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Align predictions for duplication variants.
-    
-    Duplications extend the sequence, shifting downstream coordinates.
-    
-    Args:
-        ref_preds: Reference predictions
-        alt_preds: Alt predictions
-        variant_bin: Bin index where duplication occurs
-        metadata_row: Metadata with duplication details
-        
-    Returns:
-        Aligned predictions for duplication variant
-    """
-    # Extract duplication length from metadata
-    dup_length = metadata_row.get('alt_length', 0) - metadata_row.get('ref_length', 0)
-    
-    # Use indel alignment logic with duplication offset
-    return align_indel_variants(ref_preds, alt_preds, variant_bin, dup_length, 32)
-
-
-def align_breakend_variant(ref_preds: np.ndarray, alt_preds: np.ndarray,
-                          variant_bin: int, metadata_row) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Align predictions for breakend/translocation variants.
-    
-    Breakends involve complex rearrangements that may be difficult to align precisely.
-    
-    Args:
-        ref_preds: Reference predictions
-        alt_preds: Alt predictions
-        variant_bin: Bin index where breakend occurs
-        metadata_row: Metadata with breakend details
-        
-    Returns:
-        Aligned predictions for breakend variant (may be approximate)
-    """
-    # TODO: Implement BND alignment
-    return ref_preds.copy(), alt_preds.copy()
-
+            # Already 2D matrices
+            aligner = PredictionAligner2D(
+                target_size=matrix_size,
+                bin_size=bin_size,
+                diag_offset=diag_offset
+            )
+            return aligner.align_predictions(ref_preds, alt_preds, variant_type, var_pos)

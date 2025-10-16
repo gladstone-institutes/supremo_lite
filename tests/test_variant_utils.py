@@ -119,30 +119,31 @@ class TestVariantClassification:
         # Symbolic alleles without INFO should be classified based on symbol
         assert classify_variant_type('A', '<INV>') == 'SV_INV'
         assert classify_variant_type('T', '<DUP>') == 'SV_DUP'
+        assert classify_variant_type('T', '<DUP:TANDEM>') == 'SV_DUP'
         assert classify_variant_type('G', '<DEL>') == 'SV_DEL'
         assert classify_variant_type('C', '<INS>') == 'SV_INS'
         assert classify_variant_type('A', '<CNV>') == 'SV_CNV'
         
         # Unknown symbolic alleles
-        assert classify_variant_type('A', '<UNKNOWN>') == 'unknown'
+        assert classify_variant_type('A', '<UNKNOWN>') == '<UNKNOWN>'
         
     def test_edge_cases(self):
         """Test edge cases and unusual inputs."""
         # Empty strings
-        assert classify_variant_type('', 'A') == 'unknown'
-        assert classify_variant_type('A', '') == 'unknown'
+        assert classify_variant_type('', 'A') == 'missing_ref_or_alt'
+        assert classify_variant_type('A', '') == 'missing_ref_or_alt'
         
         # None values
-        assert classify_variant_type(None, 'A') == 'unknown'
-        assert classify_variant_type('A', None) == 'unknown'
+        assert classify_variant_type(None, 'A') == 'missing_ref_or_alt'
+        assert classify_variant_type('A', None) == 'missing_ref_or_alt'
         
         # Ambiguous nucleotides
         assert classify_variant_type('N', 'A') == 'SNV'
         assert classify_variant_type('A', 'N') == 'SNV'
         
         # Multiple alternative alleles (should be complex)
-        assert classify_variant_type('A', 'G,T') == 'complex'
-        assert classify_variant_type('T', 'TGGG,C') == 'complex'
+        assert classify_variant_type('A', 'G,T') == 'multiallelic'
+        assert classify_variant_type('T', 'TGGG,C') == 'multiallelic'
         
     def test_classification_priority(self):
         """Test that structural variants take priority over sequence variants."""

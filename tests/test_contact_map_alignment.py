@@ -20,8 +20,7 @@ except ImportError:
 from supremo_lite.prediction_alignment import (
     align_predictions_by_coordinate,
     vector_to_contact_matrix,
-    contact_matrix_to_vector,
-    mask_contact_matrix_for_variant
+    contact_matrix_to_vector
 )
 
 
@@ -61,17 +60,18 @@ def test_1d_score_alignment():
         ref_preds = create_test_data(ref_preds_np, use_torch)
         alt_preds = create_test_data(alt_preds_np, use_torch)
         
-        # Mock metadata for SNV
+        # Mock metadata for SNV (using new format)
         metadata_snv = {
             'variant_type': 'SNV',
-            'variant_offset': 100,
-            'position_offset_downstream': 0
+            'window_start': 0,
+            'effective_variant_start': 100,
+            'svlen': 0
         }
         
         # Test SNV alignment (should be direct copy)
         aligned_ref, aligned_alt = align_predictions_by_coordinate(
-            ref_preds, alt_preds, metadata_snv, 
-            bin_length=32, crop_length=16, prediction_type="scores"
+            ref_preds, alt_preds, metadata_snv,
+            bin_size=32, prediction_type="1D"
         )
         
         # Verify output types match input types
@@ -102,13 +102,14 @@ def test_1d_score_alignment():
         # Test insertion alignment
         metadata_ins = {
             'variant_type': 'INS',
-            'variant_offset': 100,
-            'position_offset_downstream': 32  # 1 bin shift
+            'window_start': 0,
+            'effective_variant_start': 100,
+            'svlen': 32  # 1 bin insertion
         }
-        
+
         aligned_ref_ins, aligned_alt_ins = align_predictions_by_coordinate(
             ref_preds, alt_preds, metadata_ins,
-            bin_length=32, crop_length=16, prediction_type="scores"
+            bin_size=32, prediction_type="1D"
         )
         
         # Verify output types for insertion test
@@ -170,21 +171,6 @@ def test_contact_map_utilities():
         
         assert np.allclose(original_vector_np, recovered_vector_np), f"Matrix to vector conversion failed for {data_type}"
         print(f"  ✓ {data_type} matrix to vector conversion test passed")
-        
-        # Test matrix masking
-        masked_matrix = mask_contact_matrix_for_variant(matrix, variant_bin=1, variant_type='DEL')
-        verify_output_type(masked_matrix, use_torch)
-        
-        # Convert to numpy for comparison if needed
-        if use_torch and TORCH_AVAILABLE:
-            masked_matrix_np = masked_matrix.detach().cpu().numpy()
-        else:
-            masked_matrix_np = masked_matrix
-        
-        # Check that row and column 1 are NaN
-        assert np.all(np.isnan(masked_matrix_np[1, :])), f"Row masking failed for {data_type}"
-        assert np.all(np.isnan(masked_matrix_np[:, 1])), f"Column masking failed for {data_type}"
-        print(f"  ✓ {data_type} matrix masking test passed")
 
 
 def test_contact_map_alignment():
@@ -203,14 +189,15 @@ def test_contact_map_alignment():
     # Test SNV alignment
     metadata_snv = {
         'variant_type': 'SNV',
-        'variant_offset': 50,
-        'position_offset_downstream': 0
+        'window_start': 0,
+        'effective_variant_start': 50,
+        'svlen': 0
     }
-    
+
     aligned_ref, aligned_alt = align_predictions_by_coordinate(
         ref_contact_preds, alt_contact_preds, metadata_snv,
-        bin_length=32, crop_length=16, 
-        prediction_type="contact_map", matrix_size=matrix_size
+        bin_size=32,
+        prediction_type="2D", matrix_size=matrix_size, diag_offset=2
     )
     
     # For SNV, should be identical to input
@@ -221,14 +208,15 @@ def test_contact_map_alignment():
     # Test insertion alignment
     metadata_ins = {
         'variant_type': 'INS',
-        'variant_offset': 50,
-        'position_offset_downstream': 32
+        'window_start': 0,
+        'effective_variant_start': 50,
+        'svlen': 32
     }
-    
+
     aligned_ref, aligned_alt = align_predictions_by_coordinate(
         ref_contact_preds, alt_contact_preds, metadata_ins,
-        bin_length=32, crop_length=16,
-        prediction_type="contact_map", matrix_size=matrix_size
+        bin_size=32,
+        prediction_type="2D", matrix_size=matrix_size, diag_offset=2
     )
     
     print(f"INS aligned contact map shapes: ref={aligned_ref.shape}, alt={aligned_alt.shape}")
@@ -239,14 +227,15 @@ def test_contact_map_alignment():
     # Test deletion alignment
     metadata_del = {
         'variant_type': 'DEL',
-        'variant_offset': 50,
-        'position_offset_downstream': -32
+        'window_start': 0,
+        'effective_variant_start': 50,
+        'svlen': -32  # Negative for deletion
     }
-    
+
     aligned_ref, aligned_alt = align_predictions_by_coordinate(
         ref_contact_preds, alt_contact_preds, metadata_del,
-        bin_length=32, crop_length=16,
-        prediction_type="contact_map", matrix_size=matrix_size
+        bin_size=32,
+        prediction_type="2D", matrix_size=matrix_size, diag_offset=2
     )
     
     print(f"DEL aligned contact map shapes: ref={aligned_ref.shape}, alt={aligned_alt.shape}")
@@ -267,29 +256,55 @@ def test_error_handling():
     try:
         align_predictions_by_coordinate(
             ref_preds, alt_preds, metadata,
-            bin_length=32, crop_length=16, prediction_type="invalid"
+            bin_size=32, prediction_type="invalid"
         )
         assert False, "Should have raised ValueError for invalid prediction type"
     except ValueError as e:
         print(f"✓ Caught expected error for invalid prediction type: {e}")
-    
-    # Test missing matrix_size for contact_map
+
+    # Test missing matrix_size for 2D
     try:
         align_predictions_by_coordinate(
             ref_preds, alt_preds, metadata,
-            bin_length=32, crop_length=16, prediction_type="contact_map"
+            bin_size=32, prediction_type="2D"
         )
         assert False, "Should have raised ValueError for missing matrix_size"
     except ValueError as e:
         print(f"✓ Caught expected error for missing matrix_size: {e}")
-    
-    # Test unsupported variant type for contact maps
-    metadata_unsupported = {'variant_type': 'BND'}
+
+    # Test 2D without diag_offset (should default to 0)
+    # Create proper contact map data (3x3 matrix = 6 elements in upper triangular)
+    ref_contact_test = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+    alt_contact_test = np.array([1.1, 2.1, 3.1, 4.1, 5.1, 6.1])
+    metadata_contact = {
+        'variant_type': 'SNV',
+        'window_start': 0,
+        'effective_variant_start': 50,
+        'svlen': 0
+    }
+    try:
+        aligned_ref, aligned_alt = align_predictions_by_coordinate(
+            ref_contact_test, alt_contact_test, metadata_contact,
+            bin_size=32, prediction_type="2D", matrix_size=3
+            # diag_offset not specified, should default to 0
+        )
+        print(f"✓ 2D alignment works without diag_offset (defaults to 0)")
+    except Exception as e:
+        print(f"✗ Unexpected error with default diag_offset: {e}")
+        raise
+
+    # Test unsupported variant type for 2D predictions
+    metadata_unsupported = {
+        'variant_type': 'BND',
+        'window_start': 0,
+        'effective_variant_start': 50,
+        'svlen': 0
+    }
     try:
         align_predictions_by_coordinate(
             ref_preds, alt_preds, metadata_unsupported,
-            bin_length=32, crop_length=16, 
-            prediction_type="contact_map", matrix_size=4
+            bin_size=32,
+            prediction_type="2D", matrix_size=4, diag_offset=2
         )
         assert False, "Should have raised ValueError for unsupported variant type"
     except ValueError as e:

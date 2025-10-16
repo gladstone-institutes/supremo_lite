@@ -205,7 +205,7 @@ class BNDClassifier:
         Returns:
             Dict with keys 'paired', 'missing_mate', 'singleton_insertion'
         """
-        print(f"Loading BND variants from {vcf_path}...")
+        # TODO: This function needs to respect the verbose arguement
 
         # Load VCF with variant classification
         variants_df = read_vcf(vcf_path, include_info=True, classify_variants=True)
@@ -284,13 +284,212 @@ class BNDClassifier:
 
                 processed_ids.add(breakend.id)
 
+        # Apply semantic classification to detect DUP and INV patterns
+        # First detect duplications
+        dup_breakends = self._detect_duplication_pattern(classified['paired'])
+
+        # Remove duplication breakends from paired list before inversion detection
+        dup_ids = {b.id for b in dup_breakends}
+        remaining_paired = [b for b in classified['paired'] if b.id not in dup_ids]
+
+        # Then detect inversions from remaining breakends
+        inv_breakends = self._detect_inversion_pattern(remaining_paired)
+
+        # Remove reclassified breakends from 'paired' category and add to semantic categories
+        reclassified_ids = {b.id for b in dup_breakends + inv_breakends}
+        classified['paired'] = [b for b in classified['paired'] if b.id not in reclassified_ids]
+
+        # Add semantic classifications
+        classified['dup_breakends'] = dup_breakends
+        classified['inv_breakends'] = inv_breakends
+
         # Print classification summary
         print(f"\nBND Classification Summary:")
-        print(f"  Paired breakends (including inferred mates): {len(classified['paired'])}")
-        total_inferred = len([bnd for bnd in classified['paired'] if 'inferred' in bnd.id])
+        print(f"  Paired breakends (true translocations): {len(classified['paired'])}")
+        print(f"  Duplication breakends (SV_BND_DUP): {len(dup_breakends)}")
+        print(f"  Inversion breakends (SV_BND_INV): {len(inv_breakends)}")
+        total_inferred = len([bnd for bnd in classified['paired'] + dup_breakends + inv_breakends if 'inferred' in bnd.id])
         print(f"  Inferred mates created: {total_inferred}")
 
         return classified
+
+    def _detect_duplication_pattern(self, paired_breakends: List[Breakend]) -> List[Breakend]:
+        """
+        Detect duplication patterns from paired breakends.
+
+        A duplication pattern consists of 2 breakends:
+        - BND1: position A pointing to position B
+        - BND2: position B pointing to position A
+        - Same chromosome, A < B (tandem duplication)
+
+        Returns:
+            List of breakends reclassified as SV_BND_DUP
+        """
+        dup_breakends = []
+        processed_ids = set()
+
+        for breakend in paired_breakends:
+            if breakend.id in processed_ids or not breakend.mate_breakend:
+                continue
+
+            mate = breakend.mate_breakend
+
+            # Check if this forms a duplication pattern
+            if (breakend.chrom == mate.chrom and  # Same chromosome
+                breakend.chrom == breakend.mate_chrom and  # Mate points to same chromosome
+                mate.chrom == mate.mate_chrom and  # Mate's mate points to same chromosome
+                breakend.pos != mate.pos):  # Different positions
+
+                # Check mutual pointing (A->B, B->A)
+                points_to_mate = (breakend.mate_chrom == mate.chrom and
+                                breakend.mate_pos == mate.pos)
+                mate_points_back = (mate.mate_chrom == breakend.chrom and
+                                  mate.mate_pos == breakend.pos)
+
+                if points_to_mate and mate_points_back:
+                    # Check orientations to determine if this is truly a duplication or inversion
+                    # Duplication: orientations should be compatible with copy-paste behavior
+                    # Inversion: orientations should indicate sequence reversal
+
+                    orientation1 = breakend.orientation
+                    orientation2 = mate.orientation
+
+                    # Simple heuristic: if we have more than 2 breakends on same chromosome pointing to each other,
+                    # it's likely an inversion pattern, not duplication (which typically involves 2 breakends)
+                    # Count breakends on this chromosome
+                    same_chrom_breakends = [b for b in paired_breakends if b.chrom == breakend.chrom and b.mate_chrom == breakend.chrom]
+
+                    if len(same_chrom_breakends) > 2:
+                        # Likely inversion pattern with multiple breakends - skip duplication classification
+                        continue
+
+                    # This is a duplication pattern - reclassify both breakends
+                    dup_breakend1 = Breakend.from_breakend_variant(
+                        BreakendVariant(
+                            id=breakend.id,
+                            chrom=breakend.chrom,
+                            pos=breakend.pos,
+                            ref=breakend.ref,
+                            alt=breakend.alt,
+                            mate_id=getattr(breakend, 'mate_id', ''),
+                            mate_chrom=breakend.mate_chrom,
+                            mate_pos=breakend.mate_pos,
+                            orientation=breakend.orientation,
+                            inserted_seq=breakend.inserted_seq,
+                            info='',
+                            variant_type='SV_BND_DUP'
+                        ), 'SV_BND_DUP'
+                    )
+                    dup_breakend2 = Breakend.from_breakend_variant(
+                        BreakendVariant(
+                            id=mate.id,
+                            chrom=mate.chrom,
+                            pos=mate.pos,
+                            ref=mate.ref,
+                            alt=mate.alt,
+                            mate_id=getattr(mate, 'mate_id', ''),
+                            mate_chrom=mate.mate_chrom,
+                            mate_pos=mate.mate_pos,
+                            orientation=mate.orientation,
+                            inserted_seq=mate.inserted_seq,
+                            info='',
+                            variant_type='SV_BND_DUP'
+                        ), 'SV_BND_DUP'
+                    )
+
+                    # Maintain mate relationships
+                    dup_breakend1.mate_breakend = dup_breakend2
+                    dup_breakend2.mate_breakend = dup_breakend1
+
+                    dup_breakends.extend([dup_breakend1, dup_breakend2])
+                    processed_ids.add(breakend.id)
+                    processed_ids.add(mate.id)
+
+        return dup_breakends
+
+    def _detect_inversion_pattern(self, paired_breakends: List[Breakend]) -> List[Breakend]:
+        """
+        Detect inversion patterns from paired breakends.
+
+        An inversion pattern consists of 4 breakends forming 2 pairs:
+        - Pair 1: Outer breakpoints (A, B) with inverted orientations
+        - Pair 2: Inner breakpoints (C, D) with inverted orientations
+        - Same chromosome, positions in order A < C < D < B
+
+        Returns:
+            List of breakends reclassified as SV_BND_INV
+        """
+        inv_breakends = []
+        processed_ids = set()
+
+        # Group breakends by chromosome for efficiency
+        chrom_groups = {}
+        for breakend in paired_breakends:
+            if breakend.id in processed_ids:
+                continue
+            chrom = breakend.chrom
+            if chrom not in chrom_groups:
+                chrom_groups[chrom] = []
+            chrom_groups[chrom].append(breakend)
+
+        # Look for inversion patterns within each chromosome
+        for chrom, breakends in chrom_groups.items():
+            if len(breakends) < 4:  # Need at least 4 breakends for inversion
+                continue
+
+            # Sort by position
+            breakends_sorted = sorted(breakends, key=lambda x: x.pos)
+
+            # Check for inversion patterns - simplified heuristic
+            # Look for breakends that point inward (toward each other)
+            for i in range(len(breakends_sorted) - 1):
+                breakend1 = breakends_sorted[i]
+                breakend2 = breakends_sorted[i + 1]
+
+                if (breakend1.id in processed_ids or breakend2.id in processed_ids or
+                    not breakend1.mate_breakend or not breakend2.mate_breakend):
+                    continue
+
+                # Check if this is part of an inversion pattern
+                # For inversion: we expect 4 breakends on same chromosome with crossed connections
+                if (breakend1.chrom == breakend2.chrom == chrom and
+                    breakend1.mate_chrom == breakend2.mate_chrom == chrom and
+                    breakend1.mate_breakend and breakend2.mate_breakend):
+
+                    # Check if the 4 breakends form inversion pattern
+                    # Simple heuristic: 4 breakends all pointing to each other on same chromosome
+                    same_chrom_count = len([b for b in breakends_sorted if b.chrom == chrom and b.mate_chrom == chrom])
+
+                    if same_chrom_count == 4:
+                        # Reclassify all 4 breakends as inversion
+                        for breakend_to_classify in breakends_sorted:
+                            if breakend_to_classify.id in processed_ids:
+                                continue
+
+                            # Reclassify as inversion
+                            inv_breakend = Breakend.from_breakend_variant(
+                                BreakendVariant(
+                                    id=breakend_to_classify.id,
+                                    chrom=breakend_to_classify.chrom,
+                                    pos=breakend_to_classify.pos,
+                                    ref=breakend_to_classify.ref,
+                                    alt=breakend_to_classify.alt,
+                                    mate_id=getattr(breakend_to_classify, 'mate_id', ''),
+                                    mate_chrom=breakend_to_classify.mate_chrom,
+                                    mate_pos=breakend_to_classify.mate_pos,
+                                    orientation=breakend_to_classify.orientation,
+                                    inserted_seq=breakend_to_classify.inserted_seq,
+                                    info='',
+                                    variant_type='SV_BND_INV'
+                                ), 'SV_BND_INV'
+                            )
+                            inv_breakends.append(inv_breakend)
+                            processed_ids.add(breakend_to_classify.id)
+
+                        # Exit the loop since we processed all breakends for this chromosome
+                        break
+
+        return inv_breakends
 
     def _infer_mate_orientation(self, original_orientation: str) -> str:
         """
@@ -367,6 +566,8 @@ def read_vcf(path, include_info=True, classify_variants=True):
         - variant_type column uses VCF 4.2 compliant classification
         - Compatible with existing code expecting basic 5-column format
     """
+    
+    # TODO: use the read_tsv built in functionality for this instead
     with open(path, "r") as f:
         lines = [l for l in f if not l.startswith("##")]
 
@@ -378,6 +579,7 @@ def read_vcf(path, include_info=True, classify_variants=True):
         usecols = [0, 1, 2, 3, 4]  # Include ID field by default
         base_columns = ["chrom", "pos1", "id", "ref", "alt"]
 
+    # TODO: use read_tsv instead
     df = pd.read_csv(
         io.StringIO("".join(lines)),
         sep="\t",
@@ -406,7 +608,8 @@ def read_vcf(path, include_info=True, classify_variants=True):
             ), 
             axis=1
         )
-
+    # Note: INV and DUP variants represented by multiple BNDs are handled by
+    # BNDClassifier and group_variants_by_semantic_type() functions
     return df
 
 
@@ -613,6 +816,73 @@ def read_vcf_chromosomes_chunked(path, target_chromosomes, n_chunks=1, include_i
                     yield f"{chrom}_chunk_{i+1}", chunk_df
 
 
+def group_variants_by_semantic_type(variants_df: pd.DataFrame, vcf_path: Optional[str] = None) -> Dict[str, pd.DataFrame]:
+    """
+    Group variants by semantic type for unified processing.
+
+    This function groups variants so that DUP and SV_BND_DUP are processed together,
+    INV and SV_BND_INV are processed together, etc.
+
+    Args:
+        variants_df: DataFrame with variants including variant_type column
+        vcf_path: Optional VCF path for BND semantic classification
+
+    Returns:
+        Dict with keys: 'standard', 'dup_variants', 'inv_variants', 'bnd_variants'
+    """
+    grouped = {
+        'standard': pd.DataFrame(),
+        'dup_variants': pd.DataFrame(),
+        'inv_variants': pd.DataFrame(),
+        'bnd_variants': pd.DataFrame()
+    }
+
+    # Standard variants (SNV, INS, DEL, MNV)
+    standard_types = ['SNV', 'MNV', 'INS', 'DEL', 'complex']
+    grouped['standard'] = variants_df[variants_df['variant_type'].isin(standard_types)].copy()
+
+    # Symbolic DUP variants
+    dup_types = ['SV_DUP']
+    grouped['dup_variants'] = variants_df[variants_df['variant_type'].isin(dup_types)].copy()
+
+    # Symbolic INV variants
+    inv_types = ['SV_INV']
+    grouped['inv_variants'] = variants_df[variants_df['variant_type'].isin(inv_types)].copy()
+
+    # Handle BND variants with semantic classification
+    bnd_types = ['SV_BND', 'SV_BND_INS']
+    bnd_variants = variants_df[variants_df['variant_type'].isin(bnd_types)]
+
+    if len(bnd_variants) > 0 and vcf_path:
+        # Use BNDClassifier to get semantic classifications
+        classifier = BNDClassifier()
+        classified_breakends = classifier.classify_all_breakends(vcf_path)
+
+        # Extract variant IDs for each semantic type
+        dup_bnd_ids = {b.id for b in classified_breakends.get('dup_breakends', [])}
+        inv_bnd_ids = {b.id for b in classified_breakends.get('inv_breakends', [])}
+        true_bnd_ids = {b.id for b in classified_breakends.get('paired', [])}
+
+        # Group BND variants by semantic type
+        dup_bnd_variants = bnd_variants[bnd_variants['id'].isin(dup_bnd_ids)].copy()
+        inv_bnd_variants = bnd_variants[bnd_variants['id'].isin(inv_bnd_ids)].copy()
+        true_bnd_variants = bnd_variants[bnd_variants['id'].isin(true_bnd_ids)].copy()
+
+        # Update variant_type for semantic consistency
+        dup_bnd_variants['variant_type'] = 'SV_BND_DUP'
+        inv_bnd_variants['variant_type'] = 'SV_BND_INV'
+
+        # Combine with symbolic variants
+        grouped['dup_variants'] = pd.concat([grouped['dup_variants'], dup_bnd_variants], ignore_index=True)
+        grouped['inv_variants'] = pd.concat([grouped['inv_variants'], inv_bnd_variants], ignore_index=True)
+        grouped['bnd_variants'] = true_bnd_variants.copy()
+    else:
+        # No BND semantic classification possible
+        grouped['bnd_variants'] = bnd_variants.copy()
+
+    return grouped
+
+
 def parse_vcf_info(info_string: str) -> Dict:
     """
     Parse VCF INFO field to extract variant information according to VCF 4.2 specification.
@@ -683,7 +953,12 @@ def parse_vcf_info(info_string: str) -> Dict:
 def classify_variant_type(ref_allele: str, alt_allele: str, info_dict: Optional[Dict] = None) -> str:
     """
     Classify variant type according to VCF 4.2 specification using comprehensive heuristics.
-    
+    Note: This function only correctly classifies variants that are represented in a single
+    VCF record, this means that an additional classification step is needed for BNDs that 
+    actually represent INV or DUP variants as those can be represented as 4 or 2 VCF records
+    respectively.
+
+
     This function implements the complete VCF 4.2 variant classification rules with proper
     handling of structural variants, standard sequence variants, and edge cases.
     
@@ -735,7 +1010,7 @@ def classify_variant_type(ref_allele: str, alt_allele: str, info_dict: Optional[
     VCF 4.2 Reference: https://samtools.github.io/hts-specs/VCFv4.2.pdf
     """
     if not ref_allele or not alt_allele:
-        return 'unknown'
+        return 'missing_ref_or_alt'
     
     # Normalize alleles (VCF allows mixed case)
     ref = ref_allele.upper().strip()
@@ -744,7 +1019,7 @@ def classify_variant_type(ref_allele: str, alt_allele: str, info_dict: Optional[
     # PRIORITY 0: Multiallelic variants (comma-separated ALT alleles)
     # Multiple alternative alleles in single ALT field indicate complex variant
     if ',' in alt:
-        return 'complex'
+        return 'multiallelic'
     
     # PRIORITY 1: Handle missing/upstream deletion alleles
     # The '*' allele indicates missing due to upstream deletion (VCF 4.2 spec)
@@ -759,19 +1034,19 @@ def classify_variant_type(ref_allele: str, alt_allele: str, info_dict: Optional[
         # Map symbolic alleles to standard classifications
         if sv_type in ['INV']:
             return 'SV_INV'
-        elif sv_type in ['DUP', 'DUP:TANDEM']:
+        elif sv_type in ['DUP','DUP:TANDEM']:
             return 'SV_DUP'
-        elif sv_type in ['DEL', 'DEL:ME', 'DEL:ME:ALU', 'DEL:ME:L1']:
+        elif sv_type in ['DEL']:
             return 'SV_DEL'
-        elif sv_type in ['INS', 'INS:ME', 'INS:ME:ALU', 'INS:ME:L1']:
+        elif sv_type in ['INS']:
             return 'SV_INS'
         elif sv_type in ['CNV']:
             return 'SV_CNV'
         elif sv_type in ['BND', 'TRA']:
             return 'SV_BND'
         else:
-            # Unknown symbolic allele - return unknown rather than creating arbitrary SV types
-            return 'unknown'
+            # Fallback to returning the ALT
+            return alt
 
 
     # PRIORITY 3: Breakend notation (complex rearrangements)
@@ -786,15 +1061,17 @@ def classify_variant_type(ref_allele: str, alt_allele: str, info_dict: Optional[
             else:
                 return 'SV_BND'      # Standard BND
         except:
-            # If parsing fails, default to standard BND
-            return 'SV_BND'
+            # If parsing fails, fallback to returning the ALT
+            return alt
     
     # PRIORITY 4: Check SVTYPE in INFO field for additional SV classification
+    # Note: Symbolic ALT fields (<INV>, <DUP>) are handled by priority 3, so this mainly
+    # serves as fallback for non-standard VCF files
     if info_dict and 'SVTYPE' in info_dict:
         svtype = str(info_dict['SVTYPE']).upper()
         if svtype in ['INV']:
             return 'SV_INV'
-        elif svtype in ['DUP', 'TANDEM']:
+        elif svtype in ['DUP']:
             return 'SV_DUP'
         elif svtype in ['DEL']:
             return 'SV_DEL'
@@ -815,7 +1092,7 @@ def classify_variant_type(ref_allele: str, alt_allele: str, info_dict: Optional[
             return 'SNV'
         else:
             # Identical alleles - should not occur in valid VCF
-            return 'unknown'
+            return alt
             
     elif ref_len == 1 and alt_len > 1:
         # Potential insertion: check if REF is prefix of ALT
@@ -823,7 +1100,7 @@ def classify_variant_type(ref_allele: str, alt_allele: str, info_dict: Optional[
             return 'INS'
         else:
             # REF not a prefix - complex variant
-            return 'complex'
+            return alt
             
     elif ref_len > 1 and alt_len == 1:
         # Potential deletion: check if ALT is prefix of REF  
@@ -831,7 +1108,7 @@ def classify_variant_type(ref_allele: str, alt_allele: str, info_dict: Optional[
             return 'DEL'
         else:
             # ALT not a prefix - complex variant
-            return 'complex'
+            return alt
             
     elif ref_len > 1 and alt_len > 1:
         # Multi-base variant - determine if complex substitution or indel
@@ -858,14 +1135,14 @@ def classify_variant_type(ref_allele: str, alt_allele: str, info_dict: Optional[
                 return 'INS'
             else:
                 # Same length with shared prefix/suffix - substitution
-                return 'complex'
+                return alt
         else:
             # Limited overlap - substitution
             return 'MNV'
     
     else:
-        # Empty allele - should not occur in valid VCF
-        return 'unknown'
+        # Not parsed - should not occur in valid VCF
+        return alt
 
 
 def parse_breakend_alt(alt_allele: str) -> Dict:
@@ -1136,9 +1413,9 @@ def load_breakend_variants(variants_fn: Union[str, pd.DataFrame]) -> Tuple[pd.Da
         all_variants = _load_variants(variants_fn)
         vcf_path = None
 
-    # Separate BND and standard variants (including BND with insertions)
-    bnd_variants = all_variants[all_variants['variant_type'].isin(['SV_BND', 'SV_BND_INS'])]
-    standard_variants = all_variants[~all_variants['variant_type'].isin(['SV_BND', 'SV_BND_INS'])]
+    # Separate BND and standard variants (including all BND types)
+    bnd_variants = all_variants[all_variants['variant_type'].isin(['SV_BND', 'SV_BND_INS', 'SV_BND_DUP', 'SV_BND_INV'])]
+    standard_variants = all_variants[~all_variants['variant_type'].isin(['SV_BND', 'SV_BND_INS', 'SV_BND_DUP', 'SV_BND_INV'])]
 
     # Create breakend pairs using enhanced classifier
     breakend_pairs = []
