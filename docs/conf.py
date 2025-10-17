@@ -23,6 +23,10 @@ extensions = [
 ]
 autoapi_dirs = ["../src"]
 
+# Notebook execution configuration
+nb_execution_mode = "off"  # Don't execute notebooks during build (they should be pre-executed)
+nb_execution_timeout = 300  # 5 minutes if execution is enabled
+
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
