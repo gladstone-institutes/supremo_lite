@@ -72,7 +72,6 @@ class TestInversionPredictionAlignment:
 
         print("✓ INV 1D alignment masking test passed")
 
-    @pytest.mark.skip(reason="Known issue: torch detection in prediction_alignment.py line 565 incorrectly identifies numpy arrays")
     def test_inv_2d_alignment_cross_pattern_masking(self):
         """Test that INV 2D alignment uses cross-pattern masking (rows AND columns)."""
         # Get sequences with inversions

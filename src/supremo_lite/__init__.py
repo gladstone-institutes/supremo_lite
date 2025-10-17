@@ -43,6 +43,13 @@ from .personalize import (
 # Import mutagenesis functions
 from .mutagenesis import get_sm_sequences, get_sm_subsequences
 
+# Import prediction alignment functions
+from .prediction_alignment import align_predictions_by_coordinate
+
+# Mock models are available in a separate submodule
+# Import with: from supremo_lite.mock_models import TestModel, TestModel2D
+# This allows users who don't have PyTorch to still use the main package
+
 # Version
 __version__ = "0.5.3"
 # Package metadata

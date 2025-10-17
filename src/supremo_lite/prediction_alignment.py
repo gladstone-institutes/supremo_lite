@@ -558,7 +558,7 @@ class PredictionAligner2D:
         The same NaN pattern is mirrored to ALT so both matrices have identical
         masked regions, enabling fair comparison of the unaffected areas.
         """
-        is_torch = TORCH_AVAILABLE and hasattr(ref_pred, 'device')
+        is_torch = TORCH_AVAILABLE and torch.is_tensor(ref_pred)
 
         # Convert to numpy for manipulation
         if is_torch:
@@ -610,7 +610,7 @@ class PredictionAligner2D:
         Returns:
             Tuple of (chimeric_ref, alt) matrices
         """
-        is_torch = TORCH_AVAILABLE and hasattr(left_ref, 'device')
+        is_torch = TORCH_AVAILABLE and torch.is_tensor(left_ref)
 
         # Convert to numpy for manipulation
         if is_torch:
