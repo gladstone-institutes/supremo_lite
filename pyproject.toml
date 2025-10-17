@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "supremo_lite"
-version = "0.5.4"
+version = "0.5.3"
 description = "A lightweight memory first, model agnostic version of SuPreMo"
 authors = ["Natalie Gill", "Sean Whalen"]
 license = "MIT"
