@@ -8,7 +8,7 @@
 
 project = "supremo_lite"
 copyright = "2025, Gladstone Institutes"
-author = "Natalie Gill"
+authors = "Natalie Gill and Sean Whalen"
 
 # -- General configuration ---------------------------------------------------
 
@@ -24,8 +24,8 @@ extensions = [
 autoapi_dirs = ["../src"]
 
 # Notebook execution configuration
-nb_execution_mode = "off"  # Don't execute notebooks during build (they should be pre-executed)
-nb_execution_timeout = 300  # 5 minutes if execution is enabled
+nb_execution_mode = "auto"  # Execute notebooks that haven't been run yet
+nb_execution_timeout = 300  # 5 minutes timeout per notebook
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -38,3 +38,8 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # a list of builtin themes.
 #
 html_theme = "sphinx_rtd_theme"
+
+# Add any paths that contain custom static files (such as style sheets) here,
+# relative to this directory. They are copied after the builtin static files,
+# so a file named "default.css" will overwrite the builtin "default.css".
+html_static_path = ["_static"]

@@ -11,7 +11,6 @@ A lightweight memory first, model agnostic version of [SuPreMo](https://github.c
 - 🔧 **Memory Efficient**: Chunked processing for large VCF files
 - 🗺️ **Smart Chromosome Matching**: Automatic handling of chromosome naming differences (chr1 ↔ 1, chrM ↔ MT)
 - ⚡ **PyTorch Integration**: Automatic tensor support when PyTorch is available
-- 📊 **Format Flexibility**: Works with file paths, objects, or DataFrames
 
 ## Installation
 
@@ -90,16 +89,19 @@ personal_genome = sl.get_personal_genome(
 
 ```python
 # Generate reference and alternate sequences around variants
-ref_seqs, alt_seqs, metadata = sl.get_alt_ref_sequences(
+# Note: get_alt_ref_sequences is a generator that yields chunks
+results = list(sl.get_alt_ref_sequences(
     reference_fn=reference,
     variants_fn=variants,
     seq_len=1000,
     encode=True
-)
+))
+# Unpack from the first chunk
+alt_seqs, ref_seqs, metadata = results[0]
 # Returns: (n_variants, seq_len, 4) shaped arrays
 ```
 
-**📖 [Full Guide: Sequence Generation](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/user_guide/sequences.md) | [Getting Started Notebook](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/notebooks/01_getting_started.ipynb)**
+**📖 [Full Guide: Variant-Centered Sequences](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/user_guide/variant_centered_sequences.md) | [Getting Started Notebook](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/notebooks/01_getting_started.ipynb)**
 
 ### Prediction Alignment
 
@@ -152,10 +154,9 @@ ref_seq, alt_seqs, metadata = sl.get_sm_sequences(
 ### 📚 User Guides
 Detailed documentation for each major feature:
 - **[Personalized Genomes](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/user_guide/personalization.md)** - Apply variants to genomes
-- **[Sequence Generation](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/user_guide/sequences.md)** - Create variant-centered windows
-- **[Prediction Alignment](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/user_guide/prediction_alignment.md)** - Align model predictions
+- **[Variant-Centered Sequences](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/user_guide/variant_centered_sequences.md)** - Extract sequence windows around variants
+- **[Prediction Alignment](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/user_guide/prediction_alignment.md)** - Align model predictions for variant effect analysis
 - **[Saturation Mutagenesis](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/user_guide/mutagenesis.md)** - In-silico mutagenesis workflows
-- **[Mock Models](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/user_guide/mock_models.md)** - TestModel and TestModel2D
 
 ### 📓 Interactive Tutorials
 Hands-on Jupyter notebooks with visualizations:

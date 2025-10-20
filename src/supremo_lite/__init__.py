@@ -9,7 +9,7 @@ This package provides functionality for:
 """
 
 # Import core components
-from .core import TORCH_AVAILABLE, nt_to_1h, nts
+from .core import TORCH_AVAILABLE, BRISKET_AVAILABLE, nt_to_1h, nts
 
 # Import sequence transformation utilities
 from .sequence_utils import encode_seq, decode_seq, rc, rc_str
@@ -51,7 +51,7 @@ from .prediction_alignment import align_predictions_by_coordinate
 # This allows users who don't have PyTorch to still use the main package
 
 # Version
-__version__ = "0.5.3"
+__version__ = "0.5.4"
 # Package metadata
 __description__ = (
     "A module for generating personalized genome sequences and in-silico mutagenesis"
