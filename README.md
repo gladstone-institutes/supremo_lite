@@ -137,17 +137,7 @@ ref_seq, alt_seqs, metadata = sl.get_sm_sequences(
 )
 ```
 
-**📖 [Full Guide: Mutagenesis](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/user_guide/mutagenesis.md) | [Tutorial Notebook](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/notebooks/05_saturation_mutagenesis.ipynb)**
-
-### Structural Variants
-
-```python
-# Handles INV (inversions), DUP (duplications), BND (breakends)
-# Automatic cross-pattern masking for inversions
-# Chimeric reference assembly for breakends
-```
-
-**📖 [Structural Variants Notebook](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/notebooks/04_structural_variants.ipynb)**
+**📖 [Full Guide: Mutagenesis](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/user_guide/mutagenesis.md)**
 
 ## Documentation
 
@@ -157,14 +147,13 @@ Detailed documentation for each major feature:
 - **[Variant-Centered Sequences](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/user_guide/variant_centered_sequences.md)** - Extract sequence windows around variants
 - **[Prediction Alignment](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/user_guide/prediction_alignment.md)** - Align model predictions for variant effect analysis
 - **[Saturation Mutagenesis](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/user_guide/mutagenesis.md)** - In-silico mutagenesis workflows
+- **[Variant Classification](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/_static/images/variant_classification.png)** - Flow chart showing automatic variant classification logic
 
 ### 📓 Interactive Tutorials
 Hands-on Jupyter notebooks with visualizations:
 - **[Getting Started](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/notebooks/01_getting_started.ipynb)** - Installation and basic concepts
 - **[Personalized Genomes](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/notebooks/02_personalized_genomes.ipynb)** - Genome personalization workflows
 - **[Prediction Alignment](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/notebooks/03_prediction_alignment.ipynb)** - Complete prediction workflow with visualizations ⭐
-- **[Structural Variants](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/notebooks/04_structural_variants.ipynb)** - INV, DUP, BND handling
-- **[Saturation Mutagenesis](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/notebooks/05_saturation_mutagenesis.ipynb)** - Mutagenesis analysis
 
 ### 🔍 API Reference
 **Core Functions:**

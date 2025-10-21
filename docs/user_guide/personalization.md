@@ -71,6 +71,10 @@ Returns dict mapping chromosome names to sequences (order matches reference):
 | DUP | Duplication | Tandem repeat (length increases) |
 | BND | Breakend/Translocation | Fusion sequence created |
 
+:::{tip}
+See the [Variant Classification Flow Chart](../_static/images/variant_classification.png) for the complete decision tree showing how variants are automatically classified from VCF files.
+:::
+
 ### Overlapping Variants
 
 First variant in VCF is applied; overlapping variants are skipped (reported in verbose mode).
@@ -86,7 +90,8 @@ Variants skipped if overlapping, unsupported type, validation errors, or missing
 ```python
 personal_genome = sl.get_personal_genome(
     reference_fn='ref.fa',
-    variants_fn='vars.vcf'
+    variants_fn='vars.vcf',
+    verbose=True
 )
 ```
 
@@ -97,8 +102,7 @@ personal_genome = sl.get_personal_genome(
 personal_genome = sl.get_personal_genome(
     reference_fn='/data/hg38.fa',
     variants_fn='/data/variants.vcf.gz',
-    encode=False,      # Lower memory
-    chunk_size=50000,  # 50k per chunk
+    chunk_size=1000,   # 1k per chunk
     verbose=True
 )
 ```

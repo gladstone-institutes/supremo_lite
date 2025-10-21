@@ -700,23 +700,31 @@ class PredictionAligner2D:
 
 def vector_to_contact_matrix(
     vector: Union[np.ndarray, 'torch.Tensor'],
-    matrix_size: int
+    matrix_size: int,
+    diag_offset: int = 0
 ) -> Union[np.ndarray, 'torch.Tensor']:
     """
     Convert flattened upper triangular vector to full contact matrix.
 
     This function reconstructs a full symmetric contact matrix from its upper
     triangular representation, following the pattern used in genomic contact map models.
+    Supports diagonal masking where near-diagonal elements are excluded.
 
     Args:
-        vector: Flattened upper triangular matrix (length = matrix_size * (matrix_size + 1) / 2)
+        vector: Flattened upper triangular matrix
+                Expected length depends on diag_offset:
+                - diag_offset=0: matrix_size * (matrix_size + 1) / 2 (includes diagonal)
+                - diag_offset=k: (matrix_size - k) * (matrix_size - k + 1) / 2
         matrix_size: Dimension of the output square matrix
+        diag_offset: Diagonal offset for masking (default=0, no masking)
+                     diag_offset=2 means skip main diagonal and first off-diagonal
 
     Returns:
         Full symmetric contact matrix of shape (matrix_size, matrix_size)
+        Elements within diag_offset of the diagonal are set to NaN
 
     Example:
-        >>> # For a 3x3 matrix, vector contains [M[0,0], M[0,1], M[0,2], M[1,1], M[1,2], M[2,2]]
+        >>> # Full upper triangle (diag_offset=0, default)
         >>> vector = np.array([1, 2, 3, 4, 5, 6])
         >>> matrix = vector_to_contact_matrix(vector, 3)
         >>> # Result: [[1, 2, 3], [2, 4, 5], [3, 5, 6]]
@@ -725,37 +733,56 @@ def vector_to_contact_matrix(
     is_torch = TORCH_AVAILABLE and torch.is_tensor(vector)
 
     if is_torch:
-        matrix = torch.zeros((matrix_size, matrix_size), dtype=vector.dtype, device=vector.device)
-        triu_indices = torch.triu_indices(matrix_size, matrix_size)
+        # Initialize matrix with NaN
+        matrix = torch.full((matrix_size, matrix_size), float('nan'),
+                           dtype=vector.dtype, device=vector.device)
+        # Get upper triangle indices with diagonal offset
+        triu_indices = torch.triu_indices(matrix_size, matrix_size, offset=diag_offset)
         matrix[triu_indices[0], triu_indices[1]] = vector
-        # Make symmetric by copying upper triangle to lower
-        matrix = matrix + matrix.T - torch.diag(torch.diag(matrix))
+        # Make symmetric by copying upper triangle to lower (preserving NaN)
+        for i in range(matrix_size):
+            for j in range(i + diag_offset, matrix_size):
+                if not torch.isnan(matrix[i, j]):
+                    matrix[j, i] = matrix[i, j]
     else:
-        matrix = np.zeros((matrix_size, matrix_size), dtype=vector.dtype)
-        triu_indices = np.triu_indices(matrix_size)
+        # Initialize matrix with NaN
+        matrix = np.full((matrix_size, matrix_size), np.nan, dtype=vector.dtype)
+        # Get upper triangle indices with diagonal offset
+        triu_indices = np.triu_indices(matrix_size, k=diag_offset)
         matrix[triu_indices] = vector
-        # Make symmetric by copying upper triangle to lower
-        matrix = matrix + matrix.T - np.diag(np.diag(matrix))
+        # Make symmetric by copying upper triangle to lower (preserving NaN)
+        for i in range(matrix_size):
+            for j in range(i + diag_offset, matrix_size):
+                if not np.isnan(matrix[i, j]):
+                    matrix[j, i] = matrix[i, j]
 
     return matrix
 
 
 def contact_matrix_to_vector(
-    matrix: Union[np.ndarray, 'torch.Tensor']
+    matrix: Union[np.ndarray, 'torch.Tensor'],
+    diag_offset: int = 0
 ) -> Union[np.ndarray, 'torch.Tensor']:
     """
     Convert full contact matrix to flattened upper triangular vector.
 
     This function extracts the upper triangular portion of a contact matrix,
-    which is the standard representation for genomic contact maps.
+    which is the standard representation for genomic contact maps. Supports
+    diagonal masking to exclude near-diagonal elements.
 
     Args:
         matrix: Full symmetric contact matrix of shape (N, N)
+        diag_offset: Diagonal offset for extraction (default=0, includes diagonal)
+                     diag_offset=2 means skip main diagonal and first off-diagonal
 
     Returns:
-        Flattened upper triangular vector of length N * (N + 1) / 2
+        Flattened upper triangular vector
+        Length depends on diag_offset:
+        - diag_offset=0: N * (N + 1) / 2 (includes diagonal)
+        - diag_offset=k: (N - k) * (N - k + 1) / 2
 
     Example:
+        >>> # Full upper triangle (diag_offset=0, default)
         >>> matrix = np.array([[1, 2, 3], [2, 4, 5], [3, 5, 6]])
         >>> vector = contact_matrix_to_vector(matrix)
         >>> # Result: [1, 2, 3, 4, 5, 6]
@@ -764,10 +791,10 @@ def contact_matrix_to_vector(
     is_torch = TORCH_AVAILABLE and torch.is_tensor(matrix)
 
     if is_torch:
-        triu_indices = torch.triu_indices(matrix.shape[0], matrix.shape[1])
+        triu_indices = torch.triu_indices(matrix.shape[0], matrix.shape[1], offset=diag_offset)
         return matrix[triu_indices[0], triu_indices[1]]
     else:
-        triu_indices = np.triu_indices(matrix.shape[0])
+        triu_indices = np.triu_indices(matrix.shape[0], k=diag_offset)
         return matrix[triu_indices]
 
 
@@ -873,7 +900,19 @@ def align_predictions_by_coordinate(
         effective_variant_start = metadata_row.get('effective_variant_start', 0)
         abs_variant_pos = window_start + effective_variant_start
 
-    svlen = metadata_row.get('svlen', 0)
+    svlen = metadata_row.get('svlen', None)
+
+    # Calculate svlen from alleles if not present (for non-symbolic DEL/INS variants)
+    # Symbolic variants (SV_DEL, SV_INS, SV_INV, SV_DUP) have svlen in INFO field
+    # Regular variants (DEL, INS) need svlen calculated from allele lengths
+    if svlen is None or svlen == 0:
+        ref_allele = metadata_row.get('ref', '')
+        alt_allele = metadata_row.get('alt', '')
+        if ref_allele and alt_allele:
+            # svlen = len(alt) - len(ref)
+            # For DEL: negative (e.g., 1 - 13 = -12)
+            # For INS: positive (e.g., 7 - 1 = 6)
+            svlen = len(alt_allele) - len(ref_allele)
 
     # Create VariantPosition object
     var_pos = VariantPosition(
@@ -885,9 +924,50 @@ def align_predictions_by_coordinate(
 
     # Determine target size from predictions
     if prediction_type == "1D":
-        target_size = len(ref_preds)
-        aligner = PredictionAligner1D(target_size=target_size, bin_size=bin_size)
-        return aligner.align_predictions(ref_preds, alt_preds, variant_type, var_pos)
+        # Check if predictions are multi-dimensional (multiple targets)
+        is_torch = TORCH_AVAILABLE and torch.is_tensor(ref_preds)
+        is_numpy = isinstance(ref_preds, np.ndarray)
+
+        if is_torch:
+            ndim = len(ref_preds.shape)
+        elif is_numpy:
+            ndim = ref_preds.ndim
+        else:
+            ndim = 1
+
+        # Handle multi-target predictions [n_targets, n_bins]
+        if ndim > 1:
+            target_size = ref_preds.shape[-1]  # Number of bins
+            aligner = PredictionAligner1D(target_size=target_size, bin_size=bin_size)
+
+            # Align each target separately
+            n_targets = ref_preds.shape[0]
+            ref_aligned_list = []
+            alt_aligned_list = []
+
+            for target_idx in range(n_targets):
+                ref_target = ref_preds[target_idx]
+                alt_target = alt_preds[target_idx]
+                ref_aligned, alt_aligned = aligner.align_predictions(
+                    ref_target, alt_target, variant_type, var_pos
+                )
+                ref_aligned_list.append(ref_aligned)
+                alt_aligned_list.append(alt_aligned)
+
+            # Stack results back into multi-target format
+            if is_torch:
+                ref_result = torch.stack(ref_aligned_list)
+                alt_result = torch.stack(alt_aligned_list)
+            else:
+                ref_result = np.stack(ref_aligned_list)
+                alt_result = np.stack(alt_aligned_list)
+
+            return ref_result, alt_result
+        else:
+            # Single target prediction [n_bins]
+            target_size = len(ref_preds)
+            aligner = PredictionAligner1D(target_size=target_size, bin_size=bin_size)
+            return aligner.align_predictions(ref_preds, alt_preds, variant_type, var_pos)
     else:  # 2D
         # Check if predictions are 1D (flattened upper triangular) or 2D (full matrix)
         is_torch = TORCH_AVAILABLE and torch.is_tensor(ref_preds)
@@ -899,8 +979,8 @@ def align_predictions_by_coordinate(
 
         # If 1D, convert to 2D matrix
         if ndim == 1:
-            ref_matrix = vector_to_contact_matrix(ref_preds, matrix_size)
-            alt_matrix = vector_to_contact_matrix(alt_preds, matrix_size)
+            ref_matrix = vector_to_contact_matrix(ref_preds, matrix_size, diag_offset=diag_offset)
+            alt_matrix = vector_to_contact_matrix(alt_preds, matrix_size, diag_offset=diag_offset)
 
             # Align matrices
             aligner = PredictionAligner2D(
@@ -913,8 +993,8 @@ def align_predictions_by_coordinate(
             )
 
             # Convert back to flattened format
-            aligned_ref_vector = contact_matrix_to_vector(aligned_ref_matrix)
-            aligned_alt_vector = contact_matrix_to_vector(aligned_alt_matrix)
+            aligned_ref_vector = contact_matrix_to_vector(aligned_ref_matrix, diag_offset=diag_offset)
+            aligned_alt_vector = contact_matrix_to_vector(aligned_alt_matrix, diag_offset=diag_offset)
 
             return aligned_ref_vector, aligned_alt_vector
         else:

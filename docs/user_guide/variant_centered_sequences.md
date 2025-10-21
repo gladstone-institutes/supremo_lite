@@ -98,6 +98,10 @@ Each variant returns metadata with essential information:
 }
 ```
 
+:::{tip}
+The `variant_type` field is automatically determined using the classification logic shown in the [Variant Classification Flow Chart](../_static/images/variant_classification.png).
+:::
+
 ## Output Formats
 
 **Encoded** (`encode=True`): numpy arrays or PyTorch tensors, shape `(n_variants, seq_len, 4)`

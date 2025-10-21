@@ -109,6 +109,5 @@ ref_seq, alt_seqs, metadata = sl.get_sm_subsequences(
 
 ## See Also
 
-- [Notebook: Saturation Mutagenesis](../notebooks/05_saturation_mutagenesis.ipynb)
 - [`get_alt_ref_sequences()`](variant_centered_sequences.md)
 - [`align_predictions_by_coordinate()`](prediction_alignment.md)

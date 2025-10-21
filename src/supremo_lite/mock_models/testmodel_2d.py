@@ -12,9 +12,7 @@ no learned parameters.
 Model Architecture Characteristics:
 - **Binning**: Predictions at 2D grid resolution (bin_size × bin_size)
 - **Cropping**: Edge bins removed from all sides
-- **Diagonal masking**: Removes diagonal elements (offset=2)
-- **Flattened output**: Returns upper triangle as 1D vector
-- **Output shape**: (batch_size, n_targets, n_flattened_ut_bins)
+- **Output shape**: (batch_size, n_targets, n_final_bins, n_final_bins)
 
 Example:
     >>> from supremo_lite.mock_models import TestModel2D
@@ -24,9 +22,8 @@ Example:
     >>> x = torch.randn(4, 4, 2048)  # (batch, channels, length)
     >>> predictions = model(x)
     >>> predictions.shape
-    torch.Size([4, 1, 276])  # Flattened upper triangle
+    torch.Size([4, 1, 24, 24])  # Full contact matrix after cropping
 
-Author: sean.whalen@gladstone.ucsf.edu
 """
 
 try:
@@ -48,8 +45,7 @@ if TORCH_AVAILABLE:
         - Accepts one-hot encoded DNA sequences
         - Outputs 2D contact matrix predictions at binned resolution
         - Applies edge cropping on all sides
-        - Returns only upper triangle with diagonal offset
-        - Flattens output to 1D vector (common for training efficiency)
+        - Returns full symmetric contact matrix
 
         **Warning**: Returns constant values (ones). Not for actual predictions.
 
@@ -88,10 +84,10 @@ if TORCH_AVAILABLE:
         >>> model = TestModel2D(seq_length=2048, bin_length=64)
         >>> x = torch.randn(4, 4, 2048)  # (batch, channels, length)
         >>> out = model(x)
-        >>> # Output is flattened upper triangle (diagonal offset=2)
-        >>> # For n=32 bins: (32-1)*(32-2)/2 = 465 elements
+        >>> # Output is full contact matrix
+        >>> # For n=32 bins: 32×32 matrix
         >>> out.shape
-        torch.Size([4, 1, 465])
+        torch.Size([4, 1, 32, 32])
 
         With cropping:
 
@@ -102,7 +98,7 @@ if TORCH_AVAILABLE:
         4
         >>> model.n_final_bins
         24
-        >>> # Upper triangle elements: (24-1)*(24-2)/2 = 253
+        >>> # Contact matrix: 24×24
         """
 
         def __init__(self, seq_length, bin_length, crop_length=0, n_targets=1):
@@ -130,9 +126,8 @@ if TORCH_AVAILABLE:
             Returns
             -------
             torch.Tensor
-                Mock predictions of shape (batch_size, n_targets, n_flattened_bins)
-                where n_flattened_bins = (n_final_bins - 1) * (n_final_bins - 2) / 2
-                (upper triangle with diagonal offset of 2)
+                Mock predictions of shape (batch_size, n_targets, n_final_bins, n_final_bins)
+                Full symmetric contact matrix after cropping
                 Contains all ones (not meaningful predictions)
             """
             assert x.shape[1] == 4, f"Expected 4 channels (one-hot), got {x.shape[1]}"
@@ -147,12 +142,8 @@ if TORCH_AVAILABLE:
             # Crop bins from all edges to focus loss function
             y_hat = y_hat[:, :, self.crop_bins:-self.crop_bins, self.crop_bins:-self.crop_bins]
 
-            # Return only upper diagonal values with offset of 2
-            # This is common practice to:
-            # 1. Avoid symmetry (upper == lower triangle)
-            # 2. Skip near-diagonal elements (often masked or less reliable)
-            ut_mask = torch.ones(self.n_final_bins, self.n_final_bins, dtype=torch.bool).triu(diagonal=2)
-            return y_hat[:, :, ut_mask]
+            # Return full contact matrix
+            return y_hat
 
         def training_step(self, batch, batch_idx):
             """
@@ -194,9 +185,7 @@ if __name__ == '__main__':
 
     crop_bins = crop_length // bin_length
     n_initial_bins = seq_length // bin_length
-    n_cropped_bins = n_initial_bins - 2 * crop_bins
-    # Upper triangle with diagonal offset of 2
-    n_ut_bins = (n_cropped_bins - 1) * (n_cropped_bins - 2) // 2
+    n_final_bins = n_initial_bins - 2 * crop_bins
 
     print(f"Model Configuration:")
     print(f"  Sequence length: {seq_length:,} bp")
@@ -204,9 +193,8 @@ if __name__ == '__main__':
     print(f"  Crop length: {crop_length:,} bp")
     print(f"  Initial bins (1D): {n_initial_bins}")
     print(f"  Crop bins per edge: {crop_bins}")
-    print(f"  Final bins (1D): {n_cropped_bins}")
-    print(f"  Contact matrix size: {n_cropped_bins} × {n_cropped_bins}")
-    print(f"  Upper triangle elements (diag_offset=2): {n_ut_bins}")
+    print(f"  Final bins (1D): {n_final_bins}")
+    print(f"  Contact matrix size: {n_final_bins} × {n_final_bins}")
     print(f"  Targets: {n_targets}")
 
     m = TestModel2D(seq_length, bin_length, crop_length, n_targets)
@@ -215,9 +203,10 @@ if __name__ == '__main__':
     y_hat = m(x)
     assert y_hat.shape[0] == batch_size
     assert y_hat.shape[1] == n_targets
-    assert y_hat.shape[2] == n_ut_bins
+    assert y_hat.shape[2] == n_final_bins
+    assert y_hat.shape[3] == n_final_bins
 
     print(f"\nInput shape: {x.shape}")
     print(f"Output shape: {y_hat.shape}")
-    print(f"  (batch_size={batch_size}, n_targets={n_targets}, n_flattened_ut_bins={n_ut_bins})")
+    print(f"  (batch_size={batch_size}, n_targets={n_targets}, n_final_bins={n_final_bins})")
     print("✓ Model test passed!")

@@ -45,6 +45,10 @@ align_predictions_by_coordinate(
 | INV | 1D: mask inverted bins; 2D: cross-pattern masking (rows + columns) |
 | BND | Chimeric reference comparison |
 
+:::{tip}
+For details on how variants are classified into these types, see the [Variant Classification Flow Chart](../_static/images/variant_classification.png).
+:::
+
 ## Model Architecture
 
 **Binning**: Models predict at lower resolution. Example: `bin_size=8` means 1 prediction per 8 bp.
@@ -131,5 +135,4 @@ mean_effect = np.nanmean(np.abs(diff))
 ## See Also
 
 - [Notebook: Prediction Alignment](../notebooks/03_prediction_alignment.ipynb)
-- [Notebook: Structural Variants](../notebooks/04_structural_variants.ipynb)
 - [`get_alt_ref_sequences()`](variant_centered_sequences.md)

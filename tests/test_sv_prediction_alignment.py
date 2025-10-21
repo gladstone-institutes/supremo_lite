@@ -3,30 +3,52 @@ Comprehensive tests for structural variant prediction alignment.
 
 Tests prediction alignment for INV, DUP, and BND variants with both 1D and 2D predictions.
 Uses existing test data in tests/data/inv, tests/data/dup, and tests/data/bnd directories.
+Uses built-in TestModel and TestModel2D from supremo_lite.mock_models.
 """
 
 import os
-import numpy as np
+import torch
 import pytest
 import supremo_lite as sl
+from supremo_lite.mock_models import TestModel, TestModel2D
 from supremo_lite.prediction_alignment import align_predictions_by_coordinate
-
-# Try to import PyTorch
-try:
-    import torch
-    TORCH_AVAILABLE = True
-except ImportError:
-    TORCH_AVAILABLE = False
 
 
 class TestInversionPredictionAlignment:
     """Test prediction alignment for inversion (INV) variants."""
 
     def setup_method(self):
-        """Set up test data."""
+        """Set up test data and models."""
         self.data_dir = os.path.join(os.path.dirname(__file__), "data")
         self.reference_fa = os.path.join(self.data_dir, "test_genome.fa")
         self.inv_vcf = os.path.join(self.data_dir, "inv", "inv.vcf")
+
+        # Model parameters
+        # Note: Use larger seq_len for 2D models to get reasonable matrix size after binning/cropping
+        self.seq_len = 512
+        self.bin_size = 32
+        self.crop_length = 64
+
+        # Initialize 1D model
+        self.model_1d = TestModel(
+            seq_length=self.seq_len,
+            n_targets=1,
+            bin_length=self.bin_size,
+            crop_length=self.crop_length
+        )
+
+        # Initialize 2D model
+        self.model_2d = TestModel2D(
+            seq_length=self.seq_len,
+            n_targets=1,
+            bin_length=self.bin_size,
+            crop_length=self.crop_length
+        )
+        self.diag_offset = 0  # TestModel2D returns full matrices without diagonal masking
+
+        # Calculate matrix size for 2D
+        effective_len = self.seq_len - 2 * self.crop_length
+        self.matrix_size = effective_len // self.bin_size
 
     def test_inv_1d_alignment_masking(self):
         """Test that INV 1D alignment masks inverted region bins in both REF and ALT."""
@@ -34,8 +56,8 @@ class TestInversionPredictionAlignment:
         results = list(sl.get_alt_ref_sequences(
             reference_fn=self.reference_fa,
             variants_fn=self.inv_vcf,
-            seq_len=200,
-            encode=False
+            seq_len=self.seq_len,
+            encode=True
         ))
 
         # Find INV variants (can be SV_INV or SV_BND_INV)
@@ -44,30 +66,31 @@ class TestInversionPredictionAlignment:
 
         ref_seqs, alt_seqs, metadata = inv_results[0]
 
-        # Create mock 1D predictions (bin_size=32, so 200bp window = ~6 bins)
-        bin_size = 32
-        n_bins = (200 + bin_size - 1) // bin_size  # Ceiling division
+        # Transpose from (batch, seq_len, 4) to (batch, 4, seq_len) for model
+        ref_seqs = ref_seqs.permute(0, 2, 1)
+        alt_seqs = alt_seqs.permute(0, 2, 1)
 
-        ref_preds = np.random.rand(n_bins)
-        alt_preds = np.random.rand(n_bins)
+        # Run model predictions
+        ref_preds = self.model_1d(ref_seqs)
+        alt_preds = self.model_1d(alt_seqs)
 
         # Get metadata for first variant
         var_metadata = metadata.iloc[0].to_dict()
 
-        # Align predictions
+        # Align predictions (first variant, first target)
         aligned_ref, aligned_alt = align_predictions_by_coordinate(
-            ref_preds, alt_preds, var_metadata,
-            bin_size=bin_size,
+            ref_preds[0, 0], alt_preds[0, 0], var_metadata,
+            bin_size=self.bin_size,
             prediction_type="1D"
         )
 
         # For inversions, bins in the inverted region should be masked (NaN) in both REF and ALT
         # Check that we have NaN values (masking occurred)
-        assert np.isnan(aligned_ref).any(), "INV 1D: REF should have masked bins"
-        assert np.isnan(aligned_alt).any(), "INV 1D: ALT should have masked bins"
+        assert torch.isnan(aligned_ref).any(), "INV 1D: REF should have masked bins"
+        assert torch.isnan(aligned_alt).any(), "INV 1D: ALT should have masked bins"
 
         # Check that REF and ALT have same NaN pattern (both masked at same positions)
-        assert np.array_equal(np.isnan(aligned_ref), np.isnan(aligned_alt)), \
+        assert torch.equal(torch.isnan(aligned_ref), torch.isnan(aligned_alt)), \
             "INV 1D: REF and ALT should have identical masking patterns"
 
         print("✓ INV 1D alignment masking test passed")
@@ -78,8 +101,8 @@ class TestInversionPredictionAlignment:
         results = list(sl.get_alt_ref_sequences(
             reference_fn=self.reference_fa,
             variants_fn=self.inv_vcf,
-            seq_len=200,
-            encode=False
+            seq_len=self.seq_len,
+            encode=True
         ))
 
         # Find INV variants (can be SV_INV or SV_BND_INV)
@@ -88,41 +111,37 @@ class TestInversionPredictionAlignment:
 
         ref_seqs, alt_seqs, metadata = inv_results[0]
 
-        # Create mock 2D predictions (contact map)
-        # NOTE: Using full 2D matrices instead of flattened to avoid torch detection issue
-        matrix_size = 6
+        # Transpose from (batch, seq_len, 4) to (batch, 4, seq_len) for model
+        ref_seqs = ref_seqs.permute(0, 2, 1)
+        alt_seqs = alt_seqs.permute(0, 2, 1)
 
-        # Create full symmetric matrices instead of flattened upper triangular
-        ref_contact_matrix = np.random.rand(matrix_size, matrix_size)
-        alt_contact_matrix = np.random.rand(matrix_size, matrix_size)
-
-        # Make them symmetric (typical for contact maps)
-        ref_contact_matrix = (ref_contact_matrix + ref_contact_matrix.T) / 2
-        alt_contact_matrix = (alt_contact_matrix + alt_contact_matrix.T) / 2
+        # Run model predictions (returns full 2D contact matrices)
+        ref_preds = self.model_2d(ref_seqs)
+        alt_preds = self.model_2d(alt_seqs)
 
         # Get metadata for first variant
         var_metadata = metadata.iloc[0].to_dict()
 
-        # Align predictions
+        # Align predictions (first variant, first target)
         aligned_ref, aligned_alt = align_predictions_by_coordinate(
-            ref_contact_matrix, alt_contact_matrix, var_metadata,
-            bin_size=32,
+            ref_preds[0, 0], alt_preds[0, 0], var_metadata,
+            bin_size=self.bin_size,
             prediction_type="2D",
-            matrix_size=matrix_size,
-            diag_offset=0
+            matrix_size=self.matrix_size,
+            diag_offset=self.diag_offset
         )
 
         # For inversions in 2D, cross-pattern masking means entire rows AND columns are masked
         # This creates more NaN values than just diagonal masking
-        assert np.isnan(aligned_ref).any(), "INV 2D: REF should have masked elements"
-        assert np.isnan(aligned_alt).any(), "INV 2D: ALT should have masked elements"
+        assert torch.isnan(aligned_ref).any(), "INV 2D: REF should have masked elements"
+        assert torch.isnan(aligned_alt).any(), "INV 2D: ALT should have masked elements"
 
         # Check that REF and ALT have same NaN pattern
-        assert np.array_equal(np.isnan(aligned_ref), np.isnan(aligned_alt)), \
+        assert torch.equal(torch.isnan(aligned_ref), torch.isnan(aligned_alt)), \
             "INV 2D: REF and ALT should have identical masking patterns"
 
         # Check that multiple elements are masked (cross-pattern creates more masks)
-        n_masked = np.isnan(aligned_ref).sum()
+        n_masked = torch.isnan(aligned_ref).sum().item()
         assert n_masked > 0, "INV 2D: Should have masked elements from cross-pattern masking"
 
         print(f"✓ INV 2D alignment cross-pattern masking test passed ({n_masked} elements masked)")
@@ -133,8 +152,8 @@ class TestInversionPredictionAlignment:
         results = list(sl.get_alt_ref_sequences(
             reference_fn=self.reference_fa,
             variants_fn=self.inv_vcf,
-            seq_len=200,
-            encode=False
+            seq_len=self.seq_len,
+            encode=True
         ))
 
         # Find INV variants (can be SV_INV or SV_BND_INV)
@@ -160,10 +179,37 @@ class TestDuplicationPredictionAlignment:
     """Test prediction alignment for duplication (DUP) variants."""
 
     def setup_method(self):
-        """Set up test data."""
+        """Set up test data and models."""
         self.data_dir = os.path.join(os.path.dirname(__file__), "data")
         self.reference_fa = os.path.join(self.data_dir, "test_genome.fa")
         self.dup_vcf = os.path.join(self.data_dir, "dup", "dup.vcf")
+
+        # Model parameters
+        # Note: Use larger seq_len for 2D models to get reasonable matrix size after binning/cropping
+        self.seq_len = 512
+        self.bin_size = 32
+        self.crop_length = 64
+
+        # Initialize 1D model
+        self.model_1d = TestModel(
+            seq_length=self.seq_len,
+            n_targets=1,
+            bin_length=self.bin_size,
+            crop_length=self.crop_length
+        )
+
+        # Initialize 2D model
+        self.model_2d = TestModel2D(
+            seq_length=self.seq_len,
+            n_targets=1,
+            bin_length=self.bin_size,
+            crop_length=self.crop_length
+        )
+        self.diag_offset = 0  # TestModel2D returns full matrices without diagonal masking
+
+        # Calculate matrix size for 2D
+        effective_len = self.seq_len - 2 * self.crop_length
+        self.matrix_size = effective_len // self.bin_size
 
     def test_dup_1d_alignment_nan_insertion(self):
         """Test that DUP 1D alignment inserts NaN bins for duplicated sequence."""
@@ -171,8 +217,8 @@ class TestDuplicationPredictionAlignment:
         results = list(sl.get_alt_ref_sequences(
             reference_fn=self.reference_fa,
             variants_fn=self.dup_vcf,
-            seq_len=200,
-            encode=False
+            seq_len=self.seq_len,
+            encode=True
         ))
 
         # Find DUP variants (could be SV_BND_DUP or SV_DUP)
@@ -182,20 +228,21 @@ class TestDuplicationPredictionAlignment:
 
         ref_seqs, alt_seqs, metadata = dup_results[0]
 
-        # Create mock 1D predictions
-        bin_size = 32
-        n_bins = (200 + bin_size - 1) // bin_size
+        # Transpose from (batch, seq_len, 4) to (batch, 4, seq_len) for model
+        ref_seqs = ref_seqs.permute(0, 2, 1)
+        alt_seqs = alt_seqs.permute(0, 2, 1)
 
-        ref_preds = np.random.rand(n_bins)
-        alt_preds = np.random.rand(n_bins)
+        # Run model predictions
+        ref_preds = self.model_1d(ref_seqs)
+        alt_preds = self.model_1d(alt_seqs)
 
         # Get metadata for first variant
         var_metadata = metadata.iloc[0].to_dict()
 
-        # Align predictions
+        # Align predictions (first variant, first target)
         aligned_ref, aligned_alt = align_predictions_by_coordinate(
-            ref_preds, alt_preds, var_metadata,
-            bin_size=bin_size,
+            ref_preds[0, 0], alt_preds[0, 0], var_metadata,
+            bin_size=self.bin_size,
             prediction_type="1D"
         )
 
@@ -215,8 +262,8 @@ class TestDuplicationPredictionAlignment:
         results = list(sl.get_alt_ref_sequences(
             reference_fn=self.reference_fa,
             variants_fn=self.dup_vcf,
-            seq_len=200,
-            encode=False
+            seq_len=self.seq_len,
+            encode=True
         ))
 
         # Find DUP variants
@@ -226,28 +273,30 @@ class TestDuplicationPredictionAlignment:
 
         ref_seqs, alt_seqs, metadata = dup_results[0]
 
-        # Create mock 2D predictions
-        matrix_size = 6
-        n_elements = matrix_size * (matrix_size + 1) // 2
+        # Transpose from (batch, seq_len, 4) to (batch, 4, seq_len) for model
+        ref_seqs = ref_seqs.permute(0, 2, 1)
+        alt_seqs = alt_seqs.permute(0, 2, 1)
 
-        ref_contact_preds = np.random.rand(n_elements)
-        alt_contact_preds = np.random.rand(n_elements)
+        # Run model predictions (returns full 2D contact matrices)
+        ref_preds = self.model_2d(ref_seqs)
+        alt_preds = self.model_2d(alt_seqs)
 
         # Get metadata for first variant
         var_metadata = metadata.iloc[0].to_dict()
 
-        # Align predictions
+        # Align predictions (first variant, first target)
         aligned_ref, aligned_alt = align_predictions_by_coordinate(
-            ref_contact_preds, alt_contact_preds, var_metadata,
-            bin_size=32,
+            ref_preds[0, 0], alt_preds[0, 0], var_metadata,
+            bin_size=self.bin_size,
             prediction_type="2D",
-            matrix_size=matrix_size,
-            diag_offset=0
+            matrix_size=self.matrix_size,
+            diag_offset=self.diag_offset
         )
 
-        # Check that alignment produces valid output
-        assert len(aligned_ref) == len(aligned_alt), "Aligned contact maps should have same length"
-        assert len(aligned_ref) == n_elements, "Output should maintain matrix size"
+        # Check that alignment produces valid output (should be 2D matrices)
+        assert aligned_ref.shape == aligned_alt.shape, "Aligned contact maps should have same shape"
+        assert aligned_ref.ndim == 2, "Output should be 2D matrix (full contact map)"
+        assert aligned_alt.ndim == 2, "Output should be 2D matrix (full contact map)"
 
         print("✓ DUP 2D alignment matrix handling test passed")
 
@@ -257,8 +306,8 @@ class TestDuplicationPredictionAlignment:
         results = list(sl.get_alt_ref_sequences(
             reference_fn=self.reference_fa,
             variants_fn=self.dup_vcf,
-            seq_len=200,
-            encode=False
+            seq_len=self.seq_len,
+            encode=True
         ))
 
         # Check that we process DUP variants successfully
@@ -291,14 +340,18 @@ class TestBreakendPredictionAlignment:
         self.reference_fa = os.path.join(self.data_dir, "test_genome.fa")
         self.bnd_vcf = os.path.join(self.data_dir, "bnd", "bnd.vcf")
 
+        # Note: BND tests primarily validate metadata and structure
+        # They don't currently use models due to BND's unique dual-locus nature
+        self.seq_len = 200
+
     def test_bnd_1d_alignment_chimeric_reference(self):
         """Test that BND 1D alignment handles chimeric reference assembly."""
         # Get sequences with BNDs
         results = list(sl.get_alt_ref_sequences(
             reference_fn=self.reference_fa,
             variants_fn=self.bnd_vcf,
-            seq_len=200,
-            encode=False
+            seq_len=self.seq_len,
+            encode=True
         ))
 
         # Find BND variants (SV_BND or SV_BND_INS)
@@ -310,20 +363,21 @@ class TestBreakendPredictionAlignment:
 
         ref_seqs, alt_seqs, metadata = bnd_results[0]
 
-        # BND can return either tuple of (left_refs, right_refs) or list depending on implementation
-        # For get_alt_ref_sequences, BND returns lists of fusion sequences
-        assert isinstance(ref_seqs, (tuple, list)), "BND ref sequences should be tuple or list"
-        if isinstance(ref_seqs, tuple):
-            assert len(ref_seqs) == 2, "BND tuple should have (left_refs, right_refs)"
+        # BND ref sequences are regular tensors
+        assert isinstance(ref_seqs, torch.Tensor), "BND ref sequences should be tensors"
+        assert ref_seqs.shape[2] == 4, "Should have 4 channels (one-hot encoding)"
 
-        # Create mock 1D predictions for both reference loci
-        bin_size = 32
-        n_bins = (200 + bin_size - 1) // bin_size
-
-        # BND requires predictions for both loci
-        left_ref_preds = np.random.rand(n_bins)
-        right_ref_preds = np.random.rand(n_bins)
-        alt_preds = np.random.rand(n_bins)
+        # BND alt sequences can be a tuple of tensors (representing both breakpoints)
+        # or a single tensor depending on implementation
+        if isinstance(alt_seqs, tuple):
+            assert len(alt_seqs) == 2, "BND tuple should have 2 tensors (both breakpoints)"
+            assert isinstance(alt_seqs[0], torch.Tensor), "First BND alt should be tensor"
+            assert isinstance(alt_seqs[1], torch.Tensor), "Second BND alt should be tensor"
+            assert alt_seqs[0].shape[2] == 4, "Should have 4 channels (one-hot encoding)"
+            assert alt_seqs[1].shape[2] == 4, "Should have 4 channels (one-hot encoding)"
+        else:
+            assert isinstance(alt_seqs, torch.Tensor), "BND alt sequences should be tensor or tuple"
+            assert alt_seqs.shape[2] == 4, "Should have 4 channels (one-hot encoding)"
 
         # Get metadata for first variant
         var_metadata = metadata.iloc[0].to_dict()
@@ -340,8 +394,8 @@ class TestBreakendPredictionAlignment:
         results = list(sl.get_alt_ref_sequences(
             reference_fn=self.reference_fa,
             variants_fn=self.bnd_vcf,
-            seq_len=200,
-            encode=False
+            seq_len=self.seq_len,
+            encode=True
         ))
 
         # Find BND variants
@@ -353,15 +407,6 @@ class TestBreakendPredictionAlignment:
 
         ref_seqs, alt_seqs, metadata = bnd_results[0]
         var_metadata = metadata.iloc[0].to_dict()
-
-        # Create mock 2D predictions
-        matrix_size = 6
-        n_elements = matrix_size * (matrix_size + 1) // 2
-
-        # For BND, we need predictions for both reference loci
-        left_ref_preds = np.random.rand(n_elements)
-        right_ref_preds = np.random.rand(n_elements)
-        alt_preds = np.random.rand(n_elements)
 
         # Verify metadata has fusion_name for chimeric sequences
         if 'fusion_name' in var_metadata:
@@ -375,8 +420,8 @@ class TestBreakendPredictionAlignment:
         results = list(sl.get_alt_ref_sequences(
             reference_fn=self.reference_fa,
             variants_fn=self.bnd_vcf,
-            seq_len=200,
-            encode=False
+            seq_len=self.seq_len,
+            encode=True
         ))
 
         # Find BND variants
@@ -406,58 +451,6 @@ class TestBreakendPredictionAlignment:
         print("✓ BND orientation handling test passed")
 
 
-class TestPyTorchCompatibility:
-    """Test that SV prediction alignment works with PyTorch tensors."""
-
-    def setup_method(self):
-        """Set up test data."""
-        self.data_dir = os.path.join(os.path.dirname(__file__), "data")
-        self.reference_fa = os.path.join(self.data_dir, "test_genome.fa")
-        self.inv_vcf = os.path.join(self.data_dir, "inv", "inv.vcf")
-
-    @pytest.mark.skipif(not TORCH_AVAILABLE, reason="PyTorch not available")
-    def test_inv_alignment_with_pytorch_tensors(self):
-        """Test that INV alignment works with PyTorch tensors."""
-        # Get sequences with inversions
-        results = list(sl.get_alt_ref_sequences(
-            reference_fn=self.reference_fa,
-            variants_fn=self.inv_vcf,
-            seq_len=200,
-            encode=False
-        ))
-
-        # Find INV variants (can be SV_INV or SV_BND_INV)
-        inv_results = [r for r in results if 'INV' in r[2]['variant_type'].iloc[0]]
-        assert len(inv_results) > 0, "Should have at least one INV variant"
-
-        ref_seqs, alt_seqs, metadata = inv_results[0]
-        var_metadata = metadata.iloc[0].to_dict()
-
-        # Create PyTorch tensor predictions
-        bin_size = 32
-        n_bins = (200 + bin_size - 1) // bin_size
-
-        ref_preds = torch.rand(n_bins)
-        alt_preds = torch.rand(n_bins)
-
-        # Align predictions
-        aligned_ref, aligned_alt = align_predictions_by_coordinate(
-            ref_preds, alt_preds, var_metadata,
-            bin_size=bin_size,
-            prediction_type="1D"
-        )
-
-        # Verify output is PyTorch tensor
-        assert isinstance(aligned_ref, torch.Tensor), "Output should be PyTorch tensor"
-        assert isinstance(aligned_alt, torch.Tensor), "Output should be PyTorch tensor"
-
-        # Verify masking still works
-        assert torch.isnan(aligned_ref).any(), "INV should have masked bins"
-        assert torch.isnan(aligned_alt).any(), "INV should have masked bins"
-
-        print("✓ PyTorch tensor compatibility test passed")
-
-
 class TestEdgeCases:
     """Test edge cases in SV prediction alignment."""
 
@@ -469,8 +462,8 @@ class TestEdgeCases:
             'variant_pos0': 50
         }
 
-        ref_preds = np.array([])
-        alt_preds = np.array([])
+        ref_preds = torch.tensor([])
+        alt_preds = torch.tensor([])
 
         aligned_ref, aligned_alt = align_predictions_by_coordinate(
             ref_preds, alt_preds, metadata,
@@ -491,8 +484,8 @@ class TestEdgeCases:
             'variant_pos0': 50
         }
 
-        ref_preds = np.array([0.5])
-        alt_preds = np.array([0.7])
+        ref_preds = torch.tensor([0.5])
+        alt_preds = torch.tensor([0.7])
 
         aligned_ref, aligned_alt = align_predictions_by_coordinate(
             ref_preds, alt_preds, metadata,
@@ -502,8 +495,9 @@ class TestEdgeCases:
 
         assert len(aligned_ref) == 1, "Single bin should remain single bin"
         assert len(aligned_alt) == 1, "Single bin should remain single bin"
-        assert aligned_ref[0] == 0.5, "Values should be preserved"
-        assert aligned_alt[0] == 0.7, "Values should be preserved"
+        # Use approximate equality for floating point comparisons
+        assert torch.allclose(aligned_ref[0], torch.tensor(0.5)), "Values should be preserved"
+        assert torch.allclose(aligned_alt[0], torch.tensor(0.7)), "Values should be preserved"
 
         print("✓ Single bin prediction test passed")
 

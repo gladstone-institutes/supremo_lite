@@ -24,7 +24,6 @@ Example:
     >>> predictions.shape
     torch.Size([8, 1, 28])  # (batch, targets, bins after cropping)
 
-Author: sean.whalen@gladstone.ucsf.edu
 """
 
 try:
