@@ -116,9 +116,9 @@ The `variant_type` field is automatically determined using the classification lo
 import supremo_lite as sl
 from pyfaidx import Fasta
 
-# Load data
-reference = Fasta('reference.fa')
-variants = sl.read_vcf('variants.vcf')
+# File locations
+reference = 'reference.fa'
+variants = 'variants.vcf'
 
 # Generate 500bp windows
 results = list(sl.get_alt_ref_sequences(
@@ -146,17 +146,6 @@ pam_results = sl.get_pam_disrupting_personal_sequences(
 )
 ```
 
-## VCF Reading
-
-```python
-# Read entire VCF
-variants = sl.read_vcf('variants.vcf')
-
-# Read in chunks (for large files)
-for chunk in sl.read_vcf_chunked('large.vcf', chunk_size=10000):
-    # Process chunk
-    pass
-```
 
 ## See Also
 
