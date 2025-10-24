@@ -188,6 +188,7 @@ class BNDClassifier:
     BND classifier that doesn't depend on MATEID fields.
 
     Classifies BNDs into categories:
+
     1. Paired breakends - have matching mates by coordinates
     2. Missing mates - reference coordinates not present in VCF (can be inferred)
     3. Insertions with mates - insertions where mate is present
@@ -501,6 +502,7 @@ class BNDClassifier:
         Infer the orientation of a missing mate breakend based on the original breakend's orientation.
 
         BND orientation pairs (original -> inferred mate):
+
         - t[p[ -> ]p]t
         - t]p] -> [p[t
         - ]p]t -> t[p[
@@ -923,25 +925,27 @@ def group_variants_by_semantic_type(variants_df: pd.DataFrame, vcf_path: Optiona
 def parse_vcf_info(info_string: str) -> Dict:
     """
     Parse VCF INFO field to extract variant information according to VCF 4.2 specification.
-    
+
     Args:
         info_string: VCF INFO field string (e.g., "SVTYPE=INV;END=1234;SVLEN=100")
-        
+
     Returns:
         dict: Parsed INFO field values with appropriate type conversion
-        
+
     VCF 4.2 INFO field specification:
+
         - Key=Value pairs separated by semicolons
-        - Boolean flags have no value (key presence = True)  
+        - Boolean flags have no value (key presence = True)
         - Numeric values auto-converted to int/float
         - Reserved keys: AA, AC, AF, AN, BQ, CIGAR, DB, DP, END, H2, H3, MQ, MQ0, NS, SB, etc.
-        
+
     Examples:
-        parse_vcf_info("SVTYPE=INV;END=1234;SVLEN=100") 
-        → {'SVTYPE': 'INV', 'END': 1234, 'SVLEN': 100}
-        
-        parse_vcf_info("DB;H2;AF=0.5") 
-        → {'DB': True, 'H2': True, 'AF': 0.5}
+
+        >>> parse_vcf_info("SVTYPE=INV;END=1234;SVLEN=100")
+        {'SVTYPE': 'INV', 'END': 1234, 'SVLEN': 100}
+
+        >>> parse_vcf_info("DB;H2;AF=0.5")
+        {'DB': True, 'H2': True, 'AF': 0.5}
     """
     info_dict = {}
     if not info_string or info_string == '.':
@@ -990,28 +994,29 @@ def parse_vcf_info(info_string: str) -> Dict:
 def classify_variant_type(ref_allele: str, alt_allele: str, info_dict: Optional[Dict] = None) -> str:
     """
     Classify variant type according to VCF 4.2 specification using comprehensive heuristics.
+
     Note: This function only correctly classifies variants that are represented in a single
-    VCF record, this means that an additional classification step is needed for BNDs that 
+    VCF record, this means that an additional classification step is needed for BNDs that
     actually represent INV or DUP variants as those can be represented as 4 or 2 VCF records
     respectively.
 
-
     This function implements the complete VCF 4.2 variant classification rules with proper
     handling of structural variants, standard sequence variants, and edge cases.
-    
+
     Args:
         ref_allele: Reference allele sequence (REF field)
-        alt_allele: Alternate allele sequence (ALT field) 
+        alt_allele: Alternate allele sequence (ALT field)
         info_dict: Parsed INFO field dictionary (optional, for structural variants)
-        
+
     Returns:
         str: Variant type classification
-        
+
     VCF 4.2 Variant Types (in classification priority order):
+
         - 'complex': Complex/multiallelic variants (ALT contains comma)
         - 'missing': Missing/upstream deletion allele (ALT = '*')
         - 'SV_INV': Inversion structural variant
-        - 'SV_DUP': Duplication structural variant  
+        - 'SV_DUP': Duplication structural variant
         - 'SV_DEL': Deletion structural variant
         - 'SV_INS': Insertion structural variant
         - 'SV_CNV': Copy number variant
@@ -1023,27 +1028,40 @@ def classify_variant_type(ref_allele: str, alt_allele: str, info_dict: Optional[
         - 'DEL': Sequence deletion
         - 'complex': Complex/multi-nucleotide variant (same length substitution)
         - 'unknown': Unclassifiable variant
+
     Note: MNV is not part of the official VCF 4.2 spec, they are treated the same as SNVs
-    for all functions in supremo_lite
+    for all functions in supremo_lite.
+
     Examples:
+
         # Multiallelic variants
-        classify_variant_type('A', 'G,T') → 'complex'
-        classify_variant_type('T', 'TGGG,C') → 'complex'
-        
+        >>> classify_variant_type('A', 'G,T')
+        'multiallelic'
+        >>> classify_variant_type('T', 'TGGG,C')
+        'multiallelic'
+
         # Standard variants
-        classify_variant_type('A', 'G') → 'SNV'
-        classify_variant_type('AGG', 'TCG') → 'MNV'
-        classify_variant_type('T', 'TGGG') → 'INS'  
-        classify_variant_type('CGAGAA', 'C') → 'DEL'
-        
+        >>> classify_variant_type('A', 'G')
+        'SNV'
+        >>> classify_variant_type('AGG', 'TCG')
+        'MNV'
+        >>> classify_variant_type('T', 'TGGG')
+        'INS'
+        >>> classify_variant_type('CGAGAA', 'C')
+        'DEL'
+
         # Structural variants
-        classify_variant_type('N', '<INV>') → 'SV_INV'
-        classify_variant_type('G', 'G]17:198982]') → 'SV_BND'
-        classify_variant_type('T', ']chr2:20]ATCGT') → 'SV_BND_INS'
-        
+        >>> classify_variant_type('N', '<INV>')
+        'SV_INV'
+        >>> classify_variant_type('G', 'G]17:198982]')
+        'SV_BND'
+        >>> classify_variant_type('T', ']chr2:20]ATCGT')
+        'SV_BND_INS'
+
         # Special cases
-        classify_variant_type('T', '*') → 'missing'
-        
+        >>> classify_variant_type('T', '*')
+        'missing'
+
     VCF 4.2 Reference: https://samtools.github.io/hts-specs/VCFv4.2.pdf
     """
     if not ref_allele or not alt_allele:
@@ -1198,19 +1216,21 @@ def parse_breakend_alt(alt_allele: str) -> Dict:
             - 'is_valid': Boolean indicating if ALT field was successfully parsed
 
     Breakend ALT format examples (VCF 4.2):
+
         - t[p[: piece extending to the right of p is joined after t
         - t]p]: reverse comp piece extending left of p is joined after t
         - ]p]t: piece extending to the left of p is joined before t
         - [p[t: reverse comp piece extending right of p is joined before t
 
     Examples:
-        parse_breakend_alt("G]17:198982]")
-        → {'mate_chrom': '17', 'mate_pos': 198982, 'orientation': 't]p]',
-           'inserted_seq': '', 'is_valid': True}
 
-        parse_breakend_alt("]13:123456]AGTNNNNNCAT")
-        → {'mate_chrom': '13', 'mate_pos': 123456, 'orientation': ']p]t',
-           'inserted_seq': 'AGTNNNNNCAT', 'is_valid': True}
+        >>> parse_breakend_alt("G]17:198982]")
+        {'mate_chrom': '17', 'mate_pos': 198982, 'orientation': 't]p]',
+         'inserted_seq': '', 'is_valid': True}
+
+        >>> parse_breakend_alt("]13:123456]AGTNNNNNCAT")
+        {'mate_chrom': '13', 'mate_pos': 123456, 'orientation': ']p]t',
+         'inserted_seq': 'AGTNNNNNCAT', 'is_valid': True}
     """
     import re
 

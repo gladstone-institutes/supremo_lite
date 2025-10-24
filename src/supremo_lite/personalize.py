@@ -645,6 +645,7 @@ class ChimericSequenceBuilder:
         Build fusion sequence respecting coordinated breakend pair orientations.
 
         Coordinated BND fusion patterns:
+
         1. RC Coordination Patterns (require special handling):
            - [p[t + [p[t : RC(seq2[pos2:]) + seq1[pos1:]
            - t]p] + t]p] : seq1[:pos1] + RC(seq2[:pos2])
@@ -652,7 +653,6 @@ class ChimericSequenceBuilder:
         2. Same Direction Patterns (simple concatenation):
            - ]p]t + ]p]t : seq2[:pos2] + seq1[pos1:]
            - t[p[ + t[p[ : seq1[:pos1] + seq2[pos2:]
-
         """
         from .sequence_utils import rc_str as reverse_complement
 

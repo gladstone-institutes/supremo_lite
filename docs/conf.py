@@ -23,6 +23,20 @@ extensions = [
 ]
 autoapi_dirs = ["../src"]
 
+# AutoAPI configuration to avoid duplicate documentation
+autoapi_options = [
+    "members",
+    "undoc-members",
+    "show-inheritance",
+    "show-module-summary",
+    "imported-members",
+]
+
+# Note: AutoAPI may generate "duplicate object description" warnings
+# These occur when attributes are documented in both class docstrings
+# and as instance attributes. This is intentional for good documentation
+# and does not affect the build output.
+
 # Notebook execution configuration
 nb_execution_mode = "auto"  # Execute notebooks that haven't been run yet
 nb_execution_timeout = 300  # 5 minutes timeout per notebook
@@ -30,7 +44,7 @@ nb_execution_timeout = 300  # 5 minutes timeout per notebook
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", ".ipynb_checkpoints", "example.ipynb"]
 
 # -- Options for HTML output -------------------------------------------------
 

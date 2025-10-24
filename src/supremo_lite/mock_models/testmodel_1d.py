@@ -59,23 +59,6 @@ if TORCH_AVAILABLE:
         n_targets : int, optional
             Number of prediction targets per bin (default: 1)
 
-        Attributes
-        ----------
-        seq_length : int
-            Input sequence length
-        bin_length : int
-            Bin size in base pairs
-        crop_length : int
-            Cropped bases per edge
-        n_targets : int
-            Number of prediction targets
-        crop_bins : int
-            Number of bins to crop from each edge
-        n_initial_bins : int
-            Total bins before cropping
-        n_final_bins : int
-            Final number of bins after cropping
-
         Examples
         --------
         Basic usage:

@@ -32,17 +32,11 @@ class VariantPosition:
 
     This class encapsulates the essential positional information needed to align
     predictions across reference and alternate sequences that may differ in length.
-
-    Attributes:
-        ref_pos: Position in reference sequence (base pairs, 0-based)
-        alt_pos: Position in alternate sequence (base pairs, 0-based)
-        svlen: Length of structural variant (base pairs, signed for DEL/INS)
-        variant_type: Type of variant ('SNV', 'INS', 'DEL', 'DUP', 'INV', 'BND')
     """
-    ref_pos: int
-    alt_pos: int
-    svlen: int
-    variant_type: str
+    ref_pos: int  # Position in reference sequence (base pairs, 0-based)
+    alt_pos: int  # Position in alternate sequence (base pairs, 0-based)
+    svlen: int  # Length of structural variant (base pairs, signed for DEL/INS)
+    variant_type: str  # Type of variant ('SNV', 'INS', 'DEL', 'DUP', 'INV', 'BND')
 
     def get_bin_positions(self, bin_size: int) -> Tuple[int, int, int]:
         """
