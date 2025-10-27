@@ -38,7 +38,7 @@ get_alt_ref_sequences(
 
 **Returns:** `(ref_seqs, alt_seqs, metadata)`
 - Variants centered at position `seq_len // 2`
-- `encode=True`: shape `(n_variants, seq_len, 4)`
+- `encode=True`: shape `(n_variants, 4, seq_len)`
 - `encode=False`: list of strings
 
 ### get_pam_disrupting_alt_sequences()
@@ -108,7 +108,7 @@ The `variant_type` field is automatically determined using the classification lo
 
 ## Output Formats
 
-**Encoded** (`encode=True`): numpy arrays or PyTorch tensors, shape `(n_variants, seq_len, 4)`
+**Encoded** (`encode=True`): numpy arrays or PyTorch tensors, shape `(n_variants, 4, seq_len)`
 
 **Raw** (`encode=False`): list of strings
 

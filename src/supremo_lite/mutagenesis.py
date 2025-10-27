@@ -108,7 +108,7 @@ def get_sm_sequences(chrom, start, end, reference_fasta, encoder=None):
         end: End position (0-based, exclusive)
         reference_fasta: Reference genome object
         encoder: Optional custom encoding function. If provided, should accept a single
-                sequence string and return encoded array with shape (L, 4). Default: None
+                sequence string and return encoded array with shape (4, L). Default: None
 
     Returns:
         Tuple of (reference one-hot, alt one-hot tensor, metadata DataFrame)
@@ -130,10 +130,10 @@ def get_sm_sequences(chrom, start, end, reference_fasta, encoder=None):
             # Create a clone and substitute the base
             if TORCH_AVAILABLE and isinstance(ref_1h, torch.Tensor):
                 alt_1h = ref_1h.clone()
-                alt_1h[i] = torch.tensor(nt_to_1h[alt])
+                alt_1h[:, i] = torch.tensor(nt_to_1h[alt], dtype=alt_1h.dtype)
             else:
                 alt_1h = ref_1h.copy()
-                alt_1h[i] = nt_to_1h[alt]
+                alt_1h[:, i] = nt_to_1h[alt]
 
             alt_seqs.append(alt_1h)
             metadata.append([chrom, start, end, i, ref_nt, alt])
@@ -176,7 +176,7 @@ def get_sm_subsequences(
                     BED format: chrom, start, end (0-based, half-open intervals).
                     If provided, only positions within BED regions will be mutated.
         encoder: Optional custom encoding function. If provided, should accept a single
-                sequence string and return encoded array with shape (L, 4). Default: None
+                sequence string and return encoded array with shape (4, L). Default: None
         auto_map_chromosomes: Automatically map chromosome names between reference and BED file
                              when they don't match exactly (e.g., 'chr1' <-> '1', 'chrM' <-> 'MT').
                              Only applies when bed_regions is provided. Default: False. (default: False)
@@ -281,10 +281,10 @@ def get_sm_subsequences(
             # Create a clone and substitute the base
             if TORCH_AVAILABLE and isinstance(ref_1h, torch.Tensor):
                 alt_1h = ref_1h.clone()
-                alt_1h[i] = torch.tensor(nt_to_1h[alt])
+                alt_1h[:, i] = torch.tensor(nt_to_1h[alt], dtype=alt_1h.dtype)
             else:
                 alt_1h = ref_1h.copy()
-                alt_1h[i] = nt_to_1h[alt]
+                alt_1h[:, i] = nt_to_1h[alt]
 
             alt_seqs.append(alt_1h)
             metadata.append([chrom, start, end, i, ref_nt, alt])
@@ -298,9 +298,9 @@ def get_sm_subsequences(
     else:
         # No mutations generated (e.g., due to BED filtering)
         if TORCH_AVAILABLE and isinstance(ref_1h, torch.Tensor):
-            alt_seqs_stacked = torch.empty((0, seq_len, 4), dtype=ref_1h.dtype)
+            alt_seqs_stacked = torch.empty((0, 4, seq_len), dtype=ref_1h.dtype)
         else:
-            alt_seqs_stacked = np.empty((0, seq_len, 4), dtype=ref_1h.dtype)
+            alt_seqs_stacked = np.empty((0, 4, seq_len), dtype=ref_1h.dtype)
 
     # Create a DataFrame for the metadata
     metadata_df = pd.DataFrame(

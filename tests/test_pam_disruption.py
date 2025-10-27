@@ -396,12 +396,12 @@ class TestPAMDisruption:
             intact_seq = result_enc["pam_intact"][0][3]  # First sequence
             # Could be numpy array or torch tensor depending on availability
             assert hasattr(intact_seq, "shape")
-            assert intact_seq.shape == (50, 4)  # seq_len x 4 nucleotides
+            assert intact_seq.shape == (4, 50)  # 4 nucleotide channels x seq_len
 
         if result_enc["pam_disrupted"]:
             disrupted_seq = result_enc["pam_disrupted"][0][3]  # First sequence
             assert hasattr(disrupted_seq, "shape")
-            assert disrupted_seq.shape == (50, 4)
+            assert disrupted_seq.shape == (4, 50)
 
     def test_edge_case_sequence_boundaries(self):
         """Test edge cases where variants are near sequence boundaries."""

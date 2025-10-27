@@ -67,8 +67,8 @@ ref_seq, alt_seqs, metadata = sl.get_sm_sequences(
     reference_fasta=reference
 )
 
-print(f"Reference shape: {ref_seq.shape}")    # (50, 4)
-print(f"Alternatives shape: {alt_seqs.shape}") # (150, 50, 4)
+print(f"Reference shape: {ref_seq.shape}")    # (4, 50)
+print(f"Alternatives shape: {alt_seqs.shape}") # (150, 4, 50)
 print(f"Mutations: {len(metadata)}")          # 150 (50 × 3)
 ```
 

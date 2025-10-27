@@ -500,14 +500,14 @@ class TestEncodingEdgeCases:
         # Check shapes for INV variants
         for ref_seqs, alt_seqs, metadata in results:
             if metadata["variant_type"].iloc[0] == "SV_BND_INV":
-                # Encoded sequences should have (n_sequences, seq_len, 4) shape
+                # Encoded sequences should have (n_sequences, 4, seq_len) shape
                 assert hasattr(ref_seqs, "shape"), "Encoded sequences should have shape"
-                assert ref_seqs.shape[-1] == 4, "Should have 4 channels (A, C, G, T)"
-                assert ref_seqs.shape[-2] == 200, "Should have correct sequence length"
+                assert ref_seqs.shape[-2] == 4, "Should have 4 channels (A, C, G, T)"
+                assert ref_seqs.shape[-1] == 200, "Should have correct sequence length"
 
                 assert hasattr(alt_seqs, "shape"), "Encoded sequences should have shape"
-                assert alt_seqs.shape[-1] == 4, "Should have 4 channels (A, C, G, T)"
-                assert alt_seqs.shape[-2] == 200, "Should have correct sequence length"
+                assert alt_seqs.shape[-2] == 4, "Should have 4 channels (A, C, G, T)"
+                assert alt_seqs.shape[-1] == 200, "Should have correct sequence length"
 
         print("✓ Encoded SV sequences shape test passed")
 

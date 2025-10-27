@@ -70,7 +70,7 @@ class TestSaturationMutagenesis(unittest.TestCase):
         )
 
         # Check reference shape
-        self.assertEqual(ref_1h.shape, (10, 4))  # 10 bases, 4 nucleotides
+        self.assertEqual(ref_1h.shape, (4, 10))  # 4 nucleotide channels, 10 bases
 
         # Check alternative sequences - should have 3 alternatives for each position
         # 10 positions * 3 alternatives = 30 sequences
@@ -118,7 +118,7 @@ class TestSaturationMutagenesis(unittest.TestCase):
         )
 
         # Check reference shape
-        self.assertEqual(ref_1h.shape, (100, 4))  # 100 bases, 4 nucleotides
+        self.assertEqual(ref_1h.shape, (4, 100))  # 4 nucleotide channels, 100 bases
 
         # Check alternative sequences - should have 3 alternatives for positions in the radius
         # 2*anchor_radius positions * 3 alternatives = 30 sequences
@@ -282,7 +282,7 @@ class TestSaturationMutagenesis(unittest.TestCase):
         # Should return empty results
         self.assertEqual(len(alt_seqs), 0)
         self.assertEqual(len(metadata), 0)
-        self.assertEqual(ref_1h.shape, (100, 4))  # Reference should still be returned
+        self.assertEqual(ref_1h.shape, (4, 100))  # Reference should still be returned
 
     def test_bed_regions_no_chromosome(self):
         """Test behavior when BED file has no regions for target chromosome."""

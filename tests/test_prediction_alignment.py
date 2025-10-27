@@ -51,9 +51,7 @@ class TestBasic1DPredictionAlignment:
 
         ref_seqs, alt_seqs, metadata = results[0]
 
-        # Transpose from (batch, seq_len, 4) to (batch, 4, seq_len) for model
-        ref_seqs = ref_seqs.permute(0, 2, 1)
-        alt_seqs = alt_seqs.permute(0, 2, 1)
+        # Sequences are already in (batch, 4, seq_len) format - no permute needed!
 
         # Run predictions
         ref_preds = self.model(ref_seqs)
@@ -100,9 +98,7 @@ class TestBasic1DPredictionAlignment:
 
         ref_seqs, alt_seqs, metadata = results[0]
 
-        # Transpose from (batch, seq_len, 4) to (batch, 4, seq_len) for model
-        ref_seqs = ref_seqs.permute(0, 2, 1)
-        alt_seqs = alt_seqs.permute(0, 2, 1)
+        # Sequences are already in (batch, 4, seq_len) format - no permute needed!
 
         # Run predictions
         ref_preds = self.model(ref_seqs)
@@ -150,9 +146,7 @@ class TestBasic1DPredictionAlignment:
 
         ref_seqs, alt_seqs, metadata = results[0]
 
-        # Transpose from (batch, seq_len, 4) to (batch, 4, seq_len) for model
-        ref_seqs = ref_seqs.permute(0, 2, 1)
-        alt_seqs = alt_seqs.permute(0, 2, 1)
+        # Sequences are already in (batch, 4, seq_len) format - no permute needed!
 
         # Run predictions
         ref_preds = self.model(ref_seqs)
@@ -228,9 +222,7 @@ class TestBasic2DPredictionAlignment:
 
         ref_seqs, alt_seqs, metadata = results[0]
 
-        # Transpose from (batch, seq_len, 4) to (batch, 4, seq_len) for model
-        ref_seqs = ref_seqs.permute(0, 2, 1)
-        alt_seqs = alt_seqs.permute(0, 2, 1)
+        # Sequences are already in (batch, 4, seq_len) format - no permute needed!
 
         # Run predictions
         ref_preds = self.model(ref_seqs)
@@ -285,9 +277,7 @@ class TestBasic2DPredictionAlignment:
 
         ref_seqs, alt_seqs, metadata = results[0]
 
-        # Transpose from (batch, seq_len, 4) to (batch, 4, seq_len) for model
-        ref_seqs = ref_seqs.permute(0, 2, 1)
-        alt_seqs = alt_seqs.permute(0, 2, 1)
+        # Sequences are already in (batch, 4, seq_len) format - no permute needed!
 
         # Run predictions
         ref_preds = self.model(ref_seqs)
@@ -343,9 +333,7 @@ class TestBasic2DPredictionAlignment:
 
         ref_seqs, alt_seqs, metadata = results[0]
 
-        # Transpose from (batch, seq_len, 4) to (batch, 4, seq_len) for model
-        ref_seqs = ref_seqs.permute(0, 2, 1)
-        alt_seqs = alt_seqs.permute(0, 2, 1)
+        # Sequences are already in (batch, 4, seq_len) format - no permute needed!
 
         # Run predictions
         ref_preds = self.model(ref_seqs)

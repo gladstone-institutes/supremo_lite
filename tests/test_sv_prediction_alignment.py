@@ -70,9 +70,7 @@ class TestInversionPredictionAlignment:
 
         ref_seqs, alt_seqs, metadata = inv_results[0]
 
-        # Transpose from (batch, seq_len, 4) to (batch, 4, seq_len) for model
-        ref_seqs = ref_seqs.permute(0, 2, 1)
-        alt_seqs = alt_seqs.permute(0, 2, 1)
+        # Sequences are already in (batch, 4, seq_len) format - no permute needed!
 
         # Run model predictions
         ref_preds = self.model_1d(ref_seqs)
@@ -120,9 +118,7 @@ class TestInversionPredictionAlignment:
 
         ref_seqs, alt_seqs, metadata = inv_results[0]
 
-        # Transpose from (batch, seq_len, 4) to (batch, 4, seq_len) for model
-        ref_seqs = ref_seqs.permute(0, 2, 1)
-        alt_seqs = alt_seqs.permute(0, 2, 1)
+        # Sequences are already in (batch, 4, seq_len) format - no permute needed!
 
         # Run model predictions (returns full 2D contact matrices)
         ref_preds = self.model_2d(ref_seqs)
@@ -251,9 +247,7 @@ class TestDuplicationPredictionAlignment:
 
         ref_seqs, alt_seqs, metadata = dup_results[0]
 
-        # Transpose from (batch, seq_len, 4) to (batch, 4, seq_len) for model
-        ref_seqs = ref_seqs.permute(0, 2, 1)
-        alt_seqs = alt_seqs.permute(0, 2, 1)
+        # Sequences are already in (batch, 4, seq_len) format - no permute needed!
 
         # Run model predictions
         ref_preds = self.model_1d(ref_seqs)
@@ -301,9 +295,7 @@ class TestDuplicationPredictionAlignment:
 
         ref_seqs, alt_seqs, metadata = dup_results[0]
 
-        # Transpose from (batch, seq_len, 4) to (batch, 4, seq_len) for model
-        ref_seqs = ref_seqs.permute(0, 2, 1)
-        alt_seqs = alt_seqs.permute(0, 2, 1)
+        # Sequences are already in (batch, 4, seq_len) format - no permute needed!
 
         # Run model predictions (returns full 2D contact matrices)
         ref_preds = self.model_2d(ref_seqs)
@@ -405,7 +397,7 @@ class TestBreakendPredictionAlignment:
 
         # BND ref sequences are regular tensors
         assert isinstance(ref_seqs, torch.Tensor), "BND ref sequences should be tensors"
-        assert ref_seqs.shape[2] == 4, "Should have 4 channels (one-hot encoding)"
+        assert ref_seqs.shape[1] == 4, "Should have 4 channels (one-hot encoding)"
 
         # BND alt sequences can be a tuple of tensors (representing both breakpoints)
         # or a single tensor depending on implementation
@@ -420,16 +412,16 @@ class TestBreakendPredictionAlignment:
                 alt_seqs[1], torch.Tensor
             ), "Second BND alt should be tensor"
             assert (
-                alt_seqs[0].shape[2] == 4
+                alt_seqs[0].shape[1] == 4
             ), "Should have 4 channels (one-hot encoding)"
             assert (
-                alt_seqs[1].shape[2] == 4
+                alt_seqs[1].shape[1] == 4
             ), "Should have 4 channels (one-hot encoding)"
         else:
             assert isinstance(
                 alt_seqs, torch.Tensor
             ), "BND alt sequences should be tensor or tuple"
-            assert alt_seqs.shape[2] == 4, "Should have 4 channels (one-hot encoding)"
+            assert alt_seqs.shape[1] == 4, "Should have 4 channels (one-hot encoding)"
 
         # Get metadata for first variant
         var_metadata = metadata.iloc[0].to_dict()

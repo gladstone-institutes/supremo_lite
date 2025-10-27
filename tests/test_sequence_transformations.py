@@ -35,13 +35,13 @@ class TestSequenceTransformations(unittest.TestCase):
             encoded_np = encoded
 
         # A = [1, 0, 0, 0]
-        self.assertTrue(np.array_equal(encoded_np[0], [1, 0, 0, 0]))
+        self.assertTrue(np.array_equal(encoded_np[:, 0], [1, 0, 0, 0]))
         # C = [0, 1, 0, 0]
-        self.assertTrue(np.array_equal(encoded_np[1], [0, 1, 0, 0]))
+        self.assertTrue(np.array_equal(encoded_np[:, 1], [0, 1, 0, 0]))
         # G = [0, 0, 1, 0]
-        self.assertTrue(np.array_equal(encoded_np[2], [0, 0, 1, 0]))
+        self.assertTrue(np.array_equal(encoded_np[:, 2], [0, 0, 1, 0]))
         # T = [0, 0, 0, 1]
-        self.assertTrue(np.array_equal(encoded_np[3], [0, 0, 0, 1]))
+        self.assertTrue(np.array_equal(encoded_np[:, 3], [0, 0, 0, 1]))
 
     def test_encode_batch(self):
         """Test encoding a batch of sequences."""
@@ -59,9 +59,9 @@ class TestSequenceTransformations(unittest.TestCase):
             encoded_np = encoded
 
         # First sequence: A = [1, 0, 0, 0]
-        self.assertTrue(np.array_equal(encoded_np[0, 0], [1, 0, 0, 0]))
+        self.assertTrue(np.array_equal(encoded_np[0, :, 0], [1, 0, 0, 0]))
         # Second sequence: T = [0, 0, 0, 1]
-        self.assertTrue(np.array_equal(encoded_np[1, 0], [0, 0, 0, 1]))
+        self.assertTrue(np.array_equal(encoded_np[1, :, 0], [0, 0, 0, 1]))
 
     def test_decode_single_seq(self):
         """Test decoding a single sequence."""
@@ -115,9 +115,9 @@ class TestSequenceTransformations(unittest.TestCase):
 
         # Get N encoding
         if TORCH_AVAILABLE:
-            n_encoding = encoded[-1].numpy()
+            n_encoding = encoded[:, -1].numpy()
         else:
-            n_encoding = encoded[-1]
+            n_encoding = encoded[:, -1]
 
         # Both implementations now encode ambiguous bases as [0,0,0,0]
         self.assertTrue(np.allclose(n_encoding, [0, 0, 0, 0]))

@@ -47,9 +47,7 @@ def test_1d_score_alignment():
 
     ref_seqs, alt_seqs, metadata = results[0]
 
-    # Transpose from (batch, seq_len, 4) to (batch, 4, seq_len) for model
-    ref_seqs = ref_seqs.permute(0, 2, 1)
-    alt_seqs = alt_seqs.permute(0, 2, 1)
+    # Sequences are already in (batch, 4, seq_len) format - no permute needed!
 
     # Run predictions
     ref_preds = model(ref_seqs)
@@ -86,9 +84,7 @@ def test_1d_score_alignment():
 
     ref_seqs, alt_seqs, metadata = results[0]
 
-    # Transpose from (batch, seq_len, 4) to (batch, 4, seq_len) for model
-    ref_seqs = ref_seqs.permute(0, 2, 1)
-    alt_seqs = alt_seqs.permute(0, 2, 1)
+    # Sequences are already in (batch, 4, seq_len) format - no permute needed!
 
     ref_preds = model(ref_seqs)
     alt_preds = model(alt_seqs)
@@ -174,9 +170,7 @@ def test_contact_map_alignment():
 
     ref_seqs, alt_seqs, metadata = results[0]
 
-    # Transpose from (batch, seq_len, 4) to (batch, 4, seq_len) for model
-    ref_seqs = ref_seqs.permute(0, 2, 1)
-    alt_seqs = alt_seqs.permute(0, 2, 1)
+    # Sequences are already in (batch, 4, seq_len) format - no permute needed!
 
     ref_preds = model(ref_seqs)
     alt_preds = model(alt_seqs)
@@ -209,9 +203,7 @@ def test_contact_map_alignment():
 
     ref_seqs, alt_seqs, metadata = results[0]
 
-    # Transpose from (batch, seq_len, 4) to (batch, 4, seq_len) for model
-    ref_seqs = ref_seqs.permute(0, 2, 1)
-    alt_seqs = alt_seqs.permute(0, 2, 1)
+    # Sequences are already in (batch, 4, seq_len) format - no permute needed!
 
     ref_preds = model(ref_seqs)
     alt_preds = model(alt_seqs)
@@ -245,9 +237,7 @@ def test_contact_map_alignment():
 
     ref_seqs, alt_seqs, metadata = results[0]
 
-    # Transpose from (batch, seq_len, 4) to (batch, 4, seq_len) for model
-    ref_seqs = ref_seqs.permute(0, 2, 1)
-    alt_seqs = alt_seqs.permute(0, 2, 1)
+    # Sequences are already in (batch, 4, seq_len) format - no permute needed!
 
     ref_preds = model(ref_seqs)
     alt_preds = model(alt_seqs)

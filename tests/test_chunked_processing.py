@@ -106,9 +106,9 @@ class TestChunkedPersonalSequences:
         # Result should contain all 4 variants
         assert sequences.shape == (
             4,
-            seq_len,
             4,
-        )  # (4 variants, seq_len, 4 nucleotides)
+            seq_len,
+        )  # (4 variants, 4 nucleotide channels, seq_len)
 
         # Verify metadata is included
         assert len(metadata) == 4  # 4 variants worth of metadata
@@ -137,8 +137,8 @@ class TestChunkedPersonalSequences:
         sequences_1, metadata_1 = results[0]
         sequences_2, metadata_2 = results[1]
 
-        assert sequences_1.shape == (2, seq_len, 4)
-        assert sequences_2.shape == (2, seq_len, 4)
+        assert sequences_1.shape == (2, 4, seq_len)
+        assert sequences_2.shape == (2, 4, seq_len)
 
         # Verify metadata for each chunk
         assert len(metadata_1) == 2  # 2 variants in first chunk
@@ -185,9 +185,9 @@ class TestChunkedPersonalSequences:
         sequences_2, metadata_2 = results[1]
         sequences_3, metadata_3 = results[2]
 
-        assert sequences_1.shape == (2, seq_len, 4)
-        assert sequences_2.shape == (1, seq_len, 4)
-        assert sequences_3.shape == (1, seq_len, 4)
+        assert sequences_1.shape == (2, 4, seq_len)
+        assert sequences_2.shape == (1, 4, seq_len)
+        assert sequences_3.shape == (1, 4, seq_len)
 
         # Verify metadata for each chunk
         assert len(metadata_1) == 2  # 2 variants in first chunk
@@ -430,9 +430,9 @@ class TestChunkedPersonalizeFunctions:
             assert hasattr(
                 result[chrom], "shape"
             ), f"{chrom} should be encoded as array/tensor, not string"
-            # One-hot encoding should have shape (length, 4)
+            # One-hot encoding should have shape (4, length)
             assert (
-                result[chrom].shape[1] == 4
+                result[chrom].shape[0] == 4
             ), f"{chrom} should have 4 channels for one-hot encoding"
 
 

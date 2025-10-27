@@ -25,7 +25,7 @@ def test_custom_encoder_basic():
             "N": [0, 0, 0, 0],  # Same as default
         }
 
-        result = np.array([encoding_map.get(nt, [0, 0, 0, 0]) for nt in seq])
+        result = np.array([encoding_map.get(nt, [0, 0, 0, 0]) for nt in seq]).T
         return result.astype(np.float32)
 
     # Test sequence
@@ -40,13 +40,13 @@ def test_custom_encoder_basic():
     # They should be different
     assert not np.array_equal(default_encoded, custom_encoded)
 
-    # Custom should match our expected pattern
+    # Custom should match our expected pattern (now in 4, L format)
     expected = np.array(
         [
-            [0, 0, 0, 1],  # A -> [0, 0, 0, 1]
-            [1, 0, 0, 0],  # T -> [1, 0, 0, 0]
-            [0, 0, 1, 0],  # C -> [0, 0, 1, 0]
-            [0, 1, 0, 0],  # G -> [0, 1, 0, 0]
+            [0, 1, 0, 0],  # Channel 0 (T): A=0, T=1, C=0, G=0
+            [0, 0, 0, 1],  # Channel 1 (G): A=0, T=0, C=0, G=1
+            [0, 0, 1, 0],  # Channel 2 (C): A=0, T=0, C=1, G=0
+            [1, 0, 0, 0],  # Channel 3 (A): A=1, T=0, C=0, G=0
         ],
         dtype=np.float32,
     )
@@ -63,9 +63,9 @@ def test_custom_encoder_with_get_personal_genome(tmp_path):
 
     def identity_encoder(seq):
         """Encoder that returns identity matrix repeated for each nucleotide."""
-        result = np.zeros((len(seq), 4), dtype=np.float32)
+        result = np.zeros((4, len(seq)), dtype=np.float32)
         for i in range(len(seq)):
-            result[i, i % 4] = 1.0  # Cycle through positions
+            result[i % 4, i] = 1.0  # Cycle through positions
         return result
 
     # Create a simple reference file
@@ -95,12 +95,12 @@ chr1	5	.	A	T	.	.	.
         encoded_seq = encoded_seq.numpy()
 
     # Should be 8 positions, each with identity pattern
-    assert encoded_seq.shape == (8, 4)
+    assert encoded_seq.shape == (4, 8)
 
     # First position should be [1, 0, 0, 0]
-    np.testing.assert_array_equal(encoded_seq[0], [1, 0, 0, 0])
+    np.testing.assert_array_equal(encoded_seq[:, 0], [1, 0, 0, 0])
     # Second position should be [0, 1, 0, 0]
-    np.testing.assert_array_equal(encoded_seq[1], [0, 1, 0, 0])
+    np.testing.assert_array_equal(encoded_seq[:, 1], [0, 1, 0, 0])
 
 
 def test_custom_encoder_none_uses_default():

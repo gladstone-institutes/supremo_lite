@@ -87,7 +87,7 @@ class TestSupremoLite(unittest.TestCase):
         ref_1h, alt_seqs, metadata = sl.get_sm_sequences("chr1", 0, 12, MockReference())
 
         # Check dimensions
-        self.assertEqual(ref_1h.shape, (12, 4))  # 12 bases, 4 nucleotides
+        self.assertEqual(ref_1h.shape, (4, 12))  # 4 nucleotide channels, 12 bases
 
         # Each position has 3 alternatives, so 12 positions * 3 alts = 36 sequences
         expected_alt_count = 12 * 3

@@ -61,8 +61,8 @@ class TestBNDSequenceGeneration:
 
         # Check that sequences are encoded (numpy arrays or tensors)
         assert hasattr(sequences, "shape")
-        assert sequences.shape[-1] == 4  # One-hot encoding dimension
-        assert sequences.shape[-2] == 50  # Sequence length
+        assert sequences.shape[-2] == 4  # One-hot encoding dimension (channels)
+        assert sequences.shape[-1] == 50  # Sequence length
 
     def test_get_ref_sequences_with_bnds(self):
         """Test get_ref_sequences generates dual reference sequences for BND variants."""
@@ -117,10 +117,10 @@ class TestBNDSequenceGeneration:
         # Check that sequences are encoded
         assert hasattr(left_refs, "shape")
         assert hasattr(right_refs, "shape")
-        assert left_refs.shape[-1] == 4  # One-hot encoding
-        assert right_refs.shape[-1] == 4
-        assert left_refs.shape[-2] == 50  # Sequence length
-        assert right_refs.shape[-2] == 50
+        assert left_refs.shape[-2] == 4  # One-hot encoding (channels)
+        assert right_refs.shape[-2] == 4
+        assert left_refs.shape[-1] == 50  # Sequence length
+        assert right_refs.shape[-1] == 50
 
     def test_get_alt_ref_sequences_with_bnds(self):
         """Test get_alt_ref_sequences handles BND dual reference structure."""
@@ -367,16 +367,16 @@ class TestBNDSequenceGeneration:
 
         # Check encoded ALT sequences
         assert hasattr(alt_encoded, "shape")
-        assert alt_encoded.shape[-1] == 4  # One-hot encoding dimension
-        assert alt_encoded.shape[-2] == 50  # Sequence length
+        assert alt_encoded.shape[-2] == 4  # One-hot encoding dimension (channels)
+        assert alt_encoded.shape[-1] == 50  # Sequence length
 
         # Check encoded REF sequences (should be single array, NOT tuple)
         assert not isinstance(
             ref_encoded, tuple
         ), "Encoded synthetic SV_INV should have single reference structure"
         assert hasattr(ref_encoded, "shape")
-        assert ref_encoded.shape[-1] == 4  # One-hot encoding
-        assert ref_encoded.shape[-2] == 50  # Sequence length
+        assert ref_encoded.shape[-2] == 4  # One-hot encoding (channels)
+        assert ref_encoded.shape[-1] == 50  # Sequence length
 
     def test_get_alt_ref_sequences_with_derived_dup(self):
         """Test get_alt_ref_sequences with derived SV_DUP variants from BND preprocessing."""
@@ -457,16 +457,16 @@ class TestBNDSequenceGeneration:
 
         # Check encoded ALT sequences
         assert hasattr(alt_encoded, "shape")
-        assert alt_encoded.shape[-1] == 4  # One-hot encoding dimension
-        assert alt_encoded.shape[-2] == 50  # Sequence length
+        assert alt_encoded.shape[-2] == 4  # One-hot encoding dimension (channels)
+        assert alt_encoded.shape[-1] == 50  # Sequence length
 
         # Check encoded REF sequences (should be single array, NOT tuple)
         assert not isinstance(
             ref_encoded, tuple
         ), "Encoded synthetic SV_DUP should have single reference structure"
         assert hasattr(ref_encoded, "shape")
-        assert ref_encoded.shape[-1] == 4  # One-hot encoding
-        assert ref_encoded.shape[-2] == 50  # Sequence length
+        assert ref_encoded.shape[-2] == 4  # One-hot encoding (channels)
+        assert ref_encoded.shape[-1] == 50  # Sequence length
 
     def test_get_alt_ref_sequences_sv_types_comparison(self):
         """Test get_alt_ref_sequences across all SV types to verify consistent behavior."""
@@ -613,8 +613,8 @@ class TestBNDSequenceGeneration:
 
             # Verify ALT encoding consistency
             assert hasattr(alt_encoded, "shape")
-            assert alt_encoded.shape[-1] == 4  # One-hot encoding
-            assert alt_encoded.shape[-2] == 60  # Sequence length
+            assert alt_encoded.shape[-2] == 4  # One-hot encoding (channels)
+            assert alt_encoded.shape[-1] == 60  # Sequence length
 
             # Verify REF encoding structure matches expected pattern
             if should_have_dual_refs:
@@ -624,14 +624,14 @@ class TestBNDSequenceGeneration:
                 left_encoded, right_encoded = ref_encoded
                 assert hasattr(left_encoded, "shape")
                 assert hasattr(right_encoded, "shape")
-                assert left_encoded.shape[-1] == 4
-                assert right_encoded.shape[-1] == 4
-                assert left_encoded.shape[-2] == 60
-                assert right_encoded.shape[-2] == 60
+                assert left_encoded.shape[-2] == 4
+                assert right_encoded.shape[-2] == 4
+                assert left_encoded.shape[-1] == 60
+                assert right_encoded.shape[-1] == 60
             else:
                 assert not isinstance(
                     ref_encoded, tuple
                 ), f"Encoded {expected_variant_type} should NOT have dual reference structure"
                 assert hasattr(ref_encoded, "shape")
-                assert ref_encoded.shape[-1] == 4
-                assert ref_encoded.shape[-2] == 60
+                assert ref_encoded.shape[-2] == 4
+                assert ref_encoded.shape[-1] == 60
