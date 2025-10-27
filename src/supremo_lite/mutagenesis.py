@@ -1,5 +1,5 @@
 """
-In-silico mutagenesis functionality for supremo_lite.
+In-silico saturation mutagenesis functionality for supremo_lite.
 
 This module provides functions for generating saturation mutagenesis sequences,
 where each position in a sequence is systematically mutated.
