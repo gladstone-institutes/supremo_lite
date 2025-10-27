@@ -41,12 +41,14 @@ get_alt_ref_sequences(
 - `encode=True`: shape `(n_variants, seq_len, 4)`
 - `encode=False`: list of strings
 
-### get_pam_disrupting_personal_sequences()
+### get_pam_disrupting_alt_sequences()
 
 Identify variants that disrupt PAM sites (e.g., for CRISPR analysis).
 
+**IMPORTANT**: This function correctly handles INDELs that might CREATE new PAM sites - these are NOT scored as PAM-disrupting since the PAM remains functional.
+
 ```python
-results = sl.get_pam_disrupting_personal_sequences(
+results = sl.get_pam_disrupting_alt_sequences(
     reference_fn=reference,
     variants_fn=variants,
     seq_len=1000,
@@ -57,14 +59,14 @@ results = sl.get_pam_disrupting_personal_sequences(
 
 **Parameters:**
 ```python
-get_pam_disrupting_personal_sequences(
+get_pam_disrupting_alt_sequences(
     reference_fn,           # Reference genome
     variants_fn,            # Variants
     seq_len,                # int: Sequence window length
     max_pam_distance,       # int: Max distance from variant to PAM
     pam_sequence="NGG",     # str: PAM sequence (supports IUPAC codes)
     encode=True,            # bool: Return encoded sequences
-    chunk_size=1,           # int: Variants per chunk
+    n_chunks=1,             # int: Number of chunks for processing
     encoder=None            # Optional custom encoder
 ) -> dict
 ```
@@ -72,6 +74,8 @@ get_pam_disrupting_personal_sequences(
 **Returns dict:** `{'variants': DataFrame, 'pam_intact': sequences, 'pam_disrupted': sequences}`
 
 **Supported PAM sequences:** `"NGG"` (SpCas9), `"NGGNG"` (SpCas9 extended), `"TTTN"` (Cpf1/Cas12a), `"NNGRRT"` (SaCas9)
+
+**Key Feature**: Detects when INDELs create new PAMs and correctly excludes them from the disruption list.
 
 ## Metadata Structure
 
@@ -137,7 +141,7 @@ print(f"Alternate shape: {alt_seqs.shape}")
 ### PAM Disruption Analysis
 
 ```python
-pam_results = sl.get_pam_disrupting_personal_sequences(
+pam_results = sl.get_pam_disrupting_alt_sequences(
     reference_fn=reference,
     variants_fn=variants,
     seq_len=1000,

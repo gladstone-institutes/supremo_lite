@@ -361,18 +361,27 @@ class TestIntegrationWithPersonalizeFunctions:
             "X": "GCTA" * 25 + "NGG" + "GCTA" * 25,  # NGG at position ~100
         }
 
+        # Get actual bases at position that overlaps with NGG PAM
+        # NGG is at position 100-102 (0-based), so position 101 (1-based) = 100 (0-based) is middle G
+        ref1 = reference["1"]
+        refX = reference["X"]
+        ref_base_1 = ref1[101]  # 0-based position 101, middle of NGG at 100-102
+        ref_base_X = refX[101]
+        alt_base_1 = "A"  # Change to disrupt NGG
+        alt_base_X = "A"  # Change to disrupt NGG
+
         # Create variants with chr prefix that should match reference
         variants_df = pd.DataFrame(
             {
                 "chrom": ["chr1", "chrX"],
-                "pos": [100, 100],  # Near PAM sites
+                "pos": [102, 102],  # 1-based position that disrupts NGG
                 "id": [".", "."],
-                "ref": ["A", "G"],
-                "alt": ["T", "C"],
+                "ref": [ref_base_1, ref_base_X],
+                "alt": [alt_base_1, alt_base_X],
             }
         )
 
-        result = sl.get_pam_disrupting_personal_sequences(
+        result = sl.get_pam_disrupting_alt_sequences(
             reference_fn=reference,
             variants_fn=variants_df,
             seq_len=50,

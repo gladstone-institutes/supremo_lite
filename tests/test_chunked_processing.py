@@ -287,7 +287,7 @@ class TestChunkedPersonalizeFunctions:
         assert result1["chr1"] == result2["chr1"]
 
     def test_get_pam_disrupting_sequences_with_n_chunks(self):
-        """Test get_pam_disrupting_personal_sequences with n_chunks parameter."""
+        """Test get_pam_disrupting_alt_sequences with n_chunks parameter."""
         # Create variants that might disrupt PAM sites using the existing test data
         # chr1 sequence: ATGAATATAATATTTTCGAGAATTACTCCTTTTGGAAATGGAACATTATGCGTTTTAAGAGTTTCTGGTAACAATATATT
         variants_df = pd.DataFrame(
@@ -303,7 +303,7 @@ class TestChunkedPersonalizeFunctions:
         reference = get_test_reference()
 
         # Test with default n_chunks=1
-        result1 = sl.get_pam_disrupting_personal_sequences(
+        result1 = sl.get_pam_disrupting_alt_sequences(
             reference_fn=reference,
             variants_fn=variants_df,
             seq_len=50,  # Smaller seq_len to fit within the test genome
@@ -314,7 +314,7 @@ class TestChunkedPersonalizeFunctions:
         )
 
         # Test with n_chunks=2
-        result2 = sl.get_pam_disrupting_personal_sequences(
+        result2 = sl.get_pam_disrupting_alt_sequences(
             reference_fn=reference,
             variants_fn=variants_df,
             seq_len=50,

@@ -2329,7 +2329,7 @@ def get_alt_ref_sequences(
         yield (alt_chunk, ref_chunk, ref_metadata)
 
 
-def get_pam_disrupting_personal_sequences(
+def get_pam_disrupting_alt_sequences(
     reference_fn,
     variants_fn,
     seq_len,
@@ -2341,6 +2341,9 @@ def get_pam_disrupting_personal_sequences(
 ):
     """
     Generate sequences for variants that disrupt PAM sites.
+
+    This function identifies variants that disrupt existing PAM sites in the reference
+    genome.
 
     Args:
         reference_fn: Path to reference genome file or dictionary-like object
@@ -2425,26 +2428,32 @@ def get_pam_disrupting_personal_sequences(
         if right_pad > 0:
             ref_window_seq = ref_window_seq + "N" * right_pad
 
+        # Helper function to find PAM sites in a sequence
+        def find_pam_sites(sequence, pam_pattern):
+            """Find all PAM site positions in a sequence."""
+            sites = []
+            for i in range(len(sequence) - len(pam_pattern) + 1):
+                potential_pam = sequence[i : i + len(pam_pattern)]
+                # Check if the potential PAM matches the pattern
+                if all(
+                    a == b or b == "N"
+                    for a, b in zip(potential_pam.upper(), pam_pattern.upper())
+                ):
+                    sites.append(i)
+            return sites
+
         # Find PAM sites in the reference sequence window
-        pam_sites = []
-        for i in range(len(ref_window_seq) - len(pam_sequence) + 1):
-            potential_pam = ref_window_seq[i : i + len(pam_sequence)]
-            # Check if the potential PAM matches the pattern
-            if all(
-                a == b or b == "N"
-                for a, b in zip(potential_pam.upper(), pam_sequence.upper())
-            ):
-                pam_sites.append(i)
+        ref_pam_sites = find_pam_sites(ref_window_seq, pam_sequence)
 
         # Calculate variant position in padded window
         variant_pos_in_window = left_pad + (genomic_pos - ref_window_start)
 
         # Filter PAM sites that are within max_pam_distance of the variant
-        nearby_pam_sites = [
-            p for p in pam_sites if abs(p - variant_pos_in_window) <= max_pam_distance
+        nearby_ref_pam_sites = [
+            p for p in ref_pam_sites if abs(p - variant_pos_in_window) <= max_pam_distance
         ]
 
-        if nearby_pam_sites:
+        if nearby_ref_pam_sites:
             pam_disrupting_variants.append(var)
 
             # Create a temporary applicator with just this variant
@@ -2480,6 +2489,65 @@ def get_pam_disrupting_personal_sequences(
                 else:
                     modified_window = modified_window[:seq_len]
 
+            # CRITICAL: Check for new PAM formation in the alternate sequence
+            # Find PAM sites in the modified (alternate) sequence
+            alt_pam_sites = find_pam_sites(modified_window, pam_sequence)
+
+            # Filter to nearby PAM sites in the alternate sequence
+            nearby_alt_pam_sites = [
+                p for p in alt_pam_sites if abs(p - variant_pos_in_window) <= max_pam_distance
+            ]
+
+            # Identify which reference PAM sites are truly disrupted
+            # Different logic for SNVs vs INDELs:
+            # - SNV: PAM disrupted if the exact PAM sequence changes at that position
+            # - INDEL: PAM disrupted ONLY if no PAM exists in ALT (even at shifted position)
+            #         If INDEL creates/shifts a PAM, it's NOT considered disrupting
+
+            ref_allele = var.get("ref", "")
+            alt_allele = var.get("alt", "")
+            is_indel = len(ref_allele) != len(alt_allele) or ref_allele == "-" or alt_allele == "-"
+
+            truly_disrupted_pam_sites = []
+
+            if is_indel:
+                # For INDELs: check if PAM still exists anywhere nearby (allowing for shifts)
+                for ref_pam_pos in nearby_ref_pam_sites:
+                    pam_still_exists = False
+                    for alt_pam_pos in nearby_alt_pam_sites:
+                        # Allow for positional shifts due to the INDEL
+                        # If a PAM exists within a reasonable distance, consider it maintained
+                        if abs(ref_pam_pos - alt_pam_pos) <= len(pam_sequence):
+                            pam_still_exists = True
+                            break
+
+                    if not pam_still_exists:
+                        truly_disrupted_pam_sites.append(ref_pam_pos)
+            else:
+                # For SNVs: check if the PAM sequence at the exact position has changed
+                for ref_pam_pos in nearby_ref_pam_sites:
+                    # Extract the PAM sequence from both ref and alt at this exact position
+                    ref_pam_seq = ref_window_seq[ref_pam_pos:ref_pam_pos + len(pam_sequence)]
+                    alt_pam_seq = modified_window[ref_pam_pos:ref_pam_pos + len(pam_sequence)]
+
+                    # Check if the PAM pattern still matches after the variant
+                    alt_matches_pattern = all(
+                        a == b or b == "N"
+                        for a, b in zip(alt_pam_seq.upper(), pam_sequence.upper())
+                    )
+
+                    # If the ALT no longer matches the PAM pattern, it's disrupted
+                    if not alt_matches_pattern:
+                        truly_disrupted_pam_sites.append(ref_pam_pos)
+
+            # Only proceed if there are truly disrupted PAM sites
+            # If all reference PAMs are maintained (possibly at shifted positions for INDELs),
+            # skip this variant
+            if not truly_disrupted_pam_sites:
+                # Remove this variant from the disrupting list
+                pam_disrupting_variants.pop()
+                continue
+
             # Store PAM-intact sequence
             final_intact = encode_seq(modified_window, encoder) if encode else modified_window
             pam_intact_sequences.append(
@@ -2491,8 +2559,8 @@ def get_pam_disrupting_personal_sequences(
                 )
             )
 
-            # Create PAM-disrupted versions
-            for pam_site in nearby_pam_sites:
+            # Create PAM-disrupted versions (only for truly disrupted sites)
+            for pam_site in truly_disrupted_pam_sites:
                 # Disrupt PAM with NNN
                 disrupted_seq = list(modified_window)
                 for j in range(len(pam_sequence)):

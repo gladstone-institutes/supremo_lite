@@ -6,14 +6,26 @@
 - **`get_alt_sequences()` Variant Isolation**: Fixed critical bug where ALL variants were being applied together instead of individually
   - **Impact**: Previously, each window contained effects from ALL variants in the chunk/chromosome, not just the single variant it was centered on
 
+### Major Features
+- **PAM Disruption INDEL Detection**: Enhanced `get_pam_disrupting_alt_sequences` (renamed from `get_pam_disrupting_personal_sequences`) to correctly detect when INDELs create new PAM sites
+  - **Key Enhancement**: Variants that create new PAMs or shift existing PAMs are now correctly identified as NOT disrupting (PAM remains functional)
+  - **Use Case**: Critical for CRISPR resistance analysis where INDELs might form new PAM sites
+  - **Implementation**: Compares PAM sites in reference vs. alternate sequences, accounting for positional shifts from INDELs
+
+### Breaking Changes
+- **Function Renamed**: `get_pam_disrupting_personal_sequences` → `get_pam_disrupting_alt_sequences` for consistency with naming conventions (`get_alt_sequences`, `get_alt_ref_sequences`)
+
 ### Documentation
 - **Variant Classification Flowchart**: Added comprehensive variant classification flowchart (SVG and PNG) showing the decision tree for automatic variant type detection
 - **Updated Notebooks**: Updated all tutorial notebook
 - **Documentation Cleanup**: Removed deprecated notebooks
+- **New User Guide**: Added comprehensive [PAM Disruption Analysis](docs/user_guide/pam_disruption.md) guide with INDEL detection examples
+- **Updated References**: Updated all documentation and examples to use new function name
 
 ### Code Quality
 - **Test Improvements**: Enhanced test coverage for contact map alignment and prediction alignment edge cases
 - **Single-Variant Isolation Tests**: Added comprehensive tests to verify each variant window contains only its specific variant
+- **INDEL PAM Formation Tests**: Added new test suite (`test_pam_indel_formation.py`) with 8 tests covering deletion/insertion PAM creation scenarios
 - **Mock Model Refinements**: Improved TestModel2D implementation for better matrix handling
 - **Bug Fixes**: Fixed minor issues in prediction alignment for edge cases
 
