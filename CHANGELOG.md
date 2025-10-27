@@ -3,14 +3,12 @@
 ## v0.5.4 (10/24/2025)
 
 ### Critical Bug Fixes
-- **`get_alt_sequences()` Variant Isolation**: Fixed critical bug where ALL variants were being applied together instead of individually
-  - **Impact**: Previously, each window contained effects from ALL variants in the chunk/chromosome, not just the single variant it was centered on
+- **`get_alt_sequences()` **: Fixed critical bug where ALL variants were being applied together instead of individually
+  - **Impact**: Previously, each window contained effects from ALL variants in the chunk/chromosome, not just the single variant it was centered on. This will only effect pervious results where there are varaints clos enough to each other in the VCF that they end up in the same window.
 
 ### Major Features
 - **PAM Disruption INDEL Detection**: Enhanced `get_pam_disrupting_alt_sequences` (renamed from `get_pam_disrupting_personal_sequences`) to correctly detect when INDELs create new PAM sites
   - **Key Enhancement**: Variants that create new PAMs or shift existing PAMs are now correctly identified as NOT disrupting (PAM remains functional)
-  - **Use Case**: Critical for CRISPR resistance analysis where INDELs might form new PAM sites
-  - **Implementation**: Compares PAM sites in reference vs. alternate sequences, accounting for positional shifts from INDELs
 
 ### Breaking Changes
 - **Function Renamed**: `get_pam_disrupting_personal_sequences` → `get_pam_disrupting_alt_sequences` for consistency with naming conventions (`get_alt_sequences`, `get_alt_ref_sequences`)
