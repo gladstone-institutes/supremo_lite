@@ -32,7 +32,7 @@ class TestBasic1DPredictionAlignment:
             seq_length=self.seq_len,
             n_targets=2,
             bin_length=self.bin_size,
-            crop_length=self.crop_length
+            crop_length=self.crop_length,
         )
 
     def test_snv_1d_alignment(self):
@@ -40,12 +40,14 @@ class TestBasic1DPredictionAlignment:
         snv_vcf = os.path.join(self.data_dir, "snp", "snp.vcf")
 
         # Generate sequences
-        results = list(sl.get_alt_ref_sequences(
-            reference_fn=self.reference_fa,
-            variants_fn=snv_vcf,
-            seq_len=self.seq_len,
-            encode=True
-        ))
+        results = list(
+            sl.get_alt_ref_sequences(
+                reference_fn=self.reference_fa,
+                variants_fn=snv_vcf,
+                seq_len=self.seq_len,
+                encode=True,
+            )
+        )
 
         ref_seqs, alt_seqs, metadata = results[0]
 
@@ -66,7 +68,7 @@ class TestBasic1DPredictionAlignment:
             alt_preds[0, 0],
             var_metadata,
             bin_size=self.bin_size,
-            prediction_type="1D"
+            prediction_type="1D",
         )
 
         # For SNV, lengths should be identical
@@ -87,12 +89,14 @@ class TestBasic1DPredictionAlignment:
         ins_vcf = os.path.join(self.data_dir, "ins", "ins.vcf")
 
         # Generate sequences
-        results = list(sl.get_alt_ref_sequences(
-            reference_fn=self.reference_fa,
-            variants_fn=ins_vcf,
-            seq_len=self.seq_len,
-            encode=True
-        ))
+        results = list(
+            sl.get_alt_ref_sequences(
+                reference_fn=self.reference_fa,
+                variants_fn=ins_vcf,
+                seq_len=self.seq_len,
+                encode=True,
+            )
+        )
 
         ref_seqs, alt_seqs, metadata = results[0]
 
@@ -113,7 +117,7 @@ class TestBasic1DPredictionAlignment:
             alt_preds[0, 0],
             var_metadata,
             bin_size=self.bin_size,
-            prediction_type="1D"
+            prediction_type="1D",
         )
 
         # After alignment, should have same length
@@ -124,7 +128,7 @@ class TestBasic1DPredictionAlignment:
         has_nan = torch.isnan(aligned_ref).any() or torch.isnan(aligned_alt).any()
 
         # For insertions, if svlen spans bins, we expect NaN
-        svlen = abs(var_metadata.get('svlen', 0))
+        svlen = abs(var_metadata.get("svlen", 0))
         if svlen >= self.bin_size:
             assert has_nan, f"Large insertion (svlen={svlen}) should introduce NaN"
 
@@ -135,12 +139,14 @@ class TestBasic1DPredictionAlignment:
         del_vcf = os.path.join(self.data_dir, "del", "del.vcf")
 
         # Generate sequences
-        results = list(sl.get_alt_ref_sequences(
-            reference_fn=self.reference_fa,
-            variants_fn=del_vcf,
-            seq_len=self.seq_len,
-            encode=True
-        ))
+        results = list(
+            sl.get_alt_ref_sequences(
+                reference_fn=self.reference_fa,
+                variants_fn=del_vcf,
+                seq_len=self.seq_len,
+                encode=True,
+            )
+        )
 
         ref_seqs, alt_seqs, metadata = results[0]
 
@@ -161,7 +167,7 @@ class TestBasic1DPredictionAlignment:
             alt_preds[0, 0],
             var_metadata,
             bin_size=self.bin_size,
-            prediction_type="1D"
+            prediction_type="1D",
         )
 
         # After alignment, should have same length
@@ -171,7 +177,7 @@ class TestBasic1DPredictionAlignment:
         has_nan = torch.isnan(aligned_ref).any() or torch.isnan(aligned_alt).any()
 
         # For deletions, if svlen spans bins, we expect NaN
-        svlen = abs(var_metadata.get('svlen', 0))
+        svlen = abs(var_metadata.get("svlen", 0))
         if svlen >= self.bin_size:
             assert has_nan, f"Large deletion (svlen={svlen}) should introduce NaN"
 
@@ -191,13 +197,15 @@ class TestBasic2DPredictionAlignment:
         self.seq_len = 512
         self.bin_size = 32
         self.crop_length = 64  # 2 bins cropped from each side
-        self.diag_offset = 0  # TestModel2D returns full matrices without diagonal masking
+        self.diag_offset = (
+            0  # TestModel2D returns full matrices without diagonal masking
+        )
 
         self.model = TestModel2D(
             seq_length=self.seq_len,
             n_targets=1,
             bin_length=self.bin_size,
-            crop_length=self.crop_length
+            crop_length=self.crop_length,
         )
 
         # Calculate matrix size for alignment
@@ -209,12 +217,14 @@ class TestBasic2DPredictionAlignment:
         snv_vcf = os.path.join(self.data_dir, "snp", "snp.vcf")
 
         # Generate sequences
-        results = list(sl.get_alt_ref_sequences(
-            reference_fn=self.reference_fa,
-            variants_fn=snv_vcf,
-            seq_len=self.seq_len,
-            encode=True
-        ))
+        results = list(
+            sl.get_alt_ref_sequences(
+                reference_fn=self.reference_fa,
+                variants_fn=snv_vcf,
+                seq_len=self.seq_len,
+                encode=True,
+            )
+        )
 
         ref_seqs, alt_seqs, metadata = results[0]
 
@@ -237,7 +247,7 @@ class TestBasic2DPredictionAlignment:
             bin_size=self.bin_size,
             prediction_type="2D",
             matrix_size=self.matrix_size,
-            diag_offset=self.diag_offset
+            diag_offset=self.diag_offset,
         )
 
         # For SNV, shapes should be identical
@@ -248,8 +258,10 @@ class TestBasic2DPredictionAlignment:
         assert aligned_alt.ndim == 2, "Output should be 2D matrix (full contact map)"
 
         # Expected shape: (matrix_size, matrix_size)
-        assert aligned_ref.shape == (self.matrix_size, self.matrix_size), \
-            f"Expected ({self.matrix_size}, {self.matrix_size}), got {aligned_ref.shape}"
+        assert aligned_ref.shape == (
+            self.matrix_size,
+            self.matrix_size,
+        ), f"Expected ({self.matrix_size}, {self.matrix_size}), got {aligned_ref.shape}"
 
         # Outputs should be tensors
         assert isinstance(aligned_ref, torch.Tensor), "Output should be tensor"
@@ -262,12 +274,14 @@ class TestBasic2DPredictionAlignment:
         ins_vcf = os.path.join(self.data_dir, "ins", "ins.vcf")
 
         # Generate sequences
-        results = list(sl.get_alt_ref_sequences(
-            reference_fn=self.reference_fa,
-            variants_fn=ins_vcf,
-            seq_len=self.seq_len,
-            encode=True
-        ))
+        results = list(
+            sl.get_alt_ref_sequences(
+                reference_fn=self.reference_fa,
+                variants_fn=ins_vcf,
+                seq_len=self.seq_len,
+                encode=True,
+            )
+        )
 
         ref_seqs, alt_seqs, metadata = results[0]
 
@@ -290,11 +304,13 @@ class TestBasic2DPredictionAlignment:
             bin_size=self.bin_size,
             prediction_type="2D",
             matrix_size=self.matrix_size,
-            diag_offset=self.diag_offset
+            diag_offset=self.diag_offset,
         )
 
         # After alignment, shapes should match
-        assert aligned_ref.shape == aligned_alt.shape, "Alignment should equalize shapes"
+        assert (
+            aligned_ref.shape == aligned_alt.shape
+        ), "Alignment should equalize shapes"
 
         # Should be 2D matrices (full contact map)
         assert aligned_ref.ndim == 2, "Output should be 2D matrix (full contact map)"
@@ -303,9 +319,11 @@ class TestBasic2DPredictionAlignment:
         # For 2D, insertions may introduce NaN elements
         has_nan = torch.isnan(aligned_ref).any() or torch.isnan(aligned_alt).any()
 
-        svlen = abs(var_metadata.get('svlen', 0))
+        svlen = abs(var_metadata.get("svlen", 0))
         if svlen >= self.bin_size:
-            assert has_nan, f"Large insertion (svlen={svlen}) should introduce NaN in 2D"
+            assert (
+                has_nan
+            ), f"Large insertion (svlen={svlen}) should introduce NaN in 2D"
 
         print("✓ INS 2D alignment test passed")
 
@@ -314,12 +332,14 @@ class TestBasic2DPredictionAlignment:
         del_vcf = os.path.join(self.data_dir, "del", "del.vcf")
 
         # Generate sequences
-        results = list(sl.get_alt_ref_sequences(
-            reference_fn=self.reference_fa,
-            variants_fn=del_vcf,
-            seq_len=self.seq_len,
-            encode=True
-        ))
+        results = list(
+            sl.get_alt_ref_sequences(
+                reference_fn=self.reference_fa,
+                variants_fn=del_vcf,
+                seq_len=self.seq_len,
+                encode=True,
+            )
+        )
 
         ref_seqs, alt_seqs, metadata = results[0]
 
@@ -342,11 +362,13 @@ class TestBasic2DPredictionAlignment:
             bin_size=self.bin_size,
             prediction_type="2D",
             matrix_size=self.matrix_size,
-            diag_offset=self.diag_offset
+            diag_offset=self.diag_offset,
         )
 
         # After alignment, shapes should match
-        assert aligned_ref.shape == aligned_alt.shape, "Alignment should equalize shapes"
+        assert (
+            aligned_ref.shape == aligned_alt.shape
+        ), "Alignment should equalize shapes"
 
         # Should be 2D matrices (full contact map)
         assert aligned_ref.ndim == 2, "Output should be 2D matrix (full contact map)"
@@ -355,7 +377,7 @@ class TestBasic2DPredictionAlignment:
         # For 2D, deletions may introduce NaN elements
         has_nan = torch.isnan(aligned_ref).any() or torch.isnan(aligned_alt).any()
 
-        svlen = abs(var_metadata.get('svlen', 0))
+        svlen = abs(var_metadata.get("svlen", 0))
         if svlen >= self.bin_size:
             assert has_nan, f"Large deletion (svlen={svlen}) should introduce NaN in 2D"
 

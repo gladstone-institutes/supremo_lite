@@ -102,9 +102,7 @@ class TestPAMDisruption:
         # Create reference with PAM sites at specific distances from variant
         # Variant at position 100 disrupting the N in NGG at position 98-100
         # Additional PAMs at positions 85-87 (distance 11-13 from variant) and 113-115 (distance 13-15)
-        reference = create_reference_with_pams(
-            "ATCGATCGATCGATCG", [85, 98, 113], "NGG"
-        )
+        reference = create_reference_with_pams("ATCGATCGATCGATCG", [85, 98, 113], "NGG")
 
         # Get actual base at position 100 to create valid variant
         # This should be the 'G' in the NGG at position 98-100
@@ -132,7 +130,9 @@ class TestPAMDisruption:
         # Should find the variant disrupts the PAM it overlaps with
         assert len(result_15["variants"]) == 1
         assert len(result_15["pam_intact"]) == 1
-        assert len(result_15["pam_disrupted"]) == 1  # Only the overlapping PAM is disrupted
+        assert (
+            len(result_15["pam_disrupted"]) == 1
+        )  # Only the overlapping PAM is disrupted
 
         # Test with max_pam_distance=10
         # Now the PAMs at 85 and 113 are outside the distance threshold
@@ -194,7 +194,9 @@ class TestPAMDisruption:
         # Should find one variant disrupting one PAM (the one it overlaps)
         assert len(result["variants"]) == 1
         assert len(result["pam_intact"]) == 1
-        assert len(result["pam_disrupted"]) == 1  # Only the overlapping PAM is disrupted
+        assert (
+            len(result["pam_disrupted"]) == 1
+        )  # Only the overlapping PAM is disrupted
 
         # Test with smaller distance that excludes some nearby PAMs
         result_small = sl.get_pam_disrupting_alt_sequences(

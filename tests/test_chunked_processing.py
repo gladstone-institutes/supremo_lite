@@ -25,20 +25,29 @@ class TestChunkedVCFReading:
     def test_read_vcf_chunked_single_chunk(self):
         """Test reading small VCF in single chunk."""
         vcf_path = get_test_vcf_path()
-        
+
         chunks = list(read_vcf_chunked(vcf_path, n_chunks=1))
 
         # Should have only one chunk (snp.vcf has 4 variants)
         assert len(chunks) == 1
         assert len(chunks[0]) == 4
-        assert list(chunks[0].columns) == ['chrom', 'pos1', 'id', 'ref', 'alt', 'info', 'vcf_line', 'variant_type']
+        assert list(chunks[0].columns) == [
+            "chrom",
+            "pos1",
+            "id",
+            "ref",
+            "alt",
+            "info",
+            "vcf_line",
+            "variant_type",
+        ]
         assert chunks[0]["chrom"].iloc[0] == "chr1"
         assert chunks[0]["pos1"].iloc[0] == 2
 
     def test_read_vcf_chunked_multiple_chunks(self):
         """Test reading VCF split into multiple chunks."""
         vcf_path = get_test_vcf_path()
-        
+
         chunks = list(read_vcf_chunked(vcf_path, n_chunks=2))
 
         # Should have 2 chunks: 2, 2 variants (snp.vcf has 4 variants split into 2 chunks)
@@ -56,7 +65,7 @@ class TestChunkedVCFReading:
         """Test reading empty VCF file."""
         import tempfile
         import os
-        
+
         with tempfile.NamedTemporaryFile(mode="w", suffix=".vcf", delete=False) as f:
             vcf_path = f.name
             f.write("##fileformat=VCFv4.2\n")
@@ -90,17 +99,17 @@ class TestChunkedPersonalSequences:
 
         # Should yield 1 result with all 4 variants (snp.vcf has 4 variants)
         assert len(results) == 1
-        
+
         # Unpack tuple (sequences, metadata)
         sequences, metadata = results[0]
-        
+
         # Result should contain all 4 variants
         assert sequences.shape == (
             4,
             seq_len,
             4,
         )  # (4 variants, seq_len, 4 nucleotides)
-        
+
         # Verify metadata is included
         assert len(metadata) == 4  # 4 variants worth of metadata
 
@@ -123,14 +132,14 @@ class TestChunkedPersonalSequences:
 
         # Should yield 2 chunks: 2, 2 variants (snp.vcf has 4 variants split into 2 chunks)
         assert len(results) == 2
-        
+
         # Unpack tuples (sequences, metadata) for each chunk
         sequences_1, metadata_1 = results[0]
         sequences_2, metadata_2 = results[1]
-        
+
         assert sequences_1.shape == (2, seq_len, 4)
         assert sequences_2.shape == (2, seq_len, 4)
-        
+
         # Verify metadata for each chunk
         assert len(metadata_1) == 2  # 2 variants in first chunk
         assert len(metadata_2) == 2  # 2 variants in second chunk
@@ -144,7 +153,12 @@ class TestChunkedPersonalSequences:
                 "chrom": ["chr1"] * 4,
                 "pos": [2, 10, 20, 30],  # Positions within the 77bp chr1 sequence
                 "id": ["."] * 4,
-                "ref": ["T", "A", "T", "C"],  # Actual bases at positions 2=T, 10=A, 20=T, 30=C
+                "ref": [
+                    "T",
+                    "A",
+                    "T",
+                    "C",
+                ],  # Actual bases at positions 2=T, 10=A, 20=T, 30=C
                 "alt": ["G"] * 4,
             }
         )
@@ -165,16 +179,16 @@ class TestChunkedPersonalSequences:
 
         # Should yield 3 chunks: 2, 1, 1 variants (array_split creates approximately equal chunks)
         assert len(results) == 3
-        
+
         # Unpack tuples (sequences, metadata) for each chunk
         sequences_1, metadata_1 = results[0]
         sequences_2, metadata_2 = results[1]
         sequences_3, metadata_3 = results[2]
-        
+
         assert sequences_1.shape == (2, seq_len, 4)
         assert sequences_2.shape == (1, seq_len, 4)
         assert sequences_3.shape == (1, seq_len, 4)
-        
+
         # Verify metadata for each chunk
         assert len(metadata_1) == 2  # 2 variants in first chunk
         assert len(metadata_2) == 1  # 1 variant in second chunk
@@ -199,14 +213,14 @@ class TestChunkedPersonalSequences:
 
         # Should yield 2 chunks (snp.vcf has 4 variants split into 2 chunks)
         assert len(results) == 2
-        
+
         # Unpack tuples (sequences, metadata) for each chunk
         sequences_1, metadata_1 = results[0]
         sequences_2, metadata_2 = results[1]
-        
+
         assert len(sequences_1) == 2  # 2 variants in first chunk
         assert len(sequences_2) == 2  # 2 variants in second chunk
-        
+
         # Verify metadata for each chunk
         assert len(metadata_1) == 2  # 2 variants in first chunk
         assert len(metadata_2) == 2  # 2 variants in second chunk
@@ -222,7 +236,7 @@ class TestChunkedPersonalSequences:
         """Test that chunking uses less memory than loading all at once."""
         # This is a conceptual test - in practice we'd need much larger files
         # to see real memory differences, but we can test the pattern
-        
+
         vcf_path = get_test_vcf_path()
         reference = get_test_reference()
         seq_len = 50  # Smaller seq_len to fit within the test genome
@@ -245,7 +259,7 @@ class TestChunkedPersonalSequences:
         all_chunks = list(chunked_results)
         total_variants = sum(sequences.shape[0] for sequences, metadata in all_chunks)
         assert total_variants == 4  # snp.vcf has 4 variants
-        
+
         # Verify metadata is also returned for each chunk
         total_metadata = sum(len(metadata) for sequences, metadata in all_chunks)
         assert total_metadata == 4  # 4 variants worth of metadata
@@ -335,21 +349,25 @@ class TestChunkedPersonalizeFunctions:
         # Apply variants only to chr3 and chr5 (not chr1, chr2, chr4)
         # to verify that ALL chromosomes maintain original order
 
-        variants_df = pd.DataFrame({
-            "chrom": ["chr3", "chr5", "chr3"],  # Intentionally not sorted
-            "pos": [10, 15, 30],
-            "id": [".", ".", "."],
-            "ref": ["A", "T", "A"],  # Actual bases: chr3[9]=A, chr5[14]=T, chr3[29]=A
-            "alt": ["C", "G", "G"],
-        })
+        variants_df = pd.DataFrame(
+            {
+                "chrom": ["chr3", "chr5", "chr3"],  # Intentionally not sorted
+                "pos": [10, 15, 30],
+                "id": [".", ".", "."],
+                "ref": [
+                    "A",
+                    "T",
+                    "A",
+                ],  # Actual bases: chr3[9]=A, chr5[14]=T, chr3[29]=A
+                "alt": ["C", "G", "G"],
+            }
+        )
 
         reference = get_test_reference()
 
         # Test with encode=False to get sequence strings
         result = sl.get_personal_genome(
-            reference_fn=reference,
-            variants_fn=variants_df,
-            encode=False
+            reference_fn=reference, variants_fn=variants_df, encode=False
         )
 
         # Verify all chromosomes are present
@@ -363,11 +381,13 @@ class TestChunkedPersonalizeFunctions:
         # Verify chromosome order matches reference order
         result_chroms = list(result.keys())
         expected_order = ["chr1", "chr2", "chr3", "chr4", "chr5"]
-        assert result_chroms == expected_order, \
-            f"Expected chromosome order {expected_order}, but got {result_chroms}"
+        assert (
+            result_chroms == expected_order
+        ), f"Expected chromosome order {expected_order}, but got {result_chroms}"
 
         # Verify unmodified chromosomes still have original sequences
         from pyfaidx import Fasta
+
         ref = Fasta(reference)
         assert result["chr1"] == str(ref["chr1"])  # No variants
         assert result["chr2"] == str(ref["chr2"])  # No variants
@@ -379,37 +399,41 @@ class TestChunkedPersonalizeFunctions:
 
     def test_chromosome_order_with_encoded_output(self):
         """Test chromosome order preservation with encoded output."""
-        variants_df = pd.DataFrame({
-            "chrom": ["chr5", "chr2"],  # Reverse order to test sorting
-            "pos": [10, 20],
-            "id": [".", "."],
-            "ref": ["A", "A"],  # Actual bases: chr5[9]=A, chr2[19]=A
-            "alt": ["G", "C"],
-        })
+        variants_df = pd.DataFrame(
+            {
+                "chrom": ["chr5", "chr2"],  # Reverse order to test sorting
+                "pos": [10, 20],
+                "id": [".", "."],
+                "ref": ["A", "A"],  # Actual bases: chr5[9]=A, chr2[19]=A
+                "alt": ["G", "C"],
+            }
+        )
 
         reference = get_test_reference()
 
         # Test with encode=True (default)
         result = sl.get_personal_genome(
-            reference_fn=reference,
-            variants_fn=variants_df,
-            encode=True
+            reference_fn=reference, variants_fn=variants_df, encode=True
         )
 
         # Verify chromosome order is preserved even with encoding
         result_chroms = list(result.keys())
         expected_order = ["chr1", "chr2", "chr3", "chr4", "chr5"]
-        assert result_chroms == expected_order, \
-            f"Expected chromosome order {expected_order}, but got {result_chroms}"
+        assert (
+            result_chroms == expected_order
+        ), f"Expected chromosome order {expected_order}, but got {result_chroms}"
 
         # Verify that results are encoded (should be arrays/tensors, not strings)
         import numpy as np
+
         for chrom in result_chroms:
-            assert hasattr(result[chrom], "shape"), \
-                f"{chrom} should be encoded as array/tensor, not string"
+            assert hasattr(
+                result[chrom], "shape"
+            ), f"{chrom} should be encoded as array/tensor, not string"
             # One-hot encoding should have shape (length, 4)
-            assert result[chrom].shape[1] == 4, \
-                f"{chrom} should have 4 channels for one-hot encoding"
+            assert (
+                result[chrom].shape[1] == 4
+            ), f"{chrom} should have 4 channels for one-hot encoding"
 
 
 class TestSingleVariantIsolation:
@@ -425,13 +449,15 @@ class TestSingleVariantIsolation:
         seq_len = 20  # Small window
 
         # Get alt sequences (should apply each variant individually)
-        results = list(sl.get_alt_sequences(
-            reference_fn=reference,
-            variants_fn=vcf_path,
-            seq_len=seq_len,
-            encode=False,  # Get raw sequences for inspection
-            n_chunks=1
-        ))
+        results = list(
+            sl.get_alt_sequences(
+                reference_fn=reference,
+                variants_fn=vcf_path,
+                seq_len=seq_len,
+                encode=False,  # Get raw sequences for inspection
+                n_chunks=1,
+            )
+        )
 
         sequences, metadata = results[0]
 
@@ -443,23 +469,27 @@ class TestSingleVariantIsolation:
 
         # Variant 1: chr1:2 T>G
         seq1 = sequences[0][3]
-        assert seq1[center_idx] == 'G', \
-            f"Window 1 (chr1:2) should have alt allele 'G', got '{seq1[center_idx]}'"
+        assert (
+            seq1[center_idx] == "G"
+        ), f"Window 1 (chr1:2) should have alt allele 'G', got '{seq1[center_idx]}'"
 
         # Variant 2: chr1:31 T>A
         seq2 = sequences[1][3]
-        assert seq2[center_idx] == 'A', \
-            f"Window 2 (chr1:31) should have alt allele 'A', got '{seq2[center_idx]}'"
+        assert (
+            seq2[center_idx] == "A"
+        ), f"Window 2 (chr1:31) should have alt allele 'A', got '{seq2[center_idx]}'"
 
         # Variant 3: chr2:19 A>G
         seq3 = sequences[2][3]
-        assert seq3[center_idx] == 'G', \
-            f"Window 3 (chr2:19) should have alt allele 'G', got '{seq3[center_idx]}'"
+        assert (
+            seq3[center_idx] == "G"
+        ), f"Window 3 (chr2:19) should have alt allele 'G', got '{seq3[center_idx]}'"
 
         # Variant 4: chr2:57 C>G
         seq4 = sequences[3][3]
-        assert seq4[center_idx] == 'G', \
-            f"Window 4 (chr2:57) should have alt allele 'G', got '{seq4[center_idx]}'"
+        assert (
+            seq4[center_idx] == "G"
+        ), f"Window 4 (chr2:57) should have alt allele 'G', got '{seq4[center_idx]}'"
 
     def test_single_variant_isolation_close_variants_same_chromosome(self):
         """Verify chr1 variants (pos 2 and 31) don't affect each other."""
@@ -470,13 +500,15 @@ class TestSingleVariantIsolation:
         vcf_path = "tests/data/snp/snp.vcf"
         seq_len = 40  # Windows are 40bp centered on each variant
 
-        results = list(sl.get_alt_sequences(
-            reference_fn=reference,
-            variants_fn=vcf_path,
-            seq_len=seq_len,
-            encode=False,
-            n_chunks=1
-        ))
+        results = list(
+            sl.get_alt_sequences(
+                reference_fn=reference,
+                variants_fn=vcf_path,
+                seq_len=seq_len,
+                encode=False,
+                n_chunks=1,
+            )
+        )
 
         sequences, metadata = results[0]
 
@@ -496,12 +528,14 @@ class TestSingleVariantIsolation:
         center_idx = seq_len // 2  # 20
 
         # Verify variant 1 is applied at its center
-        assert seq1[center_idx] == 'G', \
-            f"Window 1 center should be 'G' (chr1:2 variant), got '{seq1[center_idx]}'"
+        assert (
+            seq1[center_idx] == "G"
+        ), f"Window 1 center should be 'G' (chr1:2 variant), got '{seq1[center_idx]}'"
 
         # Verify variant 2 is applied at its center
-        assert seq2[center_idx] == 'A', \
-            f"Window 2 center should be 'A' (chr1:31 variant), got '{seq2[center_idx]}'"
+        assert (
+            seq2[center_idx] == "A"
+        ), f"Window 2 center should be 'A' (chr1:31 variant), got '{seq2[center_idx]}'"
 
         # Critical test: Check that window 2 does NOT have variant 1 applied
         # Window 2 covers genomic positions 10-50
@@ -520,13 +554,15 @@ class TestSingleVariantIsolation:
         vcf_path = "tests/data/snp/snp.vcf"
         seq_len = 20
 
-        results = list(sl.get_alt_sequences(
-            reference_fn=reference,
-            variants_fn=vcf_path,
-            seq_len=seq_len,
-            encode=False,
-            n_chunks=1
-        ))
+        results = list(
+            sl.get_alt_sequences(
+                reference_fn=reference,
+                variants_fn=vcf_path,
+                seq_len=seq_len,
+                encode=False,
+                n_chunks=1,
+            )
+        )
 
         sequences, metadata = results[0]
 
@@ -540,18 +576,18 @@ class TestSingleVariantIsolation:
         seq4_chrom = sequences[3][0]  # chr2:57
 
         # Verify chromosomes are correct
-        assert seq1_chrom == 'chr1', f"Sequence 1 should be chr1, got {seq1_chrom}"
-        assert seq2_chrom == 'chr1', f"Sequence 2 should be chr1, got {seq2_chrom}"
-        assert seq3_chrom == 'chr2', f"Sequence 3 should be chr2, got {seq3_chrom}"
-        assert seq4_chrom == 'chr2', f"Sequence 4 should be chr2, got {seq4_chrom}"
+        assert seq1_chrom == "chr1", f"Sequence 1 should be chr1, got {seq1_chrom}"
+        assert seq2_chrom == "chr1", f"Sequence 2 should be chr1, got {seq2_chrom}"
+        assert seq3_chrom == "chr2", f"Sequence 3 should be chr2, got {seq3_chrom}"
+        assert seq4_chrom == "chr2", f"Sequence 4 should be chr2, got {seq4_chrom}"
 
         # Verify each has its own variant applied (centers match expected alt alleles)
         center_idx = seq_len // 2
 
-        assert sequences[0][3][center_idx] == 'G', "chr1:2 should have alt 'G'"
-        assert sequences[1][3][center_idx] == 'A', "chr1:31 should have alt 'A'"
-        assert sequences[2][3][center_idx] == 'G', "chr2:19 should have alt 'G'"
-        assert sequences[3][3][center_idx] == 'G', "chr2:57 should have alt 'G'"
+        assert sequences[0][3][center_idx] == "G", "chr1:2 should have alt 'G'"
+        assert sequences[1][3][center_idx] == "A", "chr1:31 should have alt 'A'"
+        assert sequences[2][3][center_idx] == "G", "chr2:19 should have alt 'G'"
+        assert sequences[3][3][center_idx] == "G", "chr2:57 should have alt 'G'"
 
 
 if __name__ == "__main__":

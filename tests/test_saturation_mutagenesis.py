@@ -214,6 +214,7 @@ class TestSaturationMutagenesis(unittest.TestCase):
                 seq_len,
                 self.reference,
                 bed_regions=bed_file,
+                auto_map_chromosomes=True,
             )
 
             # BED region covers positions 48-51, mutagenesis window is 47-53
@@ -239,7 +240,13 @@ class TestSaturationMutagenesis(unittest.TestCase):
         )
 
         ref_1h, alt_seqs, metadata = sl.get_sm_subsequences(
-            chrom, anchor, anchor_radius, seq_len, self.reference, bed_regions=bed_df
+            chrom,
+            anchor,
+            anchor_radius,
+            seq_len,
+            self.reference,
+            bed_regions=bed_df,
+            auto_map_chromosomes=True,
         )
 
         # Should still work due to chromosome matching
@@ -287,6 +294,7 @@ class TestSaturationMutagenesis(unittest.TestCase):
         # BED region for different chromosome
         bed_df = pd.DataFrame({"chrom": ["chr2"], "start": [48], "end": [52]})
 
+        # With auto_map_chromosomes=True, should warn but still work
         with self.assertWarns(UserWarning):
             ref_1h, alt_seqs, metadata = sl.get_sm_subsequences(
                 chrom,
@@ -295,9 +303,10 @@ class TestSaturationMutagenesis(unittest.TestCase):
                 seq_len,
                 self.reference,
                 bed_regions=bed_df,
+                auto_map_chromosomes=True,
             )
 
-        # Should return empty results
+        # Should return empty results (no overlap after mapping)
         self.assertEqual(len(alt_seqs), 0)
         self.assertEqual(len(metadata), 0)
 

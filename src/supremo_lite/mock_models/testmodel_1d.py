@@ -29,6 +29,7 @@ Example:
 try:
     import torch
     import torch.nn as nn
+
     TORCH_AVAILABLE = True
 except ImportError:
     TORCH_AVAILABLE = False
@@ -37,6 +38,7 @@ except ImportError:
 
 
 if TORCH_AVAILABLE:
+
     class TestModel(nn.Module):
         """
         Mock 1D genomic prediction model.
@@ -109,8 +111,9 @@ if TORCH_AVAILABLE:
                 Contains all ones (not meaningful predictions)
             """
             assert x.shape[1] == 4, f"Expected 4 channels (one-hot), got {x.shape[1]}"
-            assert x.shape[2] == self.seq_length, \
-                f"Expected sequence length {self.seq_length}, got {x.shape[2]}"
+            assert (
+                x.shape[2] == self.seq_length
+            ), f"Expected sequence length {self.seq_length}, got {x.shape[2]}"
 
             return torch.ones([x.shape[0], self.n_targets, self.n_final_bins])
 
@@ -123,7 +126,7 @@ if TORCH_AVAILABLE:
             """
             x, y = batch
             # Crop target predictions to match model output
-            y = y[:, :, self.crop_bins:-self.crop_bins]
+            y = y[:, :, self.crop_bins : -self.crop_bins]
             y_hat = self(x)
             return nn.functional.mse_loss(y_hat, y)
 
@@ -131,6 +134,7 @@ else:
     # Fallback when PyTorch not available
     class TestModel:
         """TestModel requires PyTorch. Please install with: pip install torch"""
+
         def __init__(self, *args, **kwargs):
             raise ImportError(
                 "TestModel requires PyTorch. Install with: pip install torch\n"
@@ -139,10 +143,10 @@ else:
 
 
 # Make TestModel available at module level
-__all__ = ['TestModel', 'TORCH_AVAILABLE']
+__all__ = ["TestModel", "TORCH_AVAILABLE"]
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     if not TORCH_AVAILABLE:
         print("PyTorch not available. Install with: pip install torch")
         exit(1)

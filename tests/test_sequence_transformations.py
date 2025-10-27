@@ -110,7 +110,6 @@ class TestSequenceTransformations(unittest.TestCase):
     def test_ambiguous_bases(self):
         """Test handling of ambiguous bases."""
         seq = "ACGTN"
-        
 
         encoded = sl.encode_seq(seq)
 

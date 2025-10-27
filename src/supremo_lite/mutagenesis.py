@@ -153,7 +153,14 @@ def get_sm_sequences(chrom, start, end, reference_fasta, encoder=None):
 
 
 def get_sm_subsequences(
-    chrom, anchor, anchor_radius, seq_len, reference_fasta, bed_regions=None, encoder=None
+    chrom,
+    anchor,
+    anchor_radius,
+    seq_len,
+    reference_fasta,
+    bed_regions=None,
+    encoder=None,
+    auto_map_chromosomes=False,
 ):
     """
     Generate sequences with all alternate nucleotides at positions around an anchor
@@ -170,13 +177,20 @@ def get_sm_subsequences(
                     If provided, only positions within BED regions will be mutated.
         encoder: Optional custom encoding function. If provided, should accept a single
                 sequence string and return encoded array with shape (L, 4). Default: None
+        auto_map_chromosomes: Automatically map chromosome names between reference and BED file
+                             when they don't match exactly (e.g., 'chr1' <-> '1', 'chrM' <-> 'MT').
+                             Only applies when bed_regions is provided. Default: False. (default: False)
 
     Returns:
         Tuple of (reference one-hot, alt one-hot tensor, metadata DataFrame)
 
+    Raises:
+        ChromosomeMismatchError: If auto_map_chromosomes=False and chromosome names in BED file
+                                and reference don't match exactly (only when bed_regions is provided)
+
     Note:
-        When bed_regions is provided, chromosome name matching is applied to handle
-        naming differences between the reference and BED file (e.g., 'chr1' vs '1').
+        When bed_regions is provided and auto_map_chromosomes=True, chromosome name matching
+        is applied to handle naming differences between the reference and BED file (e.g., 'chr1' vs '1').
     """
     # Calculate sequence boundaries
     start = anchor - seq_len // 2
@@ -212,7 +226,10 @@ def get_sm_subsequences(
 
         # Use chromosome matching to handle name mismatches
         mapping, unmatched = match_chromosomes_with_report(
-            ref_chroms, bed_chroms, verbose=False
+            ref_chroms,
+            bed_chroms,
+            verbose=False,
+            auto_map_chromosomes=auto_map_chromosomes,
         )
 
         if mapping:

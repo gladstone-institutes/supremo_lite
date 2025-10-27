@@ -1,6 +1,6 @@
 # supremo_lite
 
-A lightweight memory first, model agnostic version of [SuPreMo](https://github.com/ketringjoni/SuPreMo).
+A lightweight memory-first, model-agnostic version of [SuPreMo](https://github.com/ketringjoni/SuPreMo).
 
 ## Key Features
 
@@ -9,7 +9,7 @@ A lightweight memory first, model agnostic version of [SuPreMo](https://github.c
 - ✂️ **PAM Site Analysis**: Identify variants that disrupt CRISPR PAM sites
 - 🧪 **Saturation Mutagenesis**: Systematic single-nucleotide mutations at every position for predictive modeling
 - 🔧 **Memory Efficient**: Chunked processing for large VCF files
-- 🗺️ **Smart Chromosome Matching**: Automatic handling of chromosome naming differences (chr1 ↔ 1, chrM ↔ MT)
+- 🗺️ **Chromosome Matching**: Optional handling of chromosome naming differences (chr1 ↔ 1, chrM ↔ MT) via `auto_map_chromosomes=True`
 - ⚡ **PyTorch Integration**: Automatic tensor support when PyTorch is available
 
 ## Installation
@@ -80,6 +80,13 @@ personal_genome = sl.get_personal_genome(
     encode=True,      # One-hot encoded (or False for strings)
     chunk_size=10000, # Process 10k variants at a time
     verbose=True      # Show progress
+)
+
+# If your VCF uses 'chr1' and reference uses '1', enable chromosome mapping
+personal_genome = sl.get_personal_genome(
+    reference_fn=reference,
+    variants_fn=variants,
+    auto_map_chromosomes=True  # Handle chromosome name differences
 )
 ```
 

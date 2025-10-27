@@ -21,7 +21,7 @@ from .variant_utils import (
     get_vcf_chromosomes,
     read_vcf_chromosome,
     classify_variant_type,
-    parse_vcf_info
+    parse_vcf_info,
 )
 
 # Import chromosome matching utilities
@@ -29,6 +29,7 @@ from .chromosome_utils import (
     normalize_chromosome_name,
     create_chromosome_mapping,
     match_chromosomes_with_report,
+    ChromosomeMismatchError,
 )
 
 # Import personalize functions
@@ -37,7 +38,7 @@ from .personalize import (
     get_alt_sequences,
     get_ref_sequences,
     get_pam_disrupting_alt_sequences,
-    get_alt_ref_sequences
+    get_alt_ref_sequences,
 )
 
 # Import mutagenesis functions

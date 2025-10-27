@@ -74,15 +74,17 @@ except ImportError as e:
     # This should rarely happen since the modules handle their own imports
     # But we provide a graceful fallback
     import warnings
+
     warnings.warn(
         f"Could not import mock models: {e}\n"
         "Mock models require PyTorch. Install with: pip install torch",
-        ImportWarning
+        ImportWarning,
     )
 
     # Create placeholder classes
     class TestModel:
         """TestModel requires PyTorch. Please install with: pip install torch"""
+
         def __init__(self, *args, **kwargs):
             raise ImportError(
                 "TestModel requires PyTorch. Install with: pip install torch\n"
@@ -91,6 +93,7 @@ except ImportError as e:
 
     class TestModel2D:
         """TestModel2D requires PyTorch. Please install with: pip install torch"""
+
         def __init__(self, *args, **kwargs):
             raise ImportError(
                 "TestModel2D requires PyTorch. Install with: pip install torch\n"
@@ -101,7 +104,7 @@ except ImportError as e:
 
 
 __all__ = [
-    'TestModel',
-    'TestModel2D',
-    'TORCH_AVAILABLE',
+    "TestModel",
+    "TestModel2D",
+    "TORCH_AVAILABLE",
 ]

@@ -242,9 +242,10 @@ class TestChromosomeMatchingReport:
         ref_chroms = {"1", "2", "X"}
         vcf_chroms = {"chr1", "chr2", "chr22"}
 
+        # With auto_map_chromosomes=True, should create mapping and warn about unmatched
         with warnings.catch_warnings(record=True) as w:
             mapping, unmatched = match_chromosomes_with_report(
-                ref_chroms, vcf_chroms, verbose=False
+                ref_chroms, vcf_chroms, verbose=False, auto_map_chromosomes=True
             )
 
             # Should generate a warning for unmatched chromosomes
@@ -257,6 +258,59 @@ class TestChromosomeMatchingReport:
 
         assert mapping == expected_mapping
         assert unmatched == expected_unmatched
+
+
+class TestChromosomeMismatchError:
+    """Test ChromosomeMismatchError exception."""
+
+    def test_error_raised_when_auto_map_disabled(self):
+        """Test that ChromosomeMismatchError is raised when chromosomes don't match and auto_map_chromosomes=False."""
+        from supremo_lite.chromosome_utils import ChromosomeMismatchError
+
+        ref_chroms = {"1", "2", "X"}
+        vcf_chroms = {"chr1", "chr2", "chrX"}
+
+        with pytest.raises(ChromosomeMismatchError) as exc_info:
+            match_chromosomes_with_report(
+                ref_chroms, vcf_chroms, verbose=False, auto_map_chromosomes=False
+            )
+
+        # Check error message contains helpful information
+        error_msg = str(exc_info.value)
+        assert "auto_map_chromosomes=True" in error_msg
+        assert "chr1" in error_msg or "chrX" in error_msg
+
+    def test_no_error_when_auto_map_enabled(self):
+        """Test that no error is raised when auto_map_chromosomes=True."""
+        ref_chroms = {"1", "2", "X"}
+        vcf_chroms = {"chr1", "chr2", "chrX"}
+
+        # Should not raise error
+        mapping, unmatched = match_chromosomes_with_report(
+            ref_chroms, vcf_chroms, verbose=False, auto_map_chromosomes=True
+        )
+
+        # Should successfully create mapping
+        assert len(mapping) == 3
+        assert mapping["chr1"] == "1"
+        assert mapping["chr2"] == "2"
+        assert mapping["chrX"] == "X"
+
+    def test_no_error_when_chromosomes_match_exactly(self):
+        """Test that no error is raised when chromosome names match exactly."""
+        ref_chroms = {"1", "2", "X"}
+        vcf_chroms = {"1", "2", "X"}
+
+        # Should not raise error even with auto_map_chromosomes=False
+        mapping, unmatched = match_chromosomes_with_report(
+            ref_chroms, vcf_chroms, verbose=False, auto_map_chromosomes=False
+        )
+
+        # Should create identity mapping
+        assert len(mapping) == 3
+        assert mapping["1"] == "1"
+        assert mapping["2"] == "2"
+        assert mapping["X"] == "X"
 
 
 class TestIntegrationWithPersonalizeFunctions:
@@ -299,9 +353,12 @@ class TestIntegrationWithPersonalizeFunctions:
         """Test get_personal_genome handles chromosome name mismatches."""
         reference, variants_df = self.create_test_reference_and_variants()
 
-        # Should work despite chromosome name mismatch
+        # Should work with auto_map_chromosomes=True
         result = sl.get_personal_genome(
-            reference_fn=reference, variants_fn=variants_df, encode=False
+            reference_fn=reference,
+            variants_fn=variants_df,
+            encode=False,
+            auto_map_chromosomes=True,
         )
 
         # Should have all reference chromosomes
@@ -320,7 +377,7 @@ class TestIntegrationWithPersonalizeFunctions:
         """Test get_alt_sequences handles chromosome name mismatches."""
         reference, variants_df = self.create_test_reference_and_variants()
 
-        # Should work despite chromosome name mismatch
+        # Should work with auto_map_chromosomes=True
         results = list(
             sl.get_alt_sequences(
                 reference_fn=reference,
@@ -328,19 +385,20 @@ class TestIntegrationWithPersonalizeFunctions:
                 seq_len=50,
                 encode=False,
                 n_chunks=2,
+                auto_map_chromosomes=True,
             )
         )
 
         # Should process all 4 variants in 2 chunks
         assert len(results) == 2
-        
+
         # Unpack tuples (sequences, metadata) for each chunk
         sequences_1, metadata_1 = results[0]
         sequences_2, metadata_2 = results[1]
-        
+
         assert len(sequences_1) == 2  # First chunk: 2 variants
         assert len(sequences_2) == 2  # Second chunk: 2 variants
-        
+
         # Verify metadata for each chunk
         assert len(metadata_1) == 2  # 2 variants in first chunk
         assert len(metadata_2) == 2  # 2 variants in second chunk
@@ -388,6 +446,7 @@ class TestIntegrationWithPersonalizeFunctions:
             max_pam_distance=10,
             pam_sequence="NGG",
             encode=False,
+            auto_map_chromosomes=True,
         )
 
         # Should find PAM-disrupting variants
@@ -410,13 +469,13 @@ class TestIntegrationWithPersonalizeFunctions:
             }
         )
 
-        # Should still run but produce genome without variants applied
-        result = sl.get_personal_genome(
-            reference_fn=reference, variants_fn=variants_df, encode=False
-        )
+        # Should raise ChromosomeMismatchError when auto_map_chromosomes=False (default)
+        from supremo_lite.chromosome_utils import ChromosomeMismatchError
 
-        # Should have reference chromosomes unchanged
-        assert result == reference
+        with pytest.raises(ChromosomeMismatchError):
+            sl.get_personal_genome(
+                reference_fn=reference, variants_fn=variants_df, encode=False
+            )
 
     def test_complex_chromosome_scenarios(self):
         """Test complex real-world chromosome naming scenarios."""
@@ -439,7 +498,10 @@ class TestIntegrationWithPersonalizeFunctions:
         )
 
         result = sl.get_personal_genome(
-            reference_fn=reference, variants_fn=variants_df, encode=False
+            reference_fn=reference,
+            variants_fn=variants_df,
+            encode=False,
+            auto_map_chromosomes=True,
         )
 
         # All chromosomes should be processed

@@ -30,13 +30,15 @@ class TestPAMINDELFormation:
 
         # Delete "GA" at position 9-10 (1-based), which brings together N + GG
         # VCF format: POS=8, REF=anchor+'GA', ALT=anchor only
-        variants = pd.DataFrame({
-            "chrom": ["chr1"],
-            "pos": [8],  # 1-based position (anchor base)
-            "id": ["."],
-            "ref": ["NGA"],  # Anchor 'N' + deleted 'GA'
-            "alt": ["N"],  # Just the anchor base
-        })
+        variants = pd.DataFrame(
+            {
+                "chrom": ["chr1"],
+                "pos": [8],  # 1-based position (anchor base)
+                "id": ["."],
+                "ref": ["NGA"],  # Anchor 'N' + deleted 'GA'
+                "alt": ["N"],  # Just the anchor base
+            }
+        )
 
         result = sl.get_pam_disrupting_alt_sequences(
             reference_fn=reference,
@@ -48,7 +50,9 @@ class TestPAMINDELFormation:
         )
 
         # Should return empty - the deletion creates a PAM, doesn't disrupt one
-        assert len(result["variants"]) == 0, "Deletion creating new PAM should not be scored as disrupting"
+        assert (
+            len(result["variants"]) == 0
+        ), "Deletion creating new PAM should not be scored as disrupting"
         assert len(result["pam_intact"]) == 0
         assert len(result["pam_disrupted"]) == 0
 
@@ -61,13 +65,15 @@ class TestPAMINDELFormation:
 
         # Insert "NGG" after position 5
         # VCF format: POS=5, REF=anchor, ALT=anchor+'NGG'
-        variants = pd.DataFrame({
-            "chrom": ["chr1"],
-            "pos": [5],  # 1-based position (anchor base)
-            "id": ["."],
-            "ref": ["A"],  # Anchor base at position 5
-            "alt": ["ANGG"],  # Anchor + inserted 'NGG'
-        })
+        variants = pd.DataFrame(
+            {
+                "chrom": ["chr1"],
+                "pos": [5],  # 1-based position (anchor base)
+                "id": ["."],
+                "ref": ["A"],  # Anchor base at position 5
+                "alt": ["ANGG"],  # Anchor + inserted 'NGG'
+            }
+        )
 
         result = sl.get_pam_disrupting_alt_sequences(
             reference_fn=reference,
@@ -79,7 +85,9 @@ class TestPAMINDELFormation:
         )
 
         # Should return empty - insertion creates a PAM
-        assert len(result["variants"]) == 0, "Insertion creating new PAM should not be scored as disrupting"
+        assert (
+            len(result["variants"]) == 0
+        ), "Insertion creating new PAM should not be scored as disrupting"
 
     def test_deletion_genuinely_disrupts_pam(self):
         """Test that a deletion that actually removes part of a PAM IS scored as disrupting."""
@@ -90,13 +98,15 @@ class TestPAMINDELFormation:
 
         # Delete "GG" from the NGG PAM
         # VCF format: POS=4, REF=anchor+'GG', ALT=anchor only
-        variants = pd.DataFrame({
-            "chrom": ["chr1"],
-            "pos": [4],  # 1-based position (anchor base 'N')
-            "id": ["."],
-            "ref": ["NGG"],  # Anchor 'N' + deleted 'GG'
-            "alt": ["N"],  # Just the anchor base
-        })
+        variants = pd.DataFrame(
+            {
+                "chrom": ["chr1"],
+                "pos": [4],  # 1-based position (anchor base 'N')
+                "id": ["."],
+                "ref": ["NGG"],  # Anchor 'N' + deleted 'GG'
+                "alt": ["N"],  # Just the anchor base
+            }
+        )
 
         result = sl.get_pam_disrupting_alt_sequences(
             reference_fn=reference,
@@ -108,7 +118,9 @@ class TestPAMINDELFormation:
         )
 
         # Should find this as PAM-disrupting
-        assert len(result["variants"]) == 1, "Deletion removing PAM should be scored as disrupting"
+        assert (
+            len(result["variants"]) == 1
+        ), "Deletion removing PAM should be scored as disrupting"
         assert len(result["pam_intact"]) == 1
         assert len(result["pam_disrupted"]) == 1
 
@@ -120,13 +132,15 @@ class TestPAMINDELFormation:
         reference = {"chr1": "ATCNGGCATCGATCGATCG" * 5}
 
         # Substitute the first G in NGG with A
-        variants = pd.DataFrame({
-            "chrom": ["chr1"],
-            "pos": [5],  # 1-based position
-            "id": ["."],
-            "ref": ["G"],
-            "alt": ["A"],  # SNV disrupting PAM
-        })
+        variants = pd.DataFrame(
+            {
+                "chrom": ["chr1"],
+                "pos": [5],  # 1-based position
+                "id": ["."],
+                "ref": ["G"],
+                "alt": ["A"],  # SNV disrupting PAM
+            }
+        )
 
         result = sl.get_pam_disrupting_alt_sequences(
             reference_fn=reference,
@@ -151,13 +165,15 @@ class TestPAMINDELFormation:
 
         # Delete "GA" before the PAM, which shifts its position
         # VCF format: POS=3, REF=anchor+'GA', ALT=anchor only
-        variants = pd.DataFrame({
-            "chrom": ["chr1"],
-            "pos": [3],  # 1-based (anchor base 'C')
-            "id": ["."],
-            "ref": ["CGA"],  # Anchor 'C' + deleted 'GA'
-            "alt": ["C"],  # Just the anchor base
-        })
+        variants = pd.DataFrame(
+            {
+                "chrom": ["chr1"],
+                "pos": [3],  # 1-based (anchor base 'C')
+                "id": ["."],
+                "ref": ["CGA"],  # Anchor 'C' + deleted 'GA'
+                "alt": ["C"],  # Just the anchor base
+            }
+        )
 
         result = sl.get_pam_disrupting_alt_sequences(
             reference_fn=reference,
@@ -169,7 +185,9 @@ class TestPAMINDELFormation:
         )
 
         # Should return empty - PAM still exists, just shifted
-        assert len(result["variants"]) == 0, "Deletion that shifts but preserves PAM should not be scored as disrupting"
+        assert (
+            len(result["variants"]) == 0
+        ), "Deletion that shifts but preserves PAM should not be scored as disrupting"
 
     def test_insertion_shifts_pam_but_preserves_it(self):
         """Test insertion that shifts PAM position but doesn't destroy it."""
@@ -180,13 +198,15 @@ class TestPAMINDELFormation:
 
         # Insert "TA" before the PAM
         # VCF format: POS=4, REF=anchor, ALT=anchor+'TA'
-        variants = pd.DataFrame({
-            "chrom": ["chr1"],
-            "pos": [4],  # 1-based (anchor base 'G')
-            "id": ["."],
-            "ref": ["G"],  # Anchor base at position 4
-            "alt": ["GTA"],  # Anchor + inserted 'TA'
-        })
+        variants = pd.DataFrame(
+            {
+                "chrom": ["chr1"],
+                "pos": [4],  # 1-based (anchor base 'G')
+                "id": ["."],
+                "ref": ["G"],  # Anchor base at position 4
+                "alt": ["GTA"],  # Anchor + inserted 'TA'
+            }
+        )
 
         result = sl.get_pam_disrupting_alt_sequences(
             reference_fn=reference,
@@ -198,7 +218,9 @@ class TestPAMINDELFormation:
         )
 
         # Should return empty - PAM still exists, just shifted
-        assert len(result["variants"]) == 0, "Insertion that shifts but preserves PAM should not be scored as disrupting"
+        assert (
+            len(result["variants"]) == 0
+        ), "Insertion that shifts but preserves PAM should not be scored as disrupting"
 
     def test_complex_scenario_multiple_pams(self):
         """Test complex scenario with multiple PAMs and mixed behaviors."""
@@ -214,13 +236,15 @@ class TestPAMINDELFormation:
         reference = {"chr1": "".join(base_seq)}
 
         # Delete the first G from the first NGG (position 11-11, 1-based: 12)
-        variants = pd.DataFrame({
-            "chrom": ["chr1"],
-            "pos": [12],  # 1-based (11 in 0-based)
-            "id": ["."],
-            "ref": ["G"],
-            "alt": ["-"],
-        })
+        variants = pd.DataFrame(
+            {
+                "chrom": ["chr1"],
+                "pos": [12],  # 1-based (11 in 0-based)
+                "id": ["."],
+                "ref": ["G"],
+                "alt": ["-"],
+            }
+        )
 
         result = sl.get_pam_disrupting_alt_sequences(
             reference_fn=reference,
@@ -246,13 +270,15 @@ class TestPAMINDELFormation:
         reference = {"chr1": "ATCTTATATCGATCGATCG" * 5}  # TTAT, not TTTN yet
 
         # Delete "A" at position 6 to create TTTTATCG (which contains TTTT, matches TTTN)
-        variants = pd.DataFrame({
-            "chrom": ["chr1"],
-            "pos": [6],  # 1-based
-            "id": ["."],
-            "ref": ["A"],
-            "alt": ["-"],
-        })
+        variants = pd.DataFrame(
+            {
+                "chrom": ["chr1"],
+                "pos": [6],  # 1-based
+                "id": ["."],
+                "ref": ["A"],
+                "alt": ["-"],
+            }
+        )
 
         result = sl.get_pam_disrupting_alt_sequences(
             reference_fn=reference,
@@ -267,7 +293,6 @@ class TestPAMINDELFormation:
         # If no TTTN exists in reference near the variant, should return empty
         # This test validates that new PAM formation is handled correctly
 
-
     def test_edge_case_pam_at_variant_position(self):
         """Test when variant is exactly at PAM position."""
         # Reference: ...ATCNGGCATCG... (NGG at 4-6, 0-based: 3-5)
@@ -277,13 +302,15 @@ class TestPAMINDELFormation:
         reference = {"chr1": "ATCNGGCATCGATCGATCG" * 5}
 
         # Substitute N->A (both match the N in NGG pattern)
-        variants = pd.DataFrame({
-            "chrom": ["chr1"],
-            "pos": [4],  # 1-based, the N in NGG
-            "id": ["."],
-            "ref": ["N"],
-            "alt": ["A"],
-        })
+        variants = pd.DataFrame(
+            {
+                "chrom": ["chr1"],
+                "pos": [4],  # 1-based, the N in NGG
+                "id": ["."],
+                "ref": ["N"],
+                "alt": ["A"],
+            }
+        )
 
         result = sl.get_pam_disrupting_alt_sequences(
             reference_fn=reference,
@@ -296,7 +323,9 @@ class TestPAMINDELFormation:
 
         # Since both N and A match the pattern "N", PAM should be preserved
         # Result depends on exact matching logic
-        assert len(result["variants"]) == 0, "Variant maintaining PAM pattern should not disrupt"
+        assert (
+            len(result["variants"]) == 0
+        ), "Variant maintaining PAM pattern should not disrupt"
 
 
 if __name__ == "__main__":

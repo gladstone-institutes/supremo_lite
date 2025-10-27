@@ -13,7 +13,7 @@ from supremo_lite.mock_models import TestModel, TestModel2D
 from supremo_lite.prediction_alignment import (
     align_predictions_by_coordinate,
     vector_to_contact_matrix,
-    contact_matrix_to_vector
+    contact_matrix_to_vector,
 )
 
 
@@ -34,20 +34,16 @@ def test_1d_score_alignment():
 
     # Initialize model
     model = TestModel(
-        seq_length=seq_len,
-        n_targets=1,
-        bin_length=bin_size,
-        crop_length=crop_length
+        seq_length=seq_len, n_targets=1, bin_length=bin_size, crop_length=crop_length
     )
 
     # Test SNV alignment
     print("\n  Testing SNV alignment...")
-    results = list(sl.get_alt_ref_sequences(
-        reference_fn=reference_fa,
-        variants_fn=snp_vcf,
-        seq_len=seq_len,
-        encode=True
-    ))
+    results = list(
+        sl.get_alt_ref_sequences(
+            reference_fn=reference_fa, variants_fn=snp_vcf, seq_len=seq_len, encode=True
+        )
+    )
 
     ref_seqs, alt_seqs, metadata = results[0]
 
@@ -64,8 +60,11 @@ def test_1d_score_alignment():
 
     # Align predictions
     aligned_ref, aligned_alt = align_predictions_by_coordinate(
-        ref_preds[0, 0], alt_preds[0, 0], var_metadata,
-        bin_size=bin_size, prediction_type="1D"
+        ref_preds[0, 0],
+        alt_preds[0, 0],
+        var_metadata,
+        bin_size=bin_size,
+        prediction_type="1D",
     )
 
     # Verify outputs are tensors
@@ -79,12 +78,11 @@ def test_1d_score_alignment():
 
     # Test insertion alignment
     print("\n  Testing insertion alignment...")
-    results = list(sl.get_alt_ref_sequences(
-        reference_fn=reference_fa,
-        variants_fn=ins_vcf,
-        seq_len=seq_len,
-        encode=True
-    ))
+    results = list(
+        sl.get_alt_ref_sequences(
+            reference_fn=reference_fa, variants_fn=ins_vcf, seq_len=seq_len, encode=True
+        )
+    )
 
     ref_seqs, alt_seqs, metadata = results[0]
 
@@ -97,8 +95,11 @@ def test_1d_score_alignment():
     var_metadata = metadata.iloc[0].to_dict()
 
     aligned_ref_ins, aligned_alt_ins = align_predictions_by_coordinate(
-        ref_preds[0, 0], alt_preds[0, 0], var_metadata,
-        bin_size=bin_size, prediction_type="1D"
+        ref_preds[0, 0],
+        alt_preds[0, 0],
+        var_metadata,
+        bin_size=bin_size,
+        prediction_type="1D",
     )
 
     # Verify output types
@@ -119,11 +120,7 @@ def test_contact_map_utilities():
     # Verify output type
     assert isinstance(matrix, torch.Tensor), "Output should be tensor"
 
-    expected_matrix = torch.tensor([
-        [1.0, 2.0, 3.0],
-        [2.0, 4.0, 5.0],
-        [3.0, 5.0, 6.0]
-    ])
+    expected_matrix = torch.tensor([[1.0, 2.0, 3.0], [2.0, 4.0, 5.0], [3.0, 5.0, 6.0]])
 
     assert torch.allclose(matrix, expected_matrix), "Vector to matrix conversion failed"
     print("  ✓ Vector to matrix conversion test passed")
@@ -132,7 +129,9 @@ def test_contact_map_utilities():
     recovered_vector = contact_matrix_to_vector(matrix)
     assert isinstance(recovered_vector, torch.Tensor), "Output should be tensor"
 
-    assert torch.allclose(vector, recovered_vector), "Matrix to vector conversion failed"
+    assert torch.allclose(
+        vector, recovered_vector
+    ), "Matrix to vector conversion failed"
     print("  ✓ Matrix to vector conversion test passed")
 
 
@@ -156,10 +155,7 @@ def test_contact_map_alignment():
 
     # Initialize 2D model
     model = TestModel2D(
-        seq_length=seq_len,
-        n_targets=1,
-        bin_length=bin_size,
-        crop_length=crop_length
+        seq_length=seq_len, n_targets=1, bin_length=bin_size, crop_length=crop_length
     )
 
     # Calculate matrix size
@@ -170,12 +166,11 @@ def test_contact_map_alignment():
 
     # Test SNV alignment
     print("\n  Testing SNV contact map alignment...")
-    results = list(sl.get_alt_ref_sequences(
-        reference_fn=reference_fa,
-        variants_fn=snp_vcf,
-        seq_len=seq_len,
-        encode=True
-    ))
+    results = list(
+        sl.get_alt_ref_sequences(
+            reference_fn=reference_fa, variants_fn=snp_vcf, seq_len=seq_len, encode=True
+        )
+    )
 
     ref_seqs, alt_seqs, metadata = results[0]
 
@@ -188,9 +183,13 @@ def test_contact_map_alignment():
     var_metadata = metadata.iloc[0].to_dict()
 
     aligned_ref, aligned_alt = align_predictions_by_coordinate(
-        ref_preds[0, 0], alt_preds[0, 0], var_metadata,
+        ref_preds[0, 0],
+        alt_preds[0, 0],
+        var_metadata,
         bin_size=bin_size,
-        prediction_type="2D", matrix_size=matrix_size, diag_offset=diag_offset
+        prediction_type="2D",
+        matrix_size=matrix_size,
+        diag_offset=diag_offset,
     )
 
     # For SNV, shapes should match and be 2D (full contact matrix)
@@ -202,12 +201,11 @@ def test_contact_map_alignment():
 
     # Test insertion alignment
     print("\n  Testing insertion contact map alignment...")
-    results = list(sl.get_alt_ref_sequences(
-        reference_fn=reference_fa,
-        variants_fn=ins_vcf,
-        seq_len=seq_len,
-        encode=True
-    ))
+    results = list(
+        sl.get_alt_ref_sequences(
+            reference_fn=reference_fa, variants_fn=ins_vcf, seq_len=seq_len, encode=True
+        )
+    )
 
     ref_seqs, alt_seqs, metadata = results[0]
 
@@ -220,12 +218,18 @@ def test_contact_map_alignment():
     var_metadata = metadata.iloc[0].to_dict()
 
     aligned_ref, aligned_alt = align_predictions_by_coordinate(
-        ref_preds[0, 0], alt_preds[0, 0], var_metadata,
+        ref_preds[0, 0],
+        alt_preds[0, 0],
+        var_metadata,
         bin_size=bin_size,
-        prediction_type="2D", matrix_size=matrix_size, diag_offset=diag_offset
+        prediction_type="2D",
+        matrix_size=matrix_size,
+        diag_offset=diag_offset,
     )
 
-    print(f"  INS aligned contact map shapes: ref={aligned_ref.shape}, alt={aligned_alt.shape}")
+    print(
+        f"  INS aligned contact map shapes: ref={aligned_ref.shape}, alt={aligned_alt.shape}"
+    )
     assert aligned_ref.shape == aligned_alt.shape, "Shapes should match after alignment"
     assert aligned_ref.ndim == 2, "Should be 2D matrix (full contact map)"
     assert aligned_alt.ndim == 2, "Should be 2D matrix (full contact map)"
@@ -233,12 +237,11 @@ def test_contact_map_alignment():
 
     # Test deletion alignment
     print("\n  Testing deletion contact map alignment...")
-    results = list(sl.get_alt_ref_sequences(
-        reference_fn=reference_fa,
-        variants_fn=del_vcf,
-        seq_len=seq_len,
-        encode=True
-    ))
+    results = list(
+        sl.get_alt_ref_sequences(
+            reference_fn=reference_fa, variants_fn=del_vcf, seq_len=seq_len, encode=True
+        )
+    )
 
     ref_seqs, alt_seqs, metadata = results[0]
 
@@ -251,12 +254,18 @@ def test_contact_map_alignment():
     var_metadata = metadata.iloc[0].to_dict()
 
     aligned_ref, aligned_alt = align_predictions_by_coordinate(
-        ref_preds[0, 0], alt_preds[0, 0], var_metadata,
+        ref_preds[0, 0],
+        alt_preds[0, 0],
+        var_metadata,
         bin_size=bin_size,
-        prediction_type="2D", matrix_size=matrix_size, diag_offset=diag_offset
+        prediction_type="2D",
+        matrix_size=matrix_size,
+        diag_offset=diag_offset,
     )
 
-    print(f"  DEL aligned contact map shapes: ref={aligned_ref.shape}, alt={aligned_alt.shape}")
+    print(
+        f"  DEL aligned contact map shapes: ref={aligned_ref.shape}, alt={aligned_alt.shape}"
+    )
     assert aligned_ref.shape == aligned_alt.shape, "Shapes should match after alignment"
     assert aligned_ref.ndim == 2, "Should be 2D matrix (full contact map)"
     assert aligned_alt.ndim == 2, "Should be 2D matrix (full contact map)"
@@ -269,13 +278,12 @@ def test_error_handling():
 
     ref_preds = torch.tensor([1.0, 2.0, 3.0, 4.0])
     alt_preds = torch.tensor([1.0, 2.0, 3.0, 4.0])
-    metadata = {'variant_type': 'SNV'}
+    metadata = {"variant_type": "SNV"}
 
     # Test invalid prediction type
     try:
         align_predictions_by_coordinate(
-            ref_preds, alt_preds, metadata,
-            bin_size=32, prediction_type="invalid"
+            ref_preds, alt_preds, metadata, bin_size=32, prediction_type="invalid"
         )
         assert False, "Should have raised ValueError for invalid prediction type"
     except ValueError as e:
@@ -284,8 +292,7 @@ def test_error_handling():
     # Test missing matrix_size for 2D
     try:
         align_predictions_by_coordinate(
-            ref_preds, alt_preds, metadata,
-            bin_size=32, prediction_type="2D"
+            ref_preds, alt_preds, metadata, bin_size=32, prediction_type="2D"
         )
         assert False, "Should have raised ValueError for missing matrix_size"
     except ValueError as e:
@@ -296,15 +303,19 @@ def test_error_handling():
     ref_contact_test = torch.tensor([1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
     alt_contact_test = torch.tensor([1.1, 2.1, 3.1, 4.1, 5.1, 6.1])
     metadata_contact = {
-        'variant_type': 'SNV',
-        'window_start': 0,
-        'variant_pos0': 50,
-        'svlen': 0
+        "variant_type": "SNV",
+        "window_start": 0,
+        "variant_pos0": 50,
+        "svlen": 0,
     }
     try:
         aligned_ref, aligned_alt = align_predictions_by_coordinate(
-            ref_contact_test, alt_contact_test, metadata_contact,
-            bin_size=32, prediction_type="2D", matrix_size=3
+            ref_contact_test,
+            alt_contact_test,
+            metadata_contact,
+            bin_size=32,
+            prediction_type="2D",
+            matrix_size=3,
             # diag_offset not specified, should default to 0
         )
         print("  ✓ 2D alignment works without diag_offset (defaults to 0)")
@@ -317,16 +328,20 @@ def test_error_handling():
     ref_contact_test_matrix = torch.ones((3, 3))
     alt_contact_test_matrix = torch.ones((3, 3)) * 1.1
     metadata_unsupported = {
-        'variant_type': 'BND',
-        'window_start': 0,
-        'variant_pos0': 50,
-        'svlen': 0
+        "variant_type": "BND",
+        "window_start": 0,
+        "variant_pos0": 50,
+        "svlen": 0,
     }
     try:
         align_predictions_by_coordinate(
-            ref_contact_test_matrix, alt_contact_test_matrix, metadata_unsupported,
+            ref_contact_test_matrix,
+            alt_contact_test_matrix,
+            metadata_unsupported,
             bin_size=32,
-            prediction_type="2D", matrix_size=3, diag_offset=0
+            prediction_type="2D",
+            matrix_size=3,
+            diag_offset=0,
         )
         assert False, "Should have raised ValueError for unsupported variant type"
     except ValueError as e:
@@ -349,5 +364,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n❌ Test failed with error: {e}")
         import traceback
+
         traceback.print_exc()
         exit(1)

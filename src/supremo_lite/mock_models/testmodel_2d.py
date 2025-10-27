@@ -29,6 +29,7 @@ Example:
 try:
     import torch
     import torch.nn as nn
+
     TORCH_AVAILABLE = True
 except ImportError:
     TORCH_AVAILABLE = False
@@ -37,6 +38,7 @@ except ImportError:
 
 
 if TORCH_AVAILABLE:
+
     class TestModel2D(nn.Module):
         """
         Mock 2D genomic prediction model (e.g., for contact maps).
@@ -114,8 +116,9 @@ if TORCH_AVAILABLE:
                 Contains all ones (not meaningful predictions)
             """
             assert x.shape[1] == 4, f"Expected 4 channels (one-hot), got {x.shape[1]}"
-            assert x.shape[2] == self.seq_length, \
-                f"Expected sequence length {self.seq_length}, got {x.shape[2]}"
+            assert (
+                x.shape[2] == self.seq_length
+            ), f"Expected sequence length {self.seq_length}, got {x.shape[2]}"
 
             # Create placeholder (N, N) contact matrix
             y_hat = torch.ones(
@@ -123,7 +126,9 @@ if TORCH_AVAILABLE:
             )
 
             # Crop bins from all edges to focus loss function
-            y_hat = y_hat[:, :, self.crop_bins:-self.crop_bins, self.crop_bins:-self.crop_bins]
+            y_hat = y_hat[
+                :, :, self.crop_bins : -self.crop_bins, self.crop_bins : -self.crop_bins
+            ]
 
             # Return full contact matrix
             return y_hat
@@ -143,6 +148,7 @@ else:
     # Fallback when PyTorch not available
     class TestModel2D:
         """TestModel2D requires PyTorch. Please install with: pip install torch"""
+
         def __init__(self, *args, **kwargs):
             raise ImportError(
                 "TestModel2D requires PyTorch. Install with: pip install torch\n"
@@ -151,10 +157,10 @@ else:
 
 
 # Make TestModel2D available at module level
-__all__ = ['TestModel2D', 'TORCH_AVAILABLE']
+__all__ = ["TestModel2D", "TORCH_AVAILABLE"]
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     if not TORCH_AVAILABLE:
         print("PyTorch not available. Install with: pip install torch")
         exit(1)
@@ -191,5 +197,7 @@ if __name__ == '__main__':
 
     print(f"\nInput shape: {x.shape}")
     print(f"Output shape: {y_hat.shape}")
-    print(f"  (batch_size={batch_size}, n_targets={n_targets}, n_final_bins={n_final_bins})")
+    print(
+        f"  (batch_size={batch_size}, n_targets={n_targets}, n_final_bins={n_final_bins})"
+    )
     print("✓ Model test passed!")

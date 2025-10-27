@@ -35,7 +35,9 @@ class ChromosomeOffsetTracker:
 
     def __init__(self):
         """Initialize empty offset tracker."""
-        self.chromosome_offsets: Dict[str, List[Tuple[int, int]]] = {}  # chrom -> [(pos, cumulative_offset)]
+        self.chromosome_offsets: Dict[str, List[Tuple[int, int]]] = (
+            {}
+        )  # chrom -> [(pos, cumulative_offset)]
 
     def add_offset(self, chrom: str, pos: int, offset: int) -> None:
         """
@@ -117,13 +119,13 @@ class ChromosomeOffsetTracker:
 
 class SequenceSegment(NamedTuple):
     """Represents a segment within a sequence with its source and position."""
+
     source_type: str  # 'reference', 'novel', 'rc_reference'
     source_chrom: str  # chromosome name or 'NOVEL'
     start_pos: int  # start position in the final sequence
     end_pos: int  # end position in the final sequence
     length: int  # segment length
     orientation: str  # 'forward', 'reverse', 'novel'
-
 
 
 class FrozenRegionTracker:
@@ -196,6 +198,7 @@ class FrozenRegionTracker:
         del self.intervals[left_idx:right_idx]
         self.intervals.insert(left_idx, (start, end))
 
+
 class ChromosomeSegmentTracker:
     """Track which segments of each chromosome are used by fusions."""
 
@@ -208,7 +211,9 @@ class ChromosomeSegmentTracker:
         if chrom in self.used_segments:
             self.used_segments[chrom].append((start, end))
             if verbose:
-                print(f"   🔍 Tracking used segment: {chrom}[{start}:{end}] = {end-start}bp")
+                print(
+                    f"   🔍 Tracking used segment: {chrom}[{start}:{end}] = {end-start}bp"
+                )
 
     def get_leftover_sequences(self, verbose: bool = False) -> Dict[str, str]:
         """Calculate leftover sequences not used by any fusion."""
@@ -237,7 +242,7 @@ class ChromosomeSegmentTracker:
 
             # Combine leftover parts
             if leftover_parts:
-                leftover_seq = ''.join(leftover_parts)
+                leftover_seq = "".join(leftover_parts)
                 if leftover_seq:  # Only add non-empty leftovers
                     leftover_sequences[chrom] = leftover_seq
                     if verbose:
@@ -254,7 +259,14 @@ class VariantApplicator:
     and sequence modifications for SNVs, insertions, and deletions.
     """
 
-    def __init__(self, sequence_str: str, variants_df: pd.DataFrame, frozen_tracker: FrozenRegionTracker = None, offset_tracker: ChromosomeOffsetTracker = None, chrom: str = None):
+    def __init__(
+        self,
+        sequence_str: str,
+        variants_df: pd.DataFrame,
+        frozen_tracker: FrozenRegionTracker = None,
+        offset_tracker: ChromosomeOffsetTracker = None,
+        chrom: str = None,
+    ):
         """
         Initialize variant applicator for a single chromosome.
 
@@ -267,13 +279,17 @@ class VariantApplicator:
         """
         self.sequence = bytearray(sequence_str.encode())  # Mutable sequence
         self.variants = variants_df.sort_values("pos1").reset_index(drop=True)
-        self.frozen_tracker = frozen_tracker if frozen_tracker is not None else FrozenRegionTracker()
+        self.frozen_tracker = (
+            frozen_tracker if frozen_tracker is not None else FrozenRegionTracker()
+        )
         self.offset_tracker = offset_tracker
         self.chrom = chrom
         self.cumulative_offset = 0  # Track length changes from applied variants
         self.applied_count = 0
         self.skipped_count = 0
-        self.skipped_variants = []  # List of (vcf_line, chrom, pos1, ref, alt, reason) tuples
+        self.skipped_variants = (
+            []
+        )  # List of (vcf_line, chrom, pos1, ref, alt, reason) tuples
 
     def apply_variants(self) -> Tuple[str, Dict[str, int]]:
         """
@@ -287,13 +303,24 @@ class VariantApplicator:
                 self._apply_single_variant(variant)
             except Exception as e:
                 # Extract concise error message and context
-                vcf_line = variant.get('vcf_line', '?')
-                chrom = variant.get('chrom', self.chrom)
-                error_msg = str(e).split(':')[0] if ':' in str(e) else str(e)
-                warnings.warn(f"Skipped variant at {chrom}:{variant.pos1} (VCF line {vcf_line}): {error_msg}")
+                vcf_line = variant.get("vcf_line", "?")
+                chrom = variant.get("chrom", self.chrom)
+                error_msg = str(e).split(":")[0] if ":" in str(e) else str(e)
+                warnings.warn(
+                    f"Skipped variant at {chrom}:{variant.pos1} (VCF line {vcf_line}): {error_msg}"
+                )
                 self.skipped_count += 1
                 # Record skip details for reporting
-                self.skipped_variants.append((vcf_line, chrom, variant.pos1, variant.ref, variant.alt, 'validation_error'))
+                self.skipped_variants.append(
+                    (
+                        vcf_line,
+                        chrom,
+                        variant.pos1,
+                        variant.ref,
+                        variant.alt,
+                        "validation_error",
+                    )
+                )
 
         stats = {
             "applied": self.applied_count,
@@ -370,40 +397,94 @@ class VariantApplicator:
             variant: Series containing variant information (pos, ref, alt, variant_type)
         """
         # 1. VARIANT TYPE VALIDATION
-        variant_type = variant.get('variant_type', 'unknown')
-        
+        variant_type = variant.get("variant_type", "unknown")
+
         # Define supported variant types for standard variant processing
-        supported_types = {'SNV', 'MNV', 'INS', 'DEL', 'complex', 'SV_DUP', 'SV_INV', 'SV_BND_DUP', 'SV_BND_INV'}
+        supported_types = {
+            "SNV",
+            "MNV",
+            "INS",
+            "DEL",
+            "complex",
+            "SV_DUP",
+            "SV_INV",
+            "SV_BND_DUP",
+            "SV_BND_INV",
+        }
 
         # Handle variants that should be processed elsewhere or are unsupported
-        vcf_line = variant.get('vcf_line', '?')
-        chrom = variant.get('chrom', self.chrom)
+        vcf_line = variant.get("vcf_line", "?")
+        chrom = variant.get("chrom", self.chrom)
 
-        if variant_type in ['SV_BND']:
-            warnings.warn(f"Skipped variant at {chrom}:{variant.pos1} (VCF line {vcf_line}): type '{variant_type}' not supported")
+        if variant_type in ["SV_BND"]:
+            warnings.warn(
+                f"Skipped variant at {chrom}:{variant.pos1} (VCF line {vcf_line}): type '{variant_type}' not supported"
+            )
             self.skipped_count += 1
-            self.skipped_variants.append((vcf_line, chrom, variant.pos1, variant.ref, variant.alt, 'unsupported_type'))
+            self.skipped_variants.append(
+                (
+                    vcf_line,
+                    chrom,
+                    variant.pos1,
+                    variant.ref,
+                    variant.alt,
+                    "unsupported_type",
+                )
+            )
             return
-        elif variant_type in {'SV_DEL', 'SV_INS', 'SV_CNV'}:
-            warnings.warn(f"Skipped variant at {chrom}:{variant.pos1} (VCF line {vcf_line}): type '{variant_type}' not supported")
+        elif variant_type in {"SV_DEL", "SV_INS", "SV_CNV"}:
+            warnings.warn(
+                f"Skipped variant at {chrom}:{variant.pos1} (VCF line {vcf_line}): type '{variant_type}' not supported"
+            )
             self.skipped_count += 1
-            self.skipped_variants.append((vcf_line, chrom, variant.pos1, variant.ref, variant.alt, 'unsupported_type'))
+            self.skipped_variants.append(
+                (
+                    vcf_line,
+                    chrom,
+                    variant.pos1,
+                    variant.ref,
+                    variant.alt,
+                    "unsupported_type",
+                )
+            )
             return
-        elif variant_type in {'missing', 'unknown'}:
-            warnings.warn(f"Skipped variant at {chrom}:{variant.pos1} (VCF line {vcf_line}): type '{variant_type}' not supported")
+        elif variant_type in {"missing", "unknown"}:
+            warnings.warn(
+                f"Skipped variant at {chrom}:{variant.pos1} (VCF line {vcf_line}): type '{variant_type}' not supported"
+            )
             self.skipped_count += 1
-            self.skipped_variants.append((vcf_line, chrom, variant.pos1, variant.ref, variant.alt, 'missing_type'))
+            self.skipped_variants.append(
+                (
+                    vcf_line,
+                    chrom,
+                    variant.pos1,
+                    variant.ref,
+                    variant.alt,
+                    "missing_type",
+                )
+            )
             return
         elif variant_type not in supported_types:
-            warnings.warn(f"Skipped variant at {chrom}:{variant.pos1} (VCF line {vcf_line}): type '{variant_type}' not supported")
+            warnings.warn(
+                f"Skipped variant at {chrom}:{variant.pos1} (VCF line {vcf_line}): type '{variant_type}' not supported"
+            )
             self.skipped_count += 1
-            self.skipped_variants.append((vcf_line, chrom, variant.pos1, variant.ref, variant.alt, 'unsupported_type'))
+            self.skipped_variants.append(
+                (
+                    vcf_line,
+                    chrom,
+                    variant.pos1,
+                    variant.ref,
+                    variant.alt,
+                    "unsupported_type",
+                )
+            )
             return
 
         # 2. STRUCTURAL VARIANT INFO PARSING
         info_dict = {}
-        if variant_type in ['SV_DUP', 'SV_INV'] and 'info' in variant:
-            info_dict = parse_vcf_info(variant['info'])
+        if variant_type in ["SV_DUP", "SV_INV"] and "info" in variant:
+            info_dict = parse_vcf_info(variant["info"])
 
         # 3. BASIC VALIDATION CHECKS
         if variant.alt == variant.ref:
@@ -418,9 +499,9 @@ class VariantApplicator:
         buffer_pos = genomic_pos + self.cumulative_offset
 
         # For structural variants, calculate affected region from INFO fields
-        if variant_type in ['SV_DUP', 'SV_INV']:
-            end_pos = info_dict.get('END', None)
-            svlen = info_dict.get('SVLEN', None)
+        if variant_type in ["SV_DUP", "SV_INV"]:
+            end_pos = info_dict.get("END", None)
+            svlen = info_dict.get("SVLEN", None)
 
             # Calculate END position if not provided
             if end_pos is None and svlen is not None:
@@ -428,7 +509,9 @@ class VariantApplicator:
             elif end_pos is None:
                 # Fallback to REF length for structural variants
                 end_pos = variant.pos1 + len(variant.ref) - 1
-                warnings.warn(f"Cannot determine structural variant end position for {variant.get('id', 'unknown')} at {variant.pos1}")
+                warnings.warn(
+                    f"Cannot determine structural variant end position for {variant.get('id', 'unknown')} at {variant.pos1}"
+                )
 
             ref_length = end_pos - variant.pos1 + 1  # Total affected region length
         else:
@@ -443,9 +526,11 @@ class VariantApplicator:
         ):
             self.skipped_count += 1
             # Record skip details for reporting
-            vcf_line = variant.get('vcf_line', '?')
-            chrom = variant.get('chrom', self.chrom)
-            self.skipped_variants.append((vcf_line, chrom, variant.pos1, variant.ref, variant.alt, 'overlap'))
+            vcf_line = variant.get("vcf_line", "?")
+            chrom = variant.get("chrom", self.chrom)
+            self.skipped_variants.append(
+                (vcf_line, chrom, variant.pos1, variant.ref, variant.alt, "overlap")
+            )
             return  # Skip overlapping variants
 
         # 6. BOUNDS CHECK
@@ -453,7 +538,7 @@ class VariantApplicator:
             raise ValueError(f"Variant position {variant.pos1} out of sequence bounds")
 
         # 7. REFERENCE VALIDATION (skip for symbolic structural variants)
-        if variant_type not in ['SV_DUP', 'SV_INV']:
+        if variant_type not in ["SV_DUP", "SV_INV"]:
             expected_ref = self.sequence[
                 buffer_pos : buffer_pos + len(variant.ref)
             ].decode()
@@ -464,15 +549,17 @@ class VariantApplicator:
                 )
 
         # 8. SEQUENCE MODIFICATION
-        self._modify_sequence(buffer_pos, variant.ref, alt_allele, variant_type, info_dict)
+        self._modify_sequence(
+            buffer_pos, variant.ref, alt_allele, variant_type, info_dict
+        )
 
         # 9. UPDATE TRACKING
-        if variant_type in ['SV_DUP', 'SV_INV']:
+        if variant_type in ["SV_DUP", "SV_INV"]:
             # For structural variants, calculate length difference based on variant type
-            if variant_type == 'SV_DUP':
+            if variant_type == "SV_DUP":
                 # Duplication adds the duplicated region length
                 length_diff = ref_length
-            elif variant_type == 'SV_INV':
+            elif variant_type == "SV_INV":
                 # Inversion doesn't change sequence length
                 length_diff = 0
         else:
@@ -486,7 +573,14 @@ class VariantApplicator:
 
         self.applied_count += 1
 
-    def _modify_sequence(self, pos: int, ref_allele: str, alt_allele: str, variant_type: str, info_dict: dict = None) -> None:
+    def _modify_sequence(
+        self,
+        pos: int,
+        ref_allele: str,
+        alt_allele: str,
+        variant_type: str,
+        info_dict: dict = None,
+    ) -> None:
         """
         Modify sequence at specified position using variant type classification.
 
@@ -498,20 +592,20 @@ class VariantApplicator:
             info_dict: Parsed INFO field for structural variants (optional)
         """
         # Dispatch based on variant type classification
-        if variant_type in ['SNV', 'MNV']:
+        if variant_type in ["SNV", "MNV"]:
             # Single or multi-nucleotide substitution
             self.sequence[pos : pos + len(ref_allele)] = alt_allele.encode()
-            
-        elif variant_type == 'INS':
+
+        elif variant_type == "INS":
             # Insertion: replace reference with longer alternate sequence
             self.sequence[pos : pos + len(ref_allele)] = alt_allele.encode()
-            
-        elif variant_type == 'DEL':
+
+        elif variant_type == "DEL":
             # Deletion: replace reference with shorter alternate sequence
             self.sequence[pos : pos + len(alt_allele)] = alt_allele.encode()
             del self.sequence[pos + len(alt_allele) : pos + len(ref_allele)]
-            
-        elif variant_type == 'complex':
+
+        elif variant_type == "complex":
             # Complex variant: use length-based logic as fallback
             ref_len = len(ref_allele)
             alt_len = len(alt_allele)
@@ -527,34 +621,36 @@ class VariantApplicator:
                 # Insertion-like complex variant
                 self.sequence[pos : pos + ref_len] = alt_allele.encode()
 
-        elif variant_type == 'SV_DUP':
+        elif variant_type == "SV_DUP":
             # Tandem duplication: insert duplicated region after original
             if not info_dict:
                 raise ValueError("INFO field required for SV_DUP variant")
 
-            end_pos = info_dict.get('END')
+            end_pos = info_dict.get("END")
 
             # Calculate duplication region using END field only
             if end_pos is None:
                 raise ValueError("END field required for SV_DUP variant")
 
             # Calculate from buffer position (already offset-adjusted)
-            genomic_start = pos - self.cumulative_offset + len(ref_allele)  # Position after current cumulative changes
+            genomic_start = (
+                pos - self.cumulative_offset + len(ref_allele)
+            )  # Position after current cumulative changes
             genomic_end = end_pos - 1  # Convert VCF 1-based to 0-based
             dup_length = genomic_end - genomic_start + 1
 
             # Extract the region to duplicate from current sequence
-            duplicated_region = self.sequence[pos:pos + dup_length]
+            duplicated_region = self.sequence[pos : pos + dup_length]
 
             # Insert duplicated region after original (tandem duplication)
-            self.sequence[pos + dup_length:pos + dup_length] = duplicated_region
+            self.sequence[pos + dup_length : pos + dup_length] = duplicated_region
 
-        elif variant_type == 'SV_INV':
+        elif variant_type == "SV_INV":
             # Inversion: reverse complement the affected region
             if not info_dict:
                 raise ValueError("INFO field required for SV_INV variant")
 
-            end_pos = info_dict.get('END')
+            end_pos = info_dict.get("END")
 
             # Calculate inversion region using END field only
             if end_pos is None:
@@ -567,32 +663,47 @@ class VariantApplicator:
             inv_length = buffer_end - buffer_start + 1
 
             # Extract region to invert
-            region_to_invert = self.sequence[buffer_start:buffer_start + inv_length].decode()
+            region_to_invert = self.sequence[
+                buffer_start : buffer_start + inv_length
+            ].decode()
 
             # Apply reverse complement
             from .sequence_utils import rc_str
+
             inverted_region = rc_str(region_to_invert)
 
             # Replace with inverted sequence
-            self.sequence[buffer_start:buffer_start + inv_length] = inverted_region.encode()
+            self.sequence[buffer_start : buffer_start + inv_length] = (
+                inverted_region.encode()
+            )
 
-        elif variant_type == 'SV_BND_DUP':
+        elif variant_type == "SV_BND_DUP":
             # BND-derived tandem duplication
             # Note: Individual SV_BND_DUP variants should not reach this point as they are
             # preprocessed by _preprocess_bnd_derived_variants() into synthetic SV_DUP variants
-            genomic_pos = pos + self.cumulative_offset + 1  # Convert back to 1-based genomic position
-            raise ValueError(f"SV_BND_DUP variants should be preprocessed into SV_DUP variants. Position: {genomic_pos}")
+            genomic_pos = (
+                pos + self.cumulative_offset + 1
+            )  # Convert back to 1-based genomic position
+            raise ValueError(
+                f"SV_BND_DUP variants should be preprocessed into SV_DUP variants. Position: {genomic_pos}"
+            )
 
-        elif variant_type == 'SV_BND_INV':
+        elif variant_type == "SV_BND_INV":
             # BND-derived inversion
             # Note: Individual SV_BND_INV variants should not reach this point as they are
             # preprocessed by _preprocess_bnd_derived_variants() into synthetic SV_INV variants
-            genomic_pos = pos + self.cumulative_offset + 1  # Convert back to 1-based genomic position
-            raise ValueError(f"SV_BND_INV variants should be preprocessed into SV_INV variants. Position: {genomic_pos}")
+            genomic_pos = (
+                pos + self.cumulative_offset + 1
+            )  # Convert back to 1-based genomic position
+            raise ValueError(
+                f"SV_BND_INV variants should be preprocessed into SV_INV variants. Position: {genomic_pos}"
+            )
 
         else:
             # This should not happen due to validation in _apply_single_variant
-            raise ValueError(f"Unsupported variant type in sequence modification: {variant_type}")
+            raise ValueError(
+                f"Unsupported variant type in sequence modification: {variant_type}"
+            )
 
 
 class ChimericSequenceBuilder:
@@ -625,11 +736,17 @@ class ChimericSequenceBuilder:
 
         # Create fusion based on orientation
         fusion_seq, segments = self._build_oriented_fusion(
-            seq1, pos1_0, bnd1.orientation,
-            seq2, pos2_0, bnd2.orientation,
+            seq1,
+            pos1_0,
+            bnd1.orientation,
+            seq2,
+            pos2_0,
+            bnd2.orientation,
             bnd1.inserted_seq + bnd2.inserted_seq,
-            bnd1.chrom, bnd2.chrom,
-            bnd1, bnd2  # Pass original breakends for VCF positions
+            bnd1.chrom,
+            bnd2.chrom,
+            bnd1,
+            bnd2,  # Pass original breakends for VCF positions
         )
 
         # Store segment metadata
@@ -637,10 +754,20 @@ class ChimericSequenceBuilder:
 
         return fusion_name, fusion_seq
 
-    def _build_oriented_fusion(self, seq1: str, pos1_0: int, orient1: str,
-                             seq2: str, pos2_0: int, orient2: str,
-                             novel_seq: str, seq1_chrom: str, seq2_chrom: str,
-                             bnd1, bnd2) -> Tuple[str, List[SequenceSegment]]:
+    def _build_oriented_fusion(
+        self,
+        seq1: str,
+        pos1_0: int,
+        orient1: str,
+        seq2: str,
+        pos2_0: int,
+        orient2: str,
+        novel_seq: str,
+        seq1_chrom: str,
+        seq2_chrom: str,
+        bnd1,
+        bnd2,
+    ) -> Tuple[str, List[SequenceSegment]]:
         """
         Build fusion sequence respecting coordinated breakend pair orientations.
 
@@ -657,77 +784,79 @@ class ChimericSequenceBuilder:
         from .sequence_utils import rc_str as reverse_complement
 
         # Handle coordinated patterns by looking at both orientations together
-        if orient1 == '[p[t' and orient2 == '[p[t':
+        if orient1 == "[p[t" and orient2 == "[p[t":
             # [p[t + [p[t pattern: RC(seq2[pos2_0:]) + seq1[pos1_0:]
             left_part = reverse_complement(seq2[pos2_0:])
             right_part = seq1[pos1_0:]
             left_chrom = seq2_chrom
             right_chrom = seq1_chrom
-            left_orientation = 'reverse'
-            right_orientation = 'forward'
+            left_orientation = "reverse"
+            right_orientation = "forward"
 
-        elif orient1 == 't]p]' and orient2 == 't]p]':
+        elif orient1 == "t]p]" and orient2 == "t]p]":
             # t]p] + t]p] pattern: seq1[:pos1] + RC(seq2[:pos2]) (use VCF positions as base counts)
-            left_part = seq1[:bnd1.pos]  # Include pos1 bases from seq1
-            right_part = reverse_complement(seq2[:bnd2.pos])  # Include pos2 bases from seq2
+            left_part = seq1[: bnd1.pos]  # Include pos1 bases from seq1
+            right_part = reverse_complement(
+                seq2[: bnd2.pos]
+            )  # Include pos2 bases from seq2
             left_chrom = seq1_chrom
             right_chrom = seq2_chrom
-            left_orientation = 'forward'
-            right_orientation = 'reverse'
+            left_orientation = "forward"
+            right_orientation = "reverse"
 
-        elif orient1 == ']p]t' and orient2 == ']p]t':
+        elif orient1 == "]p]t" and orient2 == "]p]t":
             # ]p]t + ]p]t pattern: seq2[:pos2] + seq1[pos1_0:] (use VCF pos2 as base count)
-            left_part = seq2[:bnd2.pos]  # Include pos2 bases from seq2
-            right_part = seq1[pos1_0:]   # From pos1_0 to end of seq1
+            left_part = seq2[: bnd2.pos]  # Include pos2 bases from seq2
+            right_part = seq1[pos1_0:]  # From pos1_0 to end of seq1
             left_chrom = seq2_chrom
             right_chrom = seq1_chrom
-            left_orientation = 'forward'
-            right_orientation = 'forward'
+            left_orientation = "forward"
+            right_orientation = "forward"
 
-        elif orient1 == 't[p[' and orient2 == 't[p[':
+        elif orient1 == "t[p[" and orient2 == "t[p[":
             # t[p[ + t[p[ pattern: seq1[:pos1_0] + seq2[pos2_0:]
             left_part = seq1[:pos1_0]
             right_part = seq2[pos2_0:]
             left_chrom = seq1_chrom
             right_chrom = seq2_chrom
-            left_orientation = 'forward'
-            right_orientation = 'forward'
+            left_orientation = "forward"
+            right_orientation = "forward"
 
-        elif orient1 == ']p]t' and orient2 == 't[p[':
+        elif orient1 == "]p]t" and orient2 == "t[p[":
             # ]p]t + t[p[ pattern: seq2[:pos2] + seq1[pos1_0:] (use VCF pos2 as base count)
-            left_part = seq2[:bnd2.pos]  # Include pos2 bases from seq2
-            right_part = seq1[pos1_0:]   # From pos1_0 to end of seq1
+            left_part = seq2[: bnd2.pos]  # Include pos2 bases from seq2
+            right_part = seq1[pos1_0:]  # From pos1_0 to end of seq1
             left_chrom = seq2_chrom
             right_chrom = seq1_chrom
-            left_orientation = 'forward'
-            right_orientation = 'forward'
+            left_orientation = "forward"
+            right_orientation = "forward"
 
-        elif orient1 == 't[p[' and orient2 == ']p]t':
+        elif orient1 == "t[p[" and orient2 == "]p]t":
             # t[p[ + ]p]t pattern: seq1[:pos1_0] + seq2[pos2_0:]
             left_part = seq1[:pos1_0]
             right_part = seq2[pos2_0:]
             left_chrom = seq1_chrom
             right_chrom = seq2_chrom
-            left_orientation = 'forward'
-            right_orientation = 'forward'
+            left_orientation = "forward"
+            right_orientation = "forward"
 
-        elif orient1 == 't]p]' and orient2 == ']p]t':
+        elif orient1 == "t]p]" and orient2 == "]p]t":
             # t]p] + ]p]t pattern (mixed coordination): seq1[:pos1] + seq2[pos2_0:]
-            left_part = seq1[:bnd1.pos]  # Include pos1 bases from seq1 (VCF position)
-            right_part = seq2[pos2_0:]   # From pos2_0 to end of seq2
+            left_part = seq1[: bnd1.pos]  # Include pos1 bases from seq1 (VCF position)
+            right_part = seq2[pos2_0:]  # From pos2_0 to end of seq2
             left_chrom = seq1_chrom
             right_chrom = seq2_chrom
-            left_orientation = 'forward'
-            right_orientation = 'forward'
+            left_orientation = "forward"
+            right_orientation = "forward"
 
         else:
             # Unknown orientation pattern - fail fast to ensure proper implementation
             supported_patterns = [
-                '[p[t + [p[t (RC coordination)',
-                't]p] + t]p] (RC coordination)',
-                ']p]t + ]p]t (same direction)',
-                't[p[ + t[p[ (same direction)',
-                't]p] + ]p]t (mixed coordination)'
+                "[p[t + [p[t (RC coordination)",
+                "t]p] + t]p] (RC coordination)",
+                "]p]t + ]p]t (same direction)",
+                "t[p[ + t[p[ (same direction)",
+                "t]p] + ]p]t (mixed coordination)",
             ]
             raise ValueError(
                 f"Unsupported BND orientation pattern: '{orient1}' + '{orient2}'. "
@@ -741,40 +870,48 @@ class ChimericSequenceBuilder:
 
         # Add left segment
         if len(left_part) > 0:
-            left_type = 'rc_reference' if left_orientation == 'reverse' else 'reference'
-            segments.append(SequenceSegment(
-                source_type=left_type,
-                source_chrom=left_chrom,
-                start_pos=current_pos,
-                end_pos=current_pos + len(left_part),
-                length=len(left_part),
-                orientation=left_orientation
-            ))
+            left_type = "rc_reference" if left_orientation == "reverse" else "reference"
+            segments.append(
+                SequenceSegment(
+                    source_type=left_type,
+                    source_chrom=left_chrom,
+                    start_pos=current_pos,
+                    end_pos=current_pos + len(left_part),
+                    length=len(left_part),
+                    orientation=left_orientation,
+                )
+            )
             current_pos += len(left_part)
 
         # Add novel sequence segment
         if len(novel_seq) > 0:
-            segments.append(SequenceSegment(
-                source_type='novel',
-                source_chrom='NOVEL',
-                start_pos=current_pos,
-                end_pos=current_pos + len(novel_seq),
-                length=len(novel_seq),
-                orientation='novel'
-            ))
+            segments.append(
+                SequenceSegment(
+                    source_type="novel",
+                    source_chrom="NOVEL",
+                    start_pos=current_pos,
+                    end_pos=current_pos + len(novel_seq),
+                    length=len(novel_seq),
+                    orientation="novel",
+                )
+            )
             current_pos += len(novel_seq)
 
         # Add right segment
         if len(right_part) > 0:
-            right_type = 'rc_reference' if right_orientation == 'reverse' else 'reference'
-            segments.append(SequenceSegment(
-                source_type=right_type,
-                source_chrom=right_chrom,
-                start_pos=current_pos,
-                end_pos=current_pos + len(right_part),
-                length=len(right_part),
-                orientation=right_orientation
-            ))
+            right_type = (
+                "rc_reference" if right_orientation == "reverse" else "reference"
+            )
+            segments.append(
+                SequenceSegment(
+                    source_type=right_type,
+                    source_chrom=right_chrom,
+                    start_pos=current_pos,
+                    end_pos=current_pos + len(right_part),
+                    length=len(right_part),
+                    orientation=right_orientation,
+                )
+            )
 
         # Combine parts to create fusion sequence
         fusion = left_part + novel_seq + right_part
@@ -806,8 +943,6 @@ def _encode_genome_sequences(reference, encode=True, encoder=None):
         else:
             genome[chrom] = seq_str
     return genome
-
-
 
 
 def _load_variants(variants_fn: Union[str, pd.DataFrame]) -> pd.DataFrame:
@@ -847,20 +982,20 @@ def _load_variants(variants_fn: Union[str, pd.DataFrame]) -> pd.DataFrame:
             )
 
         # Ensure variant classification exists
-        if 'variant_type' not in variants_df.columns:
+        if "variant_type" not in variants_df.columns:
             if len(variants_df) > 0:
                 # Add variant classification to non-empty DataFrame
-                variants_df['variant_type'] = variants_df.apply(
+                variants_df["variant_type"] = variants_df.apply(
                     lambda row: classify_variant_type(
-                        row['ref'], 
-                        row['alt'], 
-                        parse_vcf_info(row.get('info', '')) if 'info' in row else None
-                    ), 
-                    axis=1
+                        row["ref"],
+                        row["alt"],
+                        parse_vcf_info(row.get("info", "")) if "info" in row else None,
+                    ),
+                    axis=1,
                 )
             else:
                 # Handle empty DataFrame - just add empty column
-                variants_df['variant_type'] = pd.Series(dtype='object')
+                variants_df["variant_type"] = pd.Series(dtype="object")
 
         return variants_df
 
@@ -885,14 +1020,20 @@ def _preprocess_bnd_derived_variants(chrom_variants, vcf_path=None, verbose=Fals
     from .variant_utils import parse_breakend_alt
 
     # Extract BND-derived variants that need pair processing
-    bnd_dup_variants = chrom_variants[chrom_variants['variant_type'] == 'SV_BND_DUP'].copy()
-    bnd_inv_variants = chrom_variants[chrom_variants['variant_type'] == 'SV_BND_INV'].copy()
+    bnd_dup_variants = chrom_variants[
+        chrom_variants["variant_type"] == "SV_BND_DUP"
+    ].copy()
+    bnd_inv_variants = chrom_variants[
+        chrom_variants["variant_type"] == "SV_BND_INV"
+    ].copy()
 
     if len(bnd_dup_variants) == 0 and len(bnd_inv_variants) == 0:
         return chrom_variants
 
     if verbose:
-        print(f"  🔄 Pre-processing {len(bnd_dup_variants)} BND-DUP + {len(bnd_inv_variants)} BND-INV variants")
+        print(
+            f"  🔄 Pre-processing {len(bnd_dup_variants)} BND-DUP + {len(bnd_inv_variants)} BND-INV variants"
+        )
 
     # Get BND classification results to find mate coordinates
     synthetic_variants = []
@@ -900,48 +1041,52 @@ def _preprocess_bnd_derived_variants(chrom_variants, vcf_path=None, verbose=Fals
 
     # Process BND-derived duplications
     for _, variant in bnd_dup_variants.iterrows():
-        if variant['id'] in processed_ids:
+        if variant["id"] in processed_ids:
             continue
 
         # Parse mate coordinates from ALT field
-        alt_info = parse_breakend_alt(variant['alt'])
-        if not alt_info['is_valid']:
+        alt_info = parse_breakend_alt(variant["alt"])
+        if not alt_info["is_valid"]:
             if verbose:
                 print(f"    ⚠️ Could not parse BND ALT field: {variant['alt']}")
             continue
 
-        mate_chrom = alt_info['mate_chrom']
-        mate_pos = alt_info['mate_pos']
+        mate_chrom = alt_info["mate_chrom"]
+        mate_pos = alt_info["mate_pos"]
 
         # Ensure this is an intrachromosomal duplication (same chromosome)
-        if mate_chrom != variant['chrom']:
+        if mate_chrom != variant["chrom"]:
             if verbose:
-                print(f"    ⚠️ Skipping interchromosomal BND: {variant['chrom']}:{variant['pos1']} -> {mate_chrom}:{mate_pos}")
+                print(
+                    f"    ⚠️ Skipping interchromosomal BND: {variant['chrom']}:{variant['pos1']} -> {mate_chrom}:{mate_pos}"
+                )
             continue
 
         # Calculate duplication region boundaries
-        start_pos = min(variant['pos1'], mate_pos)
-        end_pos = max(variant['pos1'], mate_pos)
+        start_pos = min(variant["pos1"], mate_pos)
+        end_pos = max(variant["pos1"], mate_pos)
 
         # Create synthetic SV_DUP variant
         synthetic_variant = variant.copy()
-        synthetic_variant['variant_type'] = 'SV_DUP'
-        synthetic_variant['pos1'] = start_pos
-        synthetic_variant['ref'] = 'N'  # Placeholder
-        synthetic_variant['alt'] = '<DUP>'
-        synthetic_variant['info'] = f'END={end_pos};SVTYPE=DUP'
+        synthetic_variant["variant_type"] = "SV_DUP"
+        synthetic_variant["pos1"] = start_pos
+        synthetic_variant["ref"] = "N"  # Placeholder
+        synthetic_variant["alt"] = "<DUP>"
+        synthetic_variant["info"] = f"END={end_pos};SVTYPE=DUP"
 
         synthetic_variants.append(synthetic_variant)
-        processed_ids.add(variant['id'])
+        processed_ids.add(variant["id"])
 
         if verbose:
             region_length = end_pos - start_pos
-            print(f"    ✅ Created synthetic DUP: {variant['chrom']}:{start_pos}-{end_pos} ({region_length}bp)")
+            print(
+                f"    ✅ Created synthetic DUP: {variant['chrom']}:{start_pos}-{end_pos} ({region_length}bp)"
+            )
 
     # Process BND-derived inversions: handle 4-breakend inversion topology
     if len(bnd_inv_variants) > 0:
         # Group BND inversions by chromosome to handle 4-breakend patterns
-        chrom_groups = bnd_inv_variants.groupby('chrom')
+        chrom_groups = bnd_inv_variants.groupby("chrom")
 
         for chrom, chrom_bnd_invs in chrom_groups:
             chrom_breakends = chrom_bnd_invs.copy()
@@ -949,85 +1094,97 @@ def _preprocess_bnd_derived_variants(chrom_variants, vcf_path=None, verbose=Fals
             # Check if we have exactly 4 breakends (standard inversion pattern)
             if len(chrom_breakends) == 4:
                 # Sort breakends by position to identify topology
-                chrom_breakends = chrom_breakends.sort_values('pos1')
-                positions = chrom_breakends['pos1'].tolist()
+                chrom_breakends = chrom_breakends.sort_values("pos1")
+                positions = chrom_breakends["pos1"].tolist()
 
                 # 4-breakend inversion: outer breakpoints define boundaries, inner breakpoints define inverted region
                 # Positions: [W, V, U, X] where W-X are outer, V-U are inner (get inverted)
                 outer_start = positions[0]  # W (position 10)
                 inner_start = positions[1]  # V (position 11)
-                inner_end = positions[2]    # U (position 30)
-                outer_end = positions[3]    # X (position 31)
+                inner_end = positions[2]  # U (position 30)
+                outer_end = positions[3]  # X (position 31)
 
                 # Create single synthetic SV_INV for the inner region (what gets inverted)
                 first_variant = chrom_breakends.iloc[0].copy()
                 synthetic_variant = first_variant.copy()
-                synthetic_variant['variant_type'] = 'SV_INV'
-                synthetic_variant['pos1'] = inner_start  # Start of inverted region
-                synthetic_variant['ref'] = 'N'  # Placeholder
-                synthetic_variant['alt'] = '<INV>'
-                synthetic_variant['info'] = f'END={inner_end};SVTYPE=INV'  # End of inverted region
+                synthetic_variant["variant_type"] = "SV_INV"
+                synthetic_variant["pos1"] = inner_start  # Start of inverted region
+                synthetic_variant["ref"] = "N"  # Placeholder
+                synthetic_variant["alt"] = "<INV>"
+                synthetic_variant["info"] = (
+                    f"END={inner_end};SVTYPE=INV"  # End of inverted region
+                )
 
                 synthetic_variants.append(synthetic_variant)
 
                 # Mark all 4 breakends as processed
                 for _, variant in chrom_breakends.iterrows():
-                    processed_ids.add(variant['id'])
+                    processed_ids.add(variant["id"])
 
                 if verbose:
                     inversion_length = inner_end - inner_start
                     boundary_span = outer_end - outer_start
-                    print(f"    ✅ Created synthetic INV: {chrom}:{inner_start}-{inner_end} ({inversion_length}bp) [4-breakend topology, boundary span {outer_start}-{outer_end}]")
+                    print(
+                        f"    ✅ Created synthetic INV: {chrom}:{inner_start}-{inner_end} ({inversion_length}bp) [4-breakend topology, boundary span {outer_start}-{outer_end}]"
+                    )
 
             else:
                 # Handle non-standard cases (not exactly 4 breakends)
                 if verbose:
-                    print(f"    ⚠️ Non-standard BND inversion pattern: {len(chrom_breakends)} breakends on {chrom}")
+                    print(
+                        f"    ⚠️ Non-standard BND inversion pattern: {len(chrom_breakends)} breakends on {chrom}"
+                    )
 
                 # Fallback: process individually for non-4-breakend cases
                 for _, variant in chrom_breakends.iterrows():
-                    if variant['id'] in processed_ids:
+                    if variant["id"] in processed_ids:
                         continue
 
                     # Parse mate coordinates from ALT field
-                    alt_info = parse_breakend_alt(variant['alt'])
-                    if not alt_info['is_valid']:
+                    alt_info = parse_breakend_alt(variant["alt"])
+                    if not alt_info["is_valid"]:
                         if verbose:
-                            print(f"    ⚠️ Could not parse BND ALT field: {variant['alt']}")
+                            print(
+                                f"    ⚠️ Could not parse BND ALT field: {variant['alt']}"
+                            )
                         continue
 
-                    mate_pos = alt_info['mate_pos']
-                    start_pos = min(variant['pos1'], mate_pos)
-                    end_pos = max(variant['pos1'], mate_pos)
+                    mate_pos = alt_info["mate_pos"]
+                    start_pos = min(variant["pos1"], mate_pos)
+                    end_pos = max(variant["pos1"], mate_pos)
 
                     # Create synthetic SV_INV variant
                     synthetic_variant = variant.copy()
-                    synthetic_variant['variant_type'] = 'SV_INV'
-                    synthetic_variant['pos1'] = start_pos
-                    synthetic_variant['ref'] = 'N'
-                    synthetic_variant['alt'] = '<INV>'
-                    synthetic_variant['info'] = f'END={end_pos};SVTYPE=INV'
+                    synthetic_variant["variant_type"] = "SV_INV"
+                    synthetic_variant["pos1"] = start_pos
+                    synthetic_variant["ref"] = "N"
+                    synthetic_variant["alt"] = "<INV>"
+                    synthetic_variant["info"] = f"END={end_pos};SVTYPE=INV"
 
                     synthetic_variants.append(synthetic_variant)
-                    processed_ids.add(variant['id'])
+                    processed_ids.add(variant["id"])
 
                     if verbose:
                         region_length = end_pos - start_pos
-                        print(f"    ✅ Created synthetic INV: {chrom}:{start_pos}-{end_pos} ({region_length}bp) [fallback]")
+                        print(
+                            f"    ✅ Created synthetic INV: {chrom}:{start_pos}-{end_pos} ({region_length}bp) [fallback]"
+                        )
 
     # Create result DataFrame: remove BND-derived variants, add synthetic variants
     result_variants = chrom_variants[
-        ~chrom_variants['variant_type'].isin(['SV_BND_DUP', 'SV_BND_INV'])
+        ~chrom_variants["variant_type"].isin(["SV_BND_DUP", "SV_BND_INV"])
     ].copy()
 
     if synthetic_variants:
         synthetic_df = pd.DataFrame(synthetic_variants)
         result_variants = pd.concat([result_variants, synthetic_df], ignore_index=True)
         # Re-sort by position to maintain VCF order
-        result_variants = result_variants.sort_values('pos1')
+        result_variants = result_variants.sort_values("pos1")
 
     if verbose and len(synthetic_variants) > 0:
-        print(f"  🎯 Pre-processing complete: {len(synthetic_variants)} synthetic variants created")
+        print(
+            f"  🎯 Pre-processing complete: {len(synthetic_variants)} synthetic variants created"
+        )
 
     return result_variants
 
@@ -1055,10 +1212,10 @@ def _format_skipped_variant_report(skipped_variants_list):
     # Format output
     lines = []
     reason_labels = {
-        'overlap': 'overlap with previous variant',
-        'unsupported_type': 'unsupported variant type',
-        'validation_error': 'validation error',
-        'missing_type': 'missing/unknown type'
+        "overlap": "overlap with previous variant",
+        "unsupported_type": "unsupported variant type",
+        "validation_error": "validation error",
+        "missing_type": "missing/unknown type",
     }
 
     for reason, variants in sorted(by_reason.items()):
@@ -1069,13 +1226,21 @@ def _format_skipped_variant_report(skipped_variants_list):
             by_pos[f"{chrom}:{pos1}"].append(vcf_line)
 
         for pos, vcf_lines in sorted(by_pos.items()):
-            vcf_lines_str = ', '.join(map(str, sorted(vcf_lines)))
+            vcf_lines_str = ", ".join(map(str, sorted(vcf_lines)))
             lines.append(f"     • {label}: VCF line(s) {vcf_lines_str} at {pos}")
 
-    return '\n'.join(lines)
+    return "\n".join(lines)
 
 
-def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1, verbose=False, encoder=None):
+def get_personal_genome(
+    reference_fn,
+    variants_fn,
+    encode=True,
+    n_chunks=1,
+    verbose=False,
+    encoder=None,
+    auto_map_chromosomes=False,
+):
     """
     Create a personalized genome by applying variants to a reference genome.
 
@@ -1108,6 +1273,10 @@ def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1, verb
         verbose: Print progress information (default: False)
         encoder: Optional custom encoding function. If provided, should accept a single
                 sequence string and return encoded array with shape (L, 4). Default: None
+        auto_map_chromosomes: Automatically map chromosome names between VCF and reference
+                             when they don't match exactly (e.g., 'chr1' <-> '1', 'chrM' <-> 'MT').
+                             Default: False. When False, raises ChromosomeMismatchError if names
+                             don't match. (default: False)
 
     Returns:
         If encode=True: A dictionary mapping chromosome names to encoded tensors/arrays
@@ -1116,12 +1285,19 @@ def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1, verb
         The dictionary preserves reference genome chromosome order, with any fusion
         or leftover sequences appended at the end.
 
+    Raises:
+        ChromosomeMismatchError: If auto_map_chromosomes=False and chromosome names in VCF
+                                and reference don't match exactly
+
     Examples:
         # Apply variants with proper ordering and conflict resolution
         personal_genome = get_personal_genome('reference.fa', 'variants.vcf')
 
         # Get raw sequences without encoding
         personal_genome = get_personal_genome('reference.fa', 'variants.vcf', encode=False)
+
+        # Enable automatic chromosome mapping if VCF uses 'chr1' and reference uses '1'
+        personal_genome = get_personal_genome('reference.fa', 'variants.vcf', auto_map_chromosomes=True)
 
         # Verify chromosome order is preserved
         ref_chroms = list(pyfaidx.Fasta('reference.fa').keys())
@@ -1146,23 +1322,34 @@ def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1, verb
 
     if verbose:
         total_variants = len(variants_df)
-        print(f"🧬 Processing {total_variants:,} variants across {len(variants_df['chrom'].unique())} chromosomes")
-        print(f"   Phase 1: {len(grouped_variants['standard']) + len(grouped_variants['dup_variants']) + len(grouped_variants['inv_variants'])} standard variants (SNV, MNV, INS, DEL, SV_DUP, SV_INV)")
-        print(f"   Phase 2: {len(grouped_variants['bnd_variants'])} BND variants for semantic classification")
+        print(
+            f"🧬 Processing {total_variants:,} variants across {len(variants_df['chrom'].unique())} chromosomes"
+        )
+        print(
+            f"   Phase 1: {len(grouped_variants['standard']) + len(grouped_variants['dup_variants']) + len(grouped_variants['inv_variants'])} standard variants (SNV, MNV, INS, DEL, SV_DUP, SV_INV)"
+        )
+        print(
+            f"   Phase 2: {len(grouped_variants['bnd_variants'])} BND variants for semantic classification"
+        )
 
     # Apply chromosome name matching
     ref_chroms = set(reference.keys())
     vcf_chroms = set(variants_df["chrom"].unique())
 
     mapping, unmatched = match_chromosomes_with_report(
-        ref_chroms, vcf_chroms, verbose=verbose
+        ref_chroms,
+        vcf_chroms,
+        verbose=verbose,
+        auto_map_chromosomes=auto_map_chromosomes,
     )
 
     # Apply chromosome name mapping to all variants
     if mapping:
         for group_name, variant_group in grouped_variants.items():
             if len(variant_group) > 0:
-                grouped_variants[group_name] = apply_chromosome_mapping(variant_group, mapping)
+                grouped_variants[group_name] = apply_chromosome_mapping(
+                    variant_group, mapping
+                )
 
     # Initialize processing state
     personal_genome = {}
@@ -1172,30 +1359,49 @@ def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1, verb
 
     # PHASE 1: Apply standard variants + early structural variants (in VCF order)
     # Include both symbolic and BND-derived DUP/INV variants
-    symbolic_dup_variants = grouped_variants['dup_variants'][
-        grouped_variants['dup_variants']['variant_type'] == 'SV_DUP'
-    ] if len(grouped_variants['dup_variants']) > 0 else pd.DataFrame()
+    symbolic_dup_variants = (
+        grouped_variants["dup_variants"][
+            grouped_variants["dup_variants"]["variant_type"] == "SV_DUP"
+        ]
+        if len(grouped_variants["dup_variants"]) > 0
+        else pd.DataFrame()
+    )
 
-    symbolic_inv_variants = grouped_variants['inv_variants'][
-        grouped_variants['inv_variants']['variant_type'] == 'SV_INV'
-    ] if len(grouped_variants['inv_variants']) > 0 else pd.DataFrame()
+    symbolic_inv_variants = (
+        grouped_variants["inv_variants"][
+            grouped_variants["inv_variants"]["variant_type"] == "SV_INV"
+        ]
+        if len(grouped_variants["inv_variants"]) > 0
+        else pd.DataFrame()
+    )
 
     # Extract BND-derived DUP/INV variants for Phase 1 processing
-    bnd_dup_variants = grouped_variants['dup_variants'][
-        grouped_variants['dup_variants']['variant_type'] == 'SV_BND_DUP'
-    ] if len(grouped_variants['dup_variants']) > 0 else pd.DataFrame()
+    bnd_dup_variants = (
+        grouped_variants["dup_variants"][
+            grouped_variants["dup_variants"]["variant_type"] == "SV_BND_DUP"
+        ]
+        if len(grouped_variants["dup_variants"]) > 0
+        else pd.DataFrame()
+    )
 
-    bnd_inv_variants = grouped_variants['inv_variants'][
-        grouped_variants['inv_variants']['variant_type'] == 'SV_BND_INV'
-    ] if len(grouped_variants['inv_variants']) > 0 else pd.DataFrame()
+    bnd_inv_variants = (
+        grouped_variants["inv_variants"][
+            grouped_variants["inv_variants"]["variant_type"] == "SV_BND_INV"
+        ]
+        if len(grouped_variants["inv_variants"]) > 0
+        else pd.DataFrame()
+    )
 
-    phase1_variants = pd.concat([
-        grouped_variants['standard'],
-        symbolic_dup_variants,
-        symbolic_inv_variants,
-        bnd_dup_variants,
-        bnd_inv_variants
-    ], ignore_index=True)
+    phase1_variants = pd.concat(
+        [
+            grouped_variants["standard"],
+            symbolic_dup_variants,
+            symbolic_inv_variants,
+            bnd_dup_variants,
+            bnd_inv_variants,
+        ],
+        ignore_index=True,
+    )
 
     if len(phase1_variants) > 0:
         # Sort by chromosome and position to maintain VCF order
@@ -1210,30 +1416,47 @@ def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1, verb
             ref_seq = str(reference[chrom])
 
             if verbose:
-                variant_counts = chrom_variants['variant_type'].value_counts().to_dict()
-                type_summary = ', '.join([f"{count} {vtype}" for vtype, count in variant_counts.items()])
-                print(f"🔄 Processing chromosome {chrom}: {len(chrom_variants):,} variants ({type_summary})")
+                variant_counts = chrom_variants["variant_type"].value_counts().to_dict()
+                type_summary = ", ".join(
+                    [f"{count} {vtype}" for vtype, count in variant_counts.items()]
+                )
+                print(
+                    f"🔄 Processing chromosome {chrom}: {len(chrom_variants):,} variants ({type_summary})"
+                )
 
             # Process all Phase 1 variants with offset tracking (chunking available for standard variants only)
-            if n_chunks == 1 or any(vtype in ['SV_DUP', 'SV_INV'] for vtype in chrom_variants['variant_type'].unique()):
+            if n_chunks == 1 or any(
+                vtype in ["SV_DUP", "SV_INV"]
+                for vtype in chrom_variants["variant_type"].unique()
+            ):
                 # PRE-PROCESS: Convert BND-derived variants to synthetic variants
-                processed_variants = _preprocess_bnd_derived_variants(chrom_variants, vcf_path, verbose)
+                processed_variants = _preprocess_bnd_derived_variants(
+                    chrom_variants, vcf_path, verbose
+                )
 
                 # Process all variants at once (required for structural variants)
-                applicator = VariantApplicator(ref_seq, processed_variants,
-                                             offset_tracker=offset_tracker, chrom=chrom)
+                applicator = VariantApplicator(
+                    ref_seq,
+                    processed_variants,
+                    offset_tracker=offset_tracker,
+                    chrom=chrom,
+                )
                 personal_seq, stats = applicator.apply_variants()
 
                 if verbose and stats["total"] > 0:
                     # Report skipped variants if any
-                    if stats['skipped'] > 0 and stats.get('skipped_variants'):
+                    if stats["skipped"] > 0 and stats.get("skipped_variants"):
                         print(f"  ⚠️  Skipped {stats['skipped']} variant(s):")
-                        print(_format_skipped_variant_report(stats['skipped_variants']))
-                    print(f"  ✅ Applied {stats['applied']}/{stats['total']} variants ({stats['skipped']} skipped)")
+                        print(_format_skipped_variant_report(stats["skipped_variants"]))
+                    print(
+                        f"  ✅ Applied {stats['applied']}/{stats['total']} variants ({stats['skipped']} skipped)"
+                    )
 
             else:
                 # PRE-PROCESS: Convert BND-derived variants to synthetic variants (for chunked processing too)
-                processed_variants = _preprocess_bnd_derived_variants(chrom_variants, vcf_path, verbose)
+                processed_variants = _preprocess_bnd_derived_variants(
+                    chrom_variants, vcf_path, verbose
+                )
 
                 # Process in chunks (standard variants only)
                 current_sequence = ref_seq
@@ -1246,16 +1469,25 @@ def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1, verb
 
                 if verbose:
                     avg_chunk_size = len(processed_variants) // n_chunks
-                    print(f"  📦 Processing {n_chunks} chunks of ~{avg_chunk_size:,} variants each")
+                    print(
+                        f"  📦 Processing {n_chunks} chunks of ~{avg_chunk_size:,} variants each"
+                    )
 
                 for i, chunk_indices in enumerate(indices):
                     if len(chunk_indices) == 0:
                         continue
 
-                    chunk_df = processed_variants.iloc[chunk_indices].reset_index(drop=True)
+                    chunk_df = processed_variants.iloc[chunk_indices].reset_index(
+                        drop=True
+                    )
 
-                    applicator = VariantApplicator(current_sequence, chunk_df,
-                                                 shared_frozen_tracker, offset_tracker, chrom)
+                    applicator = VariantApplicator(
+                        current_sequence,
+                        chunk_df,
+                        shared_frozen_tracker,
+                        offset_tracker,
+                        chrom,
+                    )
                     current_sequence, stats = applicator.apply_variants()
 
                     total_applied += stats["applied"]
@@ -1263,7 +1495,9 @@ def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1, verb
                     all_skipped_variants.extend(stats.get("skipped_variants", []))
 
                     if verbose:
-                        print(f"    ✅ Chunk {i+1}: {stats['applied']}/{stats['total']} variants applied")
+                        print(
+                            f"    ✅ Chunk {i+1}: {stats['applied']}/{stats['total']} variants applied"
+                        )
 
                 personal_seq = current_sequence
 
@@ -1272,7 +1506,9 @@ def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1, verb
                     if total_skipped > 0 and all_skipped_variants:
                         print(f"  ⚠️  Skipped {total_skipped} variant(s):")
                         print(_format_skipped_variant_report(all_skipped_variants))
-                    print(f"  🎯 Total: {total_applied}/{len(processed_variants)} variants applied ({total_skipped} skipped)")
+                    print(
+                        f"  🎯 Total: {total_applied}/{len(processed_variants)} variants applied ({total_skipped} skipped)"
+                    )
 
             modified_sequences[chrom] = personal_seq
             total_processed += len(chrom_variants)
@@ -1284,26 +1520,33 @@ def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1, verb
 
     # PHASE 2: BND translocation processing
     # Only process true BND translocations (BND-derived DUP/INV are now handled in Phase 1)
-    true_bnd_variants = grouped_variants['bnd_variants']
+    true_bnd_variants = grouped_variants["bnd_variants"]
 
     # Phase 2 variants are now only true BND translocations
     phase2_variants = true_bnd_variants
 
     if len(phase2_variants) > 0:
         if verbose:
-            phase2_counts = phase2_variants['variant_type'].value_counts().to_dict()
-            counts_msg = ', '.join([f"{count} {vtype}" for vtype, count in phase2_counts.items()])
-            print(f"🔄 Phase 2: Processing {len(phase2_variants)} BND variants with semantic classification ({counts_msg})")
+            phase2_counts = phase2_variants["variant_type"].value_counts().to_dict()
+            counts_msg = ", ".join(
+                [f"{count} {vtype}" for vtype, count in phase2_counts.items()]
+            )
+            print(
+                f"🔄 Phase 2: Processing {len(phase2_variants)} BND variants with semantic classification ({counts_msg})"
+            )
 
         # Use the BND classifier results directly instead of create_breakend_pairs
         # This ensures we get the inferred mates that the classifier created
         if vcf_path:
             from .variant_utils import BNDClassifier
+
             classifier = BNDClassifier()
-            classified_breakends = classifier.classify_all_breakends(vcf_path, verbose=verbose)
+            classified_breakends = classifier.classify_all_breakends(
+                vcf_path, verbose=verbose
+            )
 
             # Extract all paired breakends (including those with inferred mates)
-            all_paired_breakends = classified_breakends['paired']
+            all_paired_breakends = classified_breakends["paired"]
 
             # Convert to BreakendPair-like objects for ChimericSequenceBuilder compatibility
             breakend_pairs = []
@@ -1321,6 +1564,7 @@ def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1, verb
         else:
             # Fallback to create_breakend_pairs if no VCF path available
             from .variant_utils import create_breakend_pairs
+
             breakend_pairs = create_breakend_pairs(phase2_variants)
 
         if len(breakend_pairs) > 0:
@@ -1330,7 +1574,7 @@ def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1, verb
             # Transform BND coordinates using offset tracker from Phase 1
             for pair in breakend_pairs:
                 # Handle both BreakendPair objects and tuple pairs
-                if hasattr(pair, 'breakend1'):
+                if hasattr(pair, "breakend1"):
                     bnd1 = pair.breakend1
                     bnd2 = pair.breakend2
                 else:
@@ -1340,14 +1584,20 @@ def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1, verb
                 original_pos2 = bnd2.pos
 
                 # Transform coordinates to account for applied Phase 1 variants
-                if hasattr(offset_tracker, 'get_offset_at_position'):
-                    bnd1_offset = offset_tracker.get_offset_at_position(bnd1.chrom, bnd1.pos - 1)
-                    bnd2_offset = offset_tracker.get_offset_at_position(bnd2.chrom, bnd2.pos - 1)
+                if hasattr(offset_tracker, "get_offset_at_position"):
+                    bnd1_offset = offset_tracker.get_offset_at_position(
+                        bnd1.chrom, bnd1.pos - 1
+                    )
+                    bnd2_offset = offset_tracker.get_offset_at_position(
+                        bnd2.chrom, bnd2.pos - 1
+                    )
                     bnd1.pos += bnd1_offset
                     bnd2.pos += bnd2_offset
 
                     if verbose and (bnd1_offset != 0 or bnd2_offset != 0):
-                        print(f"   📍 Transformed coordinates: {bnd1.chrom}:{original_pos1}→{bnd1.pos}, {bnd2.chrom}:{original_pos2}→{bnd2.pos}")
+                        print(
+                            f"   📍 Transformed coordinates: {bnd1.chrom}:{original_pos1}→{bnd1.pos}, {bnd2.chrom}:{original_pos2}→{bnd2.pos}"
+                        )
 
             # Note: BND semantic classification (SV_BND_DUP, SV_BND_INV) is handled by
             # group_variants_by_semantic_type() and _preprocess_bnd_derived_variants().
@@ -1359,7 +1609,7 @@ def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1, verb
 
             for pair in breakend_pairs:
                 # Handle both BreakendPair objects and tuple pairs
-                if hasattr(pair, 'breakend1'):
+                if hasattr(pair, "breakend1"):
                     bnd1 = pair.breakend1
                     bnd2 = pair.breakend2
                 else:
@@ -1378,23 +1628,31 @@ def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1, verb
                     skipped_pairs.append(pair)
                     if verbose:
                         conflicts_msg = "; ".join(breakpoint_conflicts)
-                        print(f"   ⚠️ Skipping BND pair {bnd1.id}-{bnd2.id}: {conflicts_msg}")
+                        print(
+                            f"   ⚠️ Skipping BND pair {bnd1.id}-{bnd2.id}: {conflicts_msg}"
+                        )
                 else:
                     validated_pairs.append(pair)
 
             if verbose and len(skipped_pairs) > 0:
-                print(f"   📍 Skipped {len(skipped_pairs)} BND pairs due to frozen region conflicts")
+                print(
+                    f"   📍 Skipped {len(skipped_pairs)} BND pairs due to frozen region conflicts"
+                )
 
             # Create chimeric sequences using validated pairs only
             sequence_builder = ChimericSequenceBuilder(modified_sequences)
 
             # Initialize segment tracker with original reference chromosomes only
-            original_ref_sequences = {chrom: seq for chrom, seq in modified_sequences.items() if '_fusion_' not in chrom}
+            original_ref_sequences = {
+                chrom: seq
+                for chrom, seq in modified_sequences.items()
+                if "_fusion_" not in chrom
+            }
             segment_tracker = ChromosomeSegmentTracker(original_ref_sequences)
 
             for i, pair in enumerate(validated_pairs):
                 # Handle both BreakendPair objects and tuple pairs for display
-                if hasattr(pair, 'breakend1'):
+                if hasattr(pair, "breakend1"):
                     bnd1_id, bnd2_id = pair.breakend1.id, pair.breakend2.id
                     pair_tuple = (pair.breakend1, pair.breakend2)
                     bnd1, bnd2 = pair.breakend1, pair.breakend2
@@ -1404,15 +1662,21 @@ def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1, verb
                     bnd1, bnd2 = pair[0], pair[1]
 
                 if verbose:
-                    print(f"   🔄 Creating fusion {i+1}/{len(validated_pairs)}: {bnd1_id}-{bnd2_id}")
+                    print(
+                        f"   🔄 Creating fusion {i+1}/{len(validated_pairs)}: {bnd1_id}-{bnd2_id}"
+                    )
 
                 try:
-                    fusion_name, fusion_seq = sequence_builder.create_fusion_from_pair(pair_tuple)
+                    fusion_name, fusion_seq = sequence_builder.create_fusion_from_pair(
+                        pair_tuple
+                    )
                     modified_sequences[fusion_name] = fusion_seq
                     total_processed += 2  # Count both BNDs in the pair
 
                     if verbose:
-                        print(f"     ✅ Created fusion: {fusion_name} ({len(fusion_seq)} bp)")
+                        print(
+                            f"     ✅ Created fusion: {fusion_name} ({len(fusion_seq)} bp)"
+                        )
 
                     # Track chromosome segment usage based on fusion orientations
                     pos1_0 = bnd1.pos - 1  # Convert to 0-based
@@ -1421,40 +1685,66 @@ def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1, verb
                     seq2_len = len(modified_sequences[bnd2.chrom])
 
                     # Track segments used based on the actual fusion logic from prototype
-                    if bnd1.orientation == 't]p]' and bnd2.orientation == 't]p]':
+                    if bnd1.orientation == "t]p]" and bnd2.orientation == "t]p]":
                         # seq1[:pos1] + RC(seq2[:pos2]) - uses chromosome prefixes
-                        segment_tracker.add_used_segment(bnd1.chrom, 0, bnd1.pos, verbose)  # VCF pos as count
-                        segment_tracker.add_used_segment(bnd2.chrom, 0, bnd2.pos, verbose)  # VCF pos as count
-                    elif bnd1.orientation == ']p]t' and bnd2.orientation == 't[p[':
+                        segment_tracker.add_used_segment(
+                            bnd1.chrom, 0, bnd1.pos, verbose
+                        )  # VCF pos as count
+                        segment_tracker.add_used_segment(
+                            bnd2.chrom, 0, bnd2.pos, verbose
+                        )  # VCF pos as count
+                    elif bnd1.orientation == "]p]t" and bnd2.orientation == "t[p[":
                         # seq2[:pos2] + seq1[pos1_0:] - prefix from seq2, suffix from seq1
-                        segment_tracker.add_used_segment(bnd2.chrom, 0, bnd2.pos, verbose)  # VCF pos as count
-                        segment_tracker.add_used_segment(bnd1.chrom, pos1_0, seq1_len, verbose)
-                    elif bnd1.orientation == '[p[t' and bnd2.orientation == '[p[t':
+                        segment_tracker.add_used_segment(
+                            bnd2.chrom, 0, bnd2.pos, verbose
+                        )  # VCF pos as count
+                        segment_tracker.add_used_segment(
+                            bnd1.chrom, pos1_0, seq1_len, verbose
+                        )
+                    elif bnd1.orientation == "[p[t" and bnd2.orientation == "[p[t":
                         # RC(seq2[pos2_0:]) + seq1[pos1_0:] - uses chromosome suffixes
-                        segment_tracker.add_used_segment(bnd2.chrom, pos2_0, seq2_len, verbose)
-                        segment_tracker.add_used_segment(bnd1.chrom, pos1_0, seq1_len, verbose)
-                    elif bnd1.orientation == 't[p[' and bnd2.orientation == 't[p[':
+                        segment_tracker.add_used_segment(
+                            bnd2.chrom, pos2_0, seq2_len, verbose
+                        )
+                        segment_tracker.add_used_segment(
+                            bnd1.chrom, pos1_0, seq1_len, verbose
+                        )
+                    elif bnd1.orientation == "t[p[" and bnd2.orientation == "t[p[":
                         # seq1[:pos1_0] + seq2[pos2_0:] - prefix from seq1, suffix from seq2
                         segment_tracker.add_used_segment(bnd1.chrom, 0, pos1_0, verbose)
-                        segment_tracker.add_used_segment(bnd2.chrom, pos2_0, seq2_len, verbose)
-                    elif bnd1.orientation == 't[p[' and bnd2.orientation == ']p]t':
+                        segment_tracker.add_used_segment(
+                            bnd2.chrom, pos2_0, seq2_len, verbose
+                        )
+                    elif bnd1.orientation == "t[p[" and bnd2.orientation == "]p]t":
                         # seq1[:pos1_0] + seq2[pos2_0:] - prefix from seq1, suffix from seq2
                         segment_tracker.add_used_segment(bnd1.chrom, 0, pos1_0, verbose)
-                        segment_tracker.add_used_segment(bnd2.chrom, pos2_0, seq2_len, verbose)
-                    elif bnd1.orientation == ']p]t' and bnd2.orientation == ']p]t':
+                        segment_tracker.add_used_segment(
+                            bnd2.chrom, pos2_0, seq2_len, verbose
+                        )
+                    elif bnd1.orientation == "]p]t" and bnd2.orientation == "]p]t":
                         # seq2[:pos2] + seq1[pos1_0:] - prefix from seq2, suffix from seq1
-                        segment_tracker.add_used_segment(bnd2.chrom, 0, bnd2.pos, verbose)  # VCF pos as count
-                        segment_tracker.add_used_segment(bnd1.chrom, pos1_0, seq1_len, verbose)
+                        segment_tracker.add_used_segment(
+                            bnd2.chrom, 0, bnd2.pos, verbose
+                        )  # VCF pos as count
+                        segment_tracker.add_used_segment(
+                            bnd1.chrom, pos1_0, seq1_len, verbose
+                        )
                     else:
                         # Unknown orientation patterns - track conservatively
                         if verbose:
-                            print(f"     ⚠️ Unknown orientation pattern: {bnd1.orientation} + {bnd2.orientation}")
+                            print(
+                                f"     ⚠️ Unknown orientation pattern: {bnd1.orientation} + {bnd2.orientation}"
+                            )
                         segment_tracker.add_used_segment(bnd1.chrom, 0, pos1_0, verbose)
-                        segment_tracker.add_used_segment(bnd2.chrom, pos2_0, seq2_len, verbose)
+                        segment_tracker.add_used_segment(
+                            bnd2.chrom, pos2_0, seq2_len, verbose
+                        )
 
                 except Exception as e:
                     if verbose:
-                        print(f"     ⚠️ Failed to create fusion for {bnd1_id}-{bnd2_id}: {e}")
+                        print(
+                            f"     ⚠️ Failed to create fusion for {bnd1_id}-{bnd2_id}: {e}"
+                        )
 
             # Calculate and add leftover sequences
             leftover_sequences = segment_tracker.get_leftover_sequences(verbose)
@@ -1462,9 +1752,9 @@ def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1, verb
             # Remove original chromosomes that were consumed by fusions and replace with leftovers
             chromosomes_with_fusions = set()
             for seq_name in list(modified_sequences.keys()):
-                if '_fusion_' in seq_name:
+                if "_fusion_" in seq_name:
                     # Extract chromosome names from fusion sequence names
-                    parts = seq_name.split('_')
+                    parts = seq_name.split("_")
                     if len(parts) >= 2:
                         chromosomes_with_fusions.add(parts[0])
                         chromosomes_with_fusions.add(parts[1])
@@ -1510,11 +1800,17 @@ def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1, verb
         total_variants = len(variants_df)
         sequences_msg = f"{len(personal_genome):,} sequences"
         if any("_fusion_" in name for name in personal_genome.keys()):
-            fusion_count = sum(1 for name in personal_genome.keys() if "_fusion_" in name)
+            fusion_count = sum(
+                1 for name in personal_genome.keys() if "_fusion_" in name
+            )
             leftover_count = len(personal_genome) - fusion_count
-            sequences_msg = f"{fusion_count} fusions, {leftover_count} leftover sequences"
+            sequences_msg = (
+                f"{fusion_count} fusions, {leftover_count} leftover sequences"
+            )
 
-        print(f"🧬 Completed: {total_processed:,}/{total_variants:,} variants processed → {sequences_msg}")
+        print(
+            f"🧬 Completed: {total_processed:,}/{total_variants:,} variants processed → {sequences_msg}"
+        )
 
     return personal_genome
 
@@ -1522,14 +1818,14 @@ def get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1, verb
 def _generate_sequence_metadata(chunk_variants, seq_len):
     """
     Generate standardized metadata for sequence functions.
-    
+
     This centralizes metadata generation to eliminate duplication across
     get_alt_sequences, get_ref_sequences, and get_alt_ref_sequences.
-    
+
     Args:
         chunk_variants: DataFrame of variants for this chunk
         seq_len: Length of the sequence window
-        
+
     Returns:
         pandas.DataFrame: Comprehensive metadata with standardized columns
     """
@@ -1544,7 +1840,7 @@ def _generate_sequence_metadata(chunk_variants, seq_len):
         window_end = window_start + seq_len
 
         # Variant classification
-        variant_type = var.get('variant_type', 'unknown')
+        variant_type = var.get("variant_type", "unknown")
 
         # Build minimal metadata dictionary
         meta_dict = {
@@ -1559,19 +1855,21 @@ def _generate_sequence_metadata(chunk_variants, seq_len):
         }
 
         # Add sym_variant_end ONLY for symbolic alleles (<INV>, <DUP>, etc.)
-        if variant_type.startswith('SV_') and '<' in var["alt"]:
-            if 'info' in var and var['info'] and var['info'] != '.':
-                parsed_info = parse_vcf_info(var['info'])
-                sym_end = parsed_info.get('END')
+        if variant_type.startswith("SV_") and "<" in var["alt"]:
+            if "info" in var and var["info"] and var["info"] != ".":
+                parsed_info = parse_vcf_info(var["info"])
+                sym_end = parsed_info.get("END")
                 if sym_end is not None:
                     meta_dict["sym_variant_end"] = sym_end
 
         metadata.append(meta_dict)
-    
+
     return pd.DataFrame(metadata)
 
 
-def _generate_bnd_ref_sequences(breakend_pairs, reference, seq_len, encode=True, encoder=None):
+def _generate_bnd_ref_sequences(
+    breakend_pairs, reference, seq_len, encode=True, encoder=None
+):
     """
     Generate dual reference sequences for BND variants (no ALT sequences).
 
@@ -1626,7 +1924,7 @@ def _generate_bnd_ref_sequences(breakend_pairs, reference, seq_len, encode=True,
             # Pad the right side to represent where the fusion partner + insertion would attach
             left_padding_needed = seq_len - len(left_ref_raw)
             # Note: For BND with insertion, this padding represents both the missing chromosome and the insertion
-            left_ref_seq = left_ref_raw + 'N' * left_padding_needed
+            left_ref_seq = left_ref_raw + "N" * left_padding_needed
 
             # Generate right reference sequence (left-side N-padding + sequence after breakend)
             # For the right side, we want to show what was there AFTER the fusion point
@@ -1641,17 +1939,17 @@ def _generate_bnd_ref_sequences(breakend_pairs, reference, seq_len, encode=True,
             # Pad the left side to represent where the fusion partner + insertion would attach
             right_padding_needed = seq_len - len(right_ref_raw)
             # Note: For BND with insertion, this padding represents both the missing chromosome and the insertion
-            right_ref_seq = 'N' * right_padding_needed + right_ref_raw
+            right_ref_seq = "N" * right_padding_needed + right_ref_raw
 
             # Apply reverse complement if needed based on orientation
-            if bnd1.orientation in ['t]p]', '[p[t']:  # orientations requiring RC
+            if bnd1.orientation in ["t]p]", "[p[t"]:  # orientations requiring RC
                 left_ref_seq = rc_str(left_ref_seq)
-            if bnd2.orientation in ['t]p]', '[p[t']:
+            if bnd2.orientation in ["t]p]", "[p[t"]:
                 right_ref_seq = rc_str(right_ref_seq)
 
             # Ensure sequences are exactly seq_len
-            left_ref_seq = left_ref_seq[:seq_len].ljust(seq_len, 'N')
-            right_ref_seq = right_ref_seq[:seq_len].ljust(seq_len, 'N')
+            left_ref_seq = left_ref_seq[:seq_len].ljust(seq_len, "N")
+            right_ref_seq = right_ref_seq[:seq_len].ljust(seq_len, "N")
 
             left_ref_sequences.append(left_ref_seq)
             right_ref_sequences.append(right_ref_seq)
@@ -1659,24 +1957,27 @@ def _generate_bnd_ref_sequences(breakend_pairs, reference, seq_len, encode=True,
             # Create metadata for this BND
             window_start = max(0, center_pos - seq_len // 2)
             window_end = window_start + seq_len
-            metadata.append({
-                'chrom': bnd1.chrom,
-                'window_start': window_start,
-                'window_end': window_end,
-                'variant_pos0': center_pos,
-                'variant_pos1': bnd1.pos,
-                'ref': bnd1.ref,
-                'alt': bnd1.alt,
-                'variant_type': 'SV_BND',
-                'mate_chrom': bnd2.chrom,
-                'mate_pos': bnd2.pos,
-                'orientation_1': bnd1.orientation,
-                'orientation_2': bnd2.orientation,
-            })
+            metadata.append(
+                {
+                    "chrom": bnd1.chrom,
+                    "window_start": window_start,
+                    "window_end": window_end,
+                    "variant_pos0": center_pos,
+                    "variant_pos1": bnd1.pos,
+                    "ref": bnd1.ref,
+                    "alt": bnd1.alt,
+                    "variant_type": "SV_BND",
+                    "mate_chrom": bnd2.chrom,
+                    "mate_pos": bnd2.pos,
+                    "orientation_1": bnd1.orientation,
+                    "orientation_2": bnd2.orientation,
+                }
+            )
 
         except Exception as e:
             # Log error but continue processing other BNDs
             import warnings
+
             warnings.warn(f"Failed to process BND pair {bnd1.id}-{bnd2.id}: {e}")
             continue
 
@@ -1692,16 +1993,24 @@ def _generate_bnd_ref_sequences(breakend_pairs, reference, seq_len, encode=True,
 
         # Stack the encoded sequences
         if TORCH_AVAILABLE:
-            left_ref_sequences = torch.stack(encoded_left_ref) if encoded_left_ref else []
-            right_ref_sequences = torch.stack(encoded_right_ref) if encoded_right_ref else []
+            left_ref_sequences = (
+                torch.stack(encoded_left_ref) if encoded_left_ref else []
+            )
+            right_ref_sequences = (
+                torch.stack(encoded_right_ref) if encoded_right_ref else []
+            )
         else:
             left_ref_sequences = np.stack(encoded_left_ref) if encoded_left_ref else []
-            right_ref_sequences = np.stack(encoded_right_ref) if encoded_right_ref else []
+            right_ref_sequences = (
+                np.stack(encoded_right_ref) if encoded_right_ref else []
+            )
 
     return left_ref_sequences, right_ref_sequences, metadata
 
 
-def _generate_bnd_sequences(breakend_pairs, reference, seq_len, encode=True, encoder=None):
+def _generate_bnd_sequences(
+    breakend_pairs, reference, seq_len, encode=True, encoder=None
+):
     """
     Generate ALT and reference sequences for BND variants.
 
@@ -1751,13 +2060,15 @@ def _generate_bnd_sequences(breakend_pairs, reference, seq_len, encode=True, enc
                 segments = builder.get_sequence_segments(fusion_name)
                 novel_segment = None
                 for seg in segments:
-                    if seg.source_type == 'novel':
+                    if seg.source_type == "novel":
                         novel_segment = seg
                         break
 
                 if novel_segment:
                     # Center window on the novel sequence
-                    novel_center = (novel_segment.start_pos + novel_segment.end_pos) // 2
+                    novel_center = (
+                        novel_segment.start_pos + novel_segment.end_pos
+                    ) // 2
                     window_start = max(0, novel_center - seq_len // 2)
                     window_end = window_start + seq_len
                 else:
@@ -1776,7 +2087,7 @@ def _generate_bnd_sequences(breakend_pairs, reference, seq_len, encode=True, enc
                 alt_seq = fusion_seq[window_start:window_end]
             else:
                 # Pad if fusion is shorter than window
-                alt_seq = fusion_seq + 'N' * (seq_len - len(fusion_seq))
+                alt_seq = fusion_seq + "N" * (seq_len - len(fusion_seq))
 
             # Generate reference sequences with appropriate padding
             # For BNDs with insertions, we need to account for the inserted sequence length
@@ -1797,7 +2108,7 @@ def _generate_bnd_sequences(breakend_pairs, reference, seq_len, encode=True, enc
             left_padding_needed = seq_len - len(left_ref_raw)
             # Note: The padding represents what's missing (other chromosome + insertion)
             # but we don't artificially inflate it since the user wants to see proper N-padding
-            left_ref_seq = left_ref_raw + 'N' * left_padding_needed
+            left_ref_seq = left_ref_raw + "N" * left_padding_needed
 
             # Generate right reference sequence (left-side N-padding + sequence after breakend)
             # For the right side, we want to show what was there AFTER the fusion point
@@ -1813,43 +2124,46 @@ def _generate_bnd_sequences(breakend_pairs, reference, seq_len, encode=True, enc
             right_padding_needed = seq_len - len(right_ref_raw)
             # Note: The padding represents what's missing (other chromosome + insertion)
             # but we don't artificially inflate it since the user wants to see proper N-padding
-            right_ref_seq = 'N' * right_padding_needed + right_ref_raw
+            right_ref_seq = "N" * right_padding_needed + right_ref_raw
 
             # Apply reverse complement if needed based on orientation
-            if bnd1.orientation in ['t]p]', '[p[t']:  # orientations requiring RC
+            if bnd1.orientation in ["t]p]", "[p[t"]:  # orientations requiring RC
                 left_ref_seq = rc_str(left_ref_seq)
-            if bnd2.orientation in ['t]p]', '[p[t']:
+            if bnd2.orientation in ["t]p]", "[p[t"]:
                 right_ref_seq = rc_str(right_ref_seq)
 
             # Ensure sequences are exactly seq_len
-            alt_seq = alt_seq[:seq_len].ljust(seq_len, 'N')
-            left_ref_seq = left_ref_seq[:seq_len].ljust(seq_len, 'N')
-            right_ref_seq = right_ref_seq[:seq_len].ljust(seq_len, 'N')
+            alt_seq = alt_seq[:seq_len].ljust(seq_len, "N")
+            left_ref_seq = left_ref_seq[:seq_len].ljust(seq_len, "N")
+            right_ref_seq = right_ref_seq[:seq_len].ljust(seq_len, "N")
 
             alt_sequences.append(alt_seq)
             left_ref_sequences.append(left_ref_seq)
             right_ref_sequences.append(right_ref_seq)
 
             # Create metadata for this BND
-            metadata.append({
-                'chrom': bnd1.chrom,
-                'window_start': window_start,
-                'window_end': window_end,
-                'variant_pos0': center_pos,
-                'variant_pos1': bnd1.pos,
-                'ref': bnd1.ref,
-                'alt': bnd1.alt,
-                'variant_type': 'SV_BND',
-                'mate_chrom': bnd2.chrom,
-                'mate_pos': bnd2.pos,
-                'orientation_1': bnd1.orientation,
-                'orientation_2': bnd2.orientation,
-                'fusion_name': fusion_name
-            })
+            metadata.append(
+                {
+                    "chrom": bnd1.chrom,
+                    "window_start": window_start,
+                    "window_end": window_end,
+                    "variant_pos0": center_pos,
+                    "variant_pos1": bnd1.pos,
+                    "ref": bnd1.ref,
+                    "alt": bnd1.alt,
+                    "variant_type": "SV_BND",
+                    "mate_chrom": bnd2.chrom,
+                    "mate_pos": bnd2.pos,
+                    "orientation_1": bnd1.orientation,
+                    "orientation_2": bnd2.orientation,
+                    "fusion_name": fusion_name,
+                }
+            )
 
         except Exception as e:
             # Log error but continue processing other BNDs
             import warnings
+
             warnings.warn(f"Failed to process BND pair {bnd1.id}-{bnd2.id}: {e}")
             continue
 
@@ -1868,17 +2182,31 @@ def _generate_bnd_sequences(breakend_pairs, reference, seq_len, encode=True, enc
         # Stack the encoded sequences
         if TORCH_AVAILABLE:
             alt_sequences = torch.stack(encoded_alt) if encoded_alt else []
-            left_ref_sequences = torch.stack(encoded_left_ref) if encoded_left_ref else []
-            right_ref_sequences = torch.stack(encoded_right_ref) if encoded_right_ref else []
+            left_ref_sequences = (
+                torch.stack(encoded_left_ref) if encoded_left_ref else []
+            )
+            right_ref_sequences = (
+                torch.stack(encoded_right_ref) if encoded_right_ref else []
+            )
         else:
             alt_sequences = np.stack(encoded_alt) if encoded_alt else []
             left_ref_sequences = np.stack(encoded_left_ref) if encoded_left_ref else []
-            right_ref_sequences = np.stack(encoded_right_ref) if encoded_right_ref else []
+            right_ref_sequences = (
+                np.stack(encoded_right_ref) if encoded_right_ref else []
+            )
 
     return alt_sequences, left_ref_sequences, right_ref_sequences, metadata
 
 
-def get_alt_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=1, encoder=None):
+def get_alt_sequences(
+    reference_fn,
+    variants_fn,
+    seq_len,
+    encode=True,
+    n_chunks=1,
+    encoder=None,
+    auto_map_chromosomes=False,
+):
     """
     Create sequence windows centered on each variant position with variants applied.
     Now supports both standard variants and BND variants.
@@ -1890,6 +2218,9 @@ def get_alt_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=
         seq_len: Length of the sequence window
         encode: Return sequences as one-hot encoded numpy arrays (default: True)
         n_chunks: Number of chunks to split variants into (default: 1)
+        encoder: Optional custom encoding function
+        auto_map_chromosomes: Automatically map chromosome names between VCF and reference
+                             when they don't match exactly. Default: False. (default: False)
 
     Yields:
         Tuple containing (sequences, metadata_df) where:
@@ -1897,9 +2228,13 @@ def get_alt_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=
             If encode=False: sequences is a list of tuples containing (chrom, start, end, sequence_string) for each chunk
             metadata_df is a DataFrame with variant information including position offsets
             For BND variants: sequences contain fusion sequences
+
+    Raises:
+        ChromosomeMismatchError: If auto_map_chromosomes=False and chromosome names don't match
     """
     # Load reference and variants, separating BNDs from standard variants
     from .variant_utils import load_breakend_variants
+
     reference = _load_reference(reference_fn)
 
     # Load variants and separate BNDs
@@ -1907,7 +2242,11 @@ def get_alt_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=
 
     # Combine chromosome names from both standard variants and breakend pairs
     ref_chroms = set(reference.keys())
-    standard_chroms = set(standard_variants["chrom"].unique()) if len(standard_variants) > 0 else set()
+    standard_chroms = (
+        set(standard_variants["chrom"].unique())
+        if len(standard_variants) > 0
+        else set()
+    )
     breakend_chroms = set()
     for bnd1, bnd2 in breakend_pairs:
         breakend_chroms.add(bnd1.chrom)
@@ -1916,7 +2255,7 @@ def get_alt_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=
 
     # Use chromosome matching to handle name mismatches
     mapping, unmatched = match_chromosomes_with_report(
-        ref_chroms, vcf_chroms, verbose=True
+        ref_chroms, vcf_chroms, verbose=True, auto_map_chromosomes=auto_map_chromosomes
     )
 
     # Apply chromosome name mapping to standard variants
@@ -2049,7 +2388,9 @@ def get_alt_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=
 
             # Generate metadata only for successfully processed variants
             if valid_indices:
-                filtered_chunk = chunk_variants.iloc[valid_indices].reset_index(drop=True)
+                filtered_chunk = chunk_variants.iloc[valid_indices].reset_index(
+                    drop=True
+                )
                 metadata_df = _generate_sequence_metadata(filtered_chunk, seq_len)
             else:
                 # No valid variants in this chunk, create empty metadata
@@ -2067,8 +2408,8 @@ def get_alt_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=
             yield (sequences_result, metadata_df)
 
     # Process BND variants
-    bnd_alt_sequences, bnd_left_refs, bnd_right_refs, bnd_metadata = _generate_bnd_sequences(
-        breakend_pairs, reference, seq_len, encode, encoder
+    bnd_alt_sequences, bnd_left_refs, bnd_right_refs, bnd_metadata = (
+        _generate_bnd_sequences(breakend_pairs, reference, seq_len, encode, encoder)
     )
 
     # Process BND variants after standard variants (if any)
@@ -2082,10 +2423,18 @@ def get_alt_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=
         yield (bnd_sequences_result, bnd_metadata_df)
 
 
-def get_ref_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=1, encoder=None):
+def get_ref_sequences(
+    reference_fn,
+    variants_fn,
+    seq_len,
+    encode=True,
+    n_chunks=1,
+    encoder=None,
+    auto_map_chromosomes=False,
+):
     """
     Create reference sequence windows centered on each variant position (no variants applied).
-    
+
     Args:
         reference_fn: Path to reference genome file or dictionary-like object
         variants_fn: Path to VCF file (string) or DataFrame with variant data.
@@ -2093,6 +2442,9 @@ def get_ref_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=
         seq_len: Length of the sequence window
         encode: Return sequences as one-hot encoded numpy arrays (default: True)
         n_chunks: Number of chunks to split variants into (default: 1)
+        encoder: Optional custom encoding function
+        auto_map_chromosomes: Automatically map chromosome names between VCF and reference
+                             when they don't match exactly. Default: False. (default: False)
 
     Yields:
         Tuple containing (sequences, metadata_df) where:
@@ -2100,9 +2452,13 @@ def get_ref_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=
             If encode=False: sequences is a list of tuples containing (chrom, start, end, sequence_string) for each chunk
             metadata_df is a DataFrame with variant information including position offsets
             For BND variants: sequences contain dual reference sequences (left + right)
+
+    Raises:
+        ChromosomeMismatchError: If auto_map_chromosomes=False and chromosome names don't match
     """
     # Load reference and variants, separating BNDs from standard variants
     from .variant_utils import load_breakend_variants
+
     reference = _load_reference(reference_fn)
 
     # Load variants and separate BNDs
@@ -2110,7 +2466,11 @@ def get_ref_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=
 
     # Combine chromosome names from both standard variants and breakend pairs
     ref_chroms = set(reference.keys())
-    standard_chroms = set(standard_variants["chrom"].unique()) if len(standard_variants) > 0 else set()
+    standard_chroms = (
+        set(standard_variants["chrom"].unique())
+        if len(standard_variants) > 0
+        else set()
+    )
     breakend_chroms = set()
     for bnd1, bnd2 in breakend_pairs:
         breakend_chroms.add(bnd1.chrom)
@@ -2119,7 +2479,7 @@ def get_ref_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=
 
     # Use chromosome matching to handle name mismatches
     mapping, unmatched = match_chromosomes_with_report(
-        ref_chroms, vcf_chroms, verbose=True
+        ref_chroms, vcf_chroms, verbose=True, auto_map_chromosomes=auto_map_chromosomes
     )
 
     # Apply chromosome name mapping to standard variants
@@ -2248,7 +2608,9 @@ def get_ref_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=
         )
 
         if len(bnd_left_refs) > 0 or len(bnd_right_refs) > 0:
-            bnd_metadata_df = pd.DataFrame(bnd_metadata) if bnd_metadata else pd.DataFrame()
+            bnd_metadata_df = (
+                pd.DataFrame(bnd_metadata) if bnd_metadata else pd.DataFrame()
+            )
 
             # For ref sequences, we return dual references as a tuple
             # This is different from get_alt_sequences which returns fusion sequences
@@ -2261,7 +2623,13 @@ def get_ref_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=
 
 
 def get_alt_ref_sequences(
-    reference_fn, variants_fn, seq_len, encode=True, n_chunks=1, encoder=None
+    reference_fn,
+    variants_fn,
+    seq_len,
+    encode=True,
+    n_chunks=1,
+    encoder=None,
+    auto_map_chromosomes=False,
 ):
     """
     Create both reference and variant sequence windows for alt/ref ratio calculations.
@@ -2278,6 +2646,8 @@ def get_alt_ref_sequences(
         encode: Return sequences as one-hot encoded numpy arrays (default: True)
         n_chunks: Number of chunks to split variants into (default: 1)
         encoder: Optional custom encoder function
+        auto_map_chromosomes: Automatically map chromosome names between VCF and reference
+                             when they don't match exactly. Default: False. (default: False)
 
     Yields:
         Tuple containing (alt_sequences, ref_sequences, metadata_df):
@@ -2312,11 +2682,30 @@ def get_alt_ref_sequences(
             - orientation_1: First breakend orientation (str)
             - orientation_2: Second breakend orientation (str)
             - fusion_name: Fusion sequence identifier (str, optional)
+
+    Raises:
+        ChromosomeMismatchError: If auto_map_chromosomes=False and chromosome names don't match
     """
     # Get generators for both reference and variant sequences
     # These already handle variant loading, chromosome matching, and chunking consistently
-    ref_gen = get_ref_sequences(reference_fn, variants_fn, seq_len, encode, n_chunks, encoder)
-    alt_gen = get_alt_sequences(reference_fn, variants_fn, seq_len, encode, n_chunks, encoder)
+    ref_gen = get_ref_sequences(
+        reference_fn,
+        variants_fn,
+        seq_len,
+        encode,
+        n_chunks,
+        encoder,
+        auto_map_chromosomes,
+    )
+    alt_gen = get_alt_sequences(
+        reference_fn,
+        variants_fn,
+        seq_len,
+        encode,
+        n_chunks,
+        encoder,
+        auto_map_chromosomes,
+    )
 
     # Process chunks from both generators
     # Both generators will yield chunks in the same order:
@@ -2338,6 +2727,7 @@ def get_pam_disrupting_alt_sequences(
     encode=True,
     n_chunks=1,
     encoder=None,
+    auto_map_chromosomes=False,
 ):
     """
     Generate sequences for variants that disrupt PAM sites.
@@ -2353,12 +2743,18 @@ def get_pam_disrupting_alt_sequences(
         pam_sequence: PAM sequence pattern (default: 'NGG' for SpCas9)
         encode: Return sequences as one-hot encoded numpy arrays (default: True)
         n_chunks: Number of chunks to split variants for processing (default: 1)
+        encoder: Optional custom encoding function
+        auto_map_chromosomes: Automatically map chromosome names between VCF and reference
+                             when they don't match exactly. Default: False. (default: False)
 
     Returns:
         A dictionary containing:
             - variants: List of variants that disrupt PAM sites
             - pam_intact: List of sequences with variant applied but PAM intact
             - pam_disrupted: List of sequences with both variant and PAM disrupted
+
+    Raises:
+        ChromosomeMismatchError: If auto_map_chromosomes=False and chromosome names don't match
     """
     # Load reference and variants
     reference = _load_reference(reference_fn)
@@ -2370,7 +2766,7 @@ def get_pam_disrupting_alt_sequences(
 
     # Use chromosome matching to handle name mismatches
     mapping, unmatched = match_chromosomes_with_report(
-        ref_chroms, vcf_chroms, verbose=True
+        ref_chroms, vcf_chroms, verbose=True, auto_map_chromosomes=auto_map_chromosomes
     )
 
     # Apply chromosome name mapping to variants
@@ -2450,7 +2846,9 @@ def get_pam_disrupting_alt_sequences(
 
         # Filter PAM sites that are within max_pam_distance of the variant
         nearby_ref_pam_sites = [
-            p for p in ref_pam_sites if abs(p - variant_pos_in_window) <= max_pam_distance
+            p
+            for p in ref_pam_sites
+            if abs(p - variant_pos_in_window) <= max_pam_distance
         ]
 
         if nearby_ref_pam_sites:
@@ -2495,7 +2893,9 @@ def get_pam_disrupting_alt_sequences(
 
             # Filter to nearby PAM sites in the alternate sequence
             nearby_alt_pam_sites = [
-                p for p in alt_pam_sites if abs(p - variant_pos_in_window) <= max_pam_distance
+                p
+                for p in alt_pam_sites
+                if abs(p - variant_pos_in_window) <= max_pam_distance
             ]
 
             # Identify which reference PAM sites are truly disrupted
@@ -2506,7 +2906,11 @@ def get_pam_disrupting_alt_sequences(
 
             ref_allele = var.get("ref", "")
             alt_allele = var.get("alt", "")
-            is_indel = len(ref_allele) != len(alt_allele) or ref_allele == "-" or alt_allele == "-"
+            is_indel = (
+                len(ref_allele) != len(alt_allele)
+                or ref_allele == "-"
+                or alt_allele == "-"
+            )
 
             truly_disrupted_pam_sites = []
 
@@ -2527,8 +2931,12 @@ def get_pam_disrupting_alt_sequences(
                 # For SNVs: check if the PAM sequence at the exact position has changed
                 for ref_pam_pos in nearby_ref_pam_sites:
                     # Extract the PAM sequence from both ref and alt at this exact position
-                    ref_pam_seq = ref_window_seq[ref_pam_pos:ref_pam_pos + len(pam_sequence)]
-                    alt_pam_seq = modified_window[ref_pam_pos:ref_pam_pos + len(pam_sequence)]
+                    ref_pam_seq = ref_window_seq[
+                        ref_pam_pos : ref_pam_pos + len(pam_sequence)
+                    ]
+                    alt_pam_seq = modified_window[
+                        ref_pam_pos : ref_pam_pos + len(pam_sequence)
+                    ]
 
                     # Check if the PAM pattern still matches after the variant
                     alt_matches_pattern = all(
@@ -2549,7 +2957,9 @@ def get_pam_disrupting_alt_sequences(
                 continue
 
             # Store PAM-intact sequence
-            final_intact = encode_seq(modified_window, encoder) if encode else modified_window
+            final_intact = (
+                encode_seq(modified_window, encoder) if encode else modified_window
+            )
             pam_intact_sequences.append(
                 (
                     chrom,
@@ -2568,7 +2978,9 @@ def get_pam_disrupting_alt_sequences(
                         disrupted_seq[pam_site + j] = "N"
                 disrupted_seq = "".join(disrupted_seq)
 
-                final_disrupted = encode_seq(disrupted_seq, encoder) if encode else disrupted_seq
+                final_disrupted = (
+                    encode_seq(disrupted_seq, encoder) if encode else disrupted_seq
+                )
                 pam_disrupted_sequences.append(
                     (
                         chrom,
@@ -2583,5 +2995,3 @@ def get_pam_disrupting_alt_sequences(
         "pam_intact": pam_intact_sequences,
         "pam_disrupted": pam_disrupted_sequences,
     }
-
-

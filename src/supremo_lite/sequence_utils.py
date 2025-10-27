@@ -59,15 +59,16 @@ def encode_seq(seq, encoder=None):
         try:
             # Use brisket for fast encoding
             encoded = brisket_encode_seq(seq.upper())
-            
+
         except Exception:
             # Fallback to original implementation if brisket fails
             import warnings
+
             warnings.warn(
                 "Fast encoding with brisket failed, falling back to slower NumPy implementation. "
                 "This may impact performance for large sequences.",
                 UserWarning,
-                stacklevel=2
+                stacklevel=2,
             )
             encoded = np.array([nt_to_1h[nt] for nt in seq])
     else:

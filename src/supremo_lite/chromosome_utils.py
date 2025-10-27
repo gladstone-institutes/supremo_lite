@@ -10,6 +10,17 @@ import warnings
 from typing import Dict, Set, Optional, List, Tuple
 
 
+class ChromosomeMismatchError(Exception):
+    """
+    Raised when chromosome names in VCF and reference do not match.
+
+    This error is raised by default when chromosome names don't match exactly
+    and automatic chromosome mapping is not enabled.
+    """
+
+    pass
+
+
 def normalize_chromosome_name(chrom_name: str) -> str:
     """
     Normalize chromosome name to a standard format.
@@ -201,7 +212,10 @@ def get_chromosome_match_report(
 
 
 def match_chromosomes_with_report(
-    reference_chroms: Set[str], vcf_chroms: Set[str], verbose: bool = True
+    reference_chroms: Set[str],
+    vcf_chroms: Set[str],
+    verbose: bool = True,
+    auto_map_chromosomes: bool = False,
 ) -> Tuple[Dict[str, str], Set[str]]:
     """
     Match chromosomes and optionally print a detailed report.
@@ -210,10 +224,44 @@ def match_chromosomes_with_report(
         reference_chroms: Set of reference chromosome names
         vcf_chroms: Set of VCF chromosome names
         verbose: Whether to print matching report
+        auto_map_chromosomes: Whether to automatically map chromosome names when they don't
+                             match exactly (default: False). When False, raises
+                             ChromosomeMismatchError if names don't match.
 
     Returns:
         Tuple of (mapping dict, unmatched set)
+
+    Raises:
+        ChromosomeMismatchError: If auto_map_chromosomes=False and chromosome names don't
+                                match exactly between VCF and reference
     """
+    # Check for exact matches first
+    exact_matches = reference_chroms & vcf_chroms
+    needs_mapping = vcf_chroms - exact_matches
+
+    # If all chromosomes match exactly, no mapping needed
+    if not needs_mapping:
+        mapping = {chrom: chrom for chrom in vcf_chroms}
+        return mapping, set()
+
+    # If mapping is needed but not enabled, raise error
+    if not auto_map_chromosomes:
+        # Format chromosome lists for error message
+        vcf_list = ", ".join(sorted(vcf_chroms))
+        ref_list = ", ".join(sorted(reference_chroms))
+
+        error_msg = (
+            f"Chromosome names in VCF and reference do not match.\n\n"
+            f"VCF chromosomes: {vcf_list}\n"
+            f"Reference chromosomes: {ref_list}\n\n"
+            f"To enable automatic chromosome name mapping, add auto_map_chromosomes=True:\n"
+            f"  \n"
+            f"  get_personal_genome(..., auto_map_chromosomes=True)\n\n"
+            f"Alternatively, rename chromosomes in your VCF to match the reference."
+        )
+        raise ChromosomeMismatchError(error_msg)
+
+    # Automatic mapping is enabled - use heuristics
     mapping, unmatched = create_chromosome_mapping(reference_chroms, vcf_chroms)
 
     if verbose and (
@@ -225,7 +273,50 @@ def match_chromosomes_with_report(
         print(report)
 
     if unmatched:
-        chrom_list = ', '.join(sorted(unmatched))
-        warnings.warn(f"Skipped {len(unmatched)} chromosome(s) not in reference: {chrom_list}")
+        chrom_list = ", ".join(sorted(unmatched))
+        warnings.warn(
+            f"Skipped {len(unmatched)} chromosome(s) not in reference: {chrom_list}"
+        )
 
     return mapping, unmatched
+
+
+def validate_chromosomes_early(reference, variants_fn):
+    """
+    Efficiently validate chromosome compatibility before loading all variant data.
+
+    This function optimizes chromosome checking by:
+    - For VCF file paths: Reading only the chromosome column (very fast and memory efficient)
+    - For DataFrames: Using existing data without reloading
+    - Returning chromosome sets for reuse in subsequent mapping operations
+
+    Args:
+        reference: Reference genome (dict-like object with .keys())
+        variants_fn: VCF file path (str) or DataFrame with variants
+
+    Returns:
+        Tuple of (ref_chroms, vcf_chroms) as sets
+
+    Note:
+        This function does NOT raise errors or perform mapping - it only extracts
+        chromosome names efficiently. Use match_chromosomes_with_report() for
+        actual validation and mapping.
+    """
+    from .variant_utils import get_vcf_chromosomes
+    import pandas as pd
+
+    # Get reference chromosomes
+    ref_chroms = set(reference.keys())
+
+    # Get VCF chromosomes efficiently based on input type
+    if isinstance(variants_fn, str):
+        # VCF file path - use efficient chromosome extraction (reads only first column)
+        vcf_chroms = get_vcf_chromosomes(variants_fn)
+    elif isinstance(variants_fn, pd.DataFrame):
+        # DataFrame - extract unique chromosome names from chrom column
+        vcf_chroms = set(variants_fn["chrom"].unique())
+    else:
+        # Other formats - try to get chrom column
+        vcf_chroms = set(variants_fn["chrom"].unique())
+
+    return ref_chroms, vcf_chroms

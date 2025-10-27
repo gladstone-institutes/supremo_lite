@@ -108,6 +108,5 @@ class TestSupremoLite(unittest.TestCase):
             self.assertEqual(sorted(alts), expected_alts)
 
 
-
 if __name__ == "__main__":
     unittest.main()
