@@ -71,7 +71,7 @@ jobs:
       - name: Test import and basic functionality
         run: |
           python -c "import supremo_lite; print(f'supremo_lite version: {supremo_lite.__version__}')"
-          python -c "import supremo_lite; from supremo_lite.sequence_utils import encode_sequence; result = encode_sequence('ATCG'); print(f'Test encoding shape: {result.shape}')"
+          python -c "import supremo_lite; from supremo_lite.sequence_utils import encode_seq; result = encode_seq('ATCG'); print(f'Test encoding shape: {result.shape}')"
 
   upload_pypi:
     name: Upload to PyPI
