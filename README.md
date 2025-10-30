@@ -19,27 +19,14 @@ A lightweight memory-first, model-agnostic version of [SuPreMo](https://github.c
 For the latest features and bug fixes:
 
 ```bash
-# Install directly from GitHub (latest release)
-pip install git+https://github.com/gladstone-institutes/supremo_lite.git
+# Install directly latest release
+pip install supremo_lite
 
 # Or install a specific version/tag
 pip install git+https://github.com/gladstone-institutes/supremo_lite.git@v0.5.0
 
 # Or install from a specific branch
 pip install git+https://github.com/gladstone-institutes/supremo_lite.git@main
-```
-
-### Install from Local Clone
-
-For development or customization:
-
-```bash
-git clone https://github.com/gladstone-institutes/supremo_lite.git
-cd supremo_lite
-pip install .
-
-# For development with editable install
-pip install -e .
 ```
 
 ### Dependencies
