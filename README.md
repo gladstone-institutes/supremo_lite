@@ -38,7 +38,7 @@ Required dependencies will be installed automatically:
 
 Optional dependencies:
 - `torch` - For PyTorch tensor support (automatically detected)
-- [https://github.com/gladstone-institutes/brisket](brisket) - Cython powered faster 1 hot encoding for DNA sequences (automatically detected)
+- [brisket](https://github.com/gladstone-institutes/brisket) - Cython powered faster 1 hot encoding for DNA sequences (automatically detected)
 
 ## Quick Start
 
