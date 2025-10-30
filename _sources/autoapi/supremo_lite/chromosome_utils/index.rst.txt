@@ -1,0 +1,148 @@
+supremo_lite.chromosome_utils
+=============================
+
+.. py:module:: supremo_lite.chromosome_utils
+
+.. autoapi-nested-parse::
+
+   Chromosome name matching utilities for supremo_lite.
+
+   This module provides functions for handling mismatches in chromosome naming
+   between FASTA references and VCF files using intelligent heuristics.
+
+
+
+Exceptions
+----------
+
+.. autoapisummary::
+
+   supremo_lite.chromosome_utils.ChromosomeMismatchError
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   supremo_lite.chromosome_utils.normalize_chromosome_name
+   supremo_lite.chromosome_utils.create_chromosome_mapping
+   supremo_lite.chromosome_utils.apply_chromosome_mapping
+   supremo_lite.chromosome_utils.get_chromosome_match_report
+   supremo_lite.chromosome_utils.match_chromosomes_with_report
+   supremo_lite.chromosome_utils.validate_chromosomes_early
+
+
+Module Contents
+---------------
+
+.. py:exception:: ChromosomeMismatchError
+
+   Bases: :py:obj:`Exception`
+
+
+   Raised when chromosome names in VCF and reference do not match.
+
+   This error is raised by default when chromosome names don't match exactly
+   and automatic chromosome mapping is not enabled.
+
+
+.. py:function:: normalize_chromosome_name(chrom_name: str) -> str
+
+   Normalize chromosome name to a standard format.
+
+   :param chrom_name: Raw chromosome name from VCF or FASTA
+
+   :returns: Normalized chromosome name (without 'chr' prefix, uppercase)
+
+   .. rubric:: Examples
+
+   'chr1' -> '1'
+   'CHR1' -> '1'
+   'chrX' -> 'X'
+   'chrMT' -> 'MT'
+   'M' -> 'MT'  # Mitochondrial normalization
+
+
+.. py:function:: create_chromosome_mapping(reference_chroms: Set[str], vcf_chroms: Set[str]) -> Dict[str, str]
+
+   Create a mapping from VCF chromosome names to reference chromosome names.
+
+   This function uses heuristics to match chromosome names between VCF and FASTA:
+   1. Exact match (case sensitive)
+   2. Exact match (case insensitive)
+   3. Normalized match (with/without 'chr' prefix)
+   4. Special cases for mitochondrial chromosomes
+
+   :param reference_chroms: Set of chromosome names from reference FASTA
+   :param vcf_chroms: Set of chromosome names from VCF file
+
+   :returns: Tuple of (mapping dict, unmatched set)
+
+   .. rubric:: Example
+
+   reference_chroms = {'1', '2', 'X', 'Y', 'MT'}
+   vcf_chroms = {'chr1', 'chr2', 'chrX', 'chrY', 'chrM'}
+   Returns: {'chr1': '1', 'chr2': '2', 'chrX': 'X', 'chrY': 'Y', 'chrM': 'MT'}
+
+
+.. py:function:: apply_chromosome_mapping(variants_df, mapping: Dict[str, str])
+
+   Apply chromosome name mapping to a variants DataFrame.
+
+   :param variants_df: Pandas DataFrame with 'chrom' column
+   :param mapping: Dictionary mapping original to new chromosome names
+
+   :returns: Modified DataFrame with updated chromosome names
+
+
+.. py:function:: get_chromosome_match_report(reference_chroms: Set[str], vcf_chroms: Set[str], mapping: Dict[str, str], unmatched: Set[str]) -> str
+
+   Generate a human-readable report of chromosome matching results.
+
+   :param reference_chroms: Set of reference chromosome names
+   :param vcf_chroms: Set of VCF chromosome names
+   :param mapping: Successful mappings
+   :param unmatched: Unmatched VCF chromosomes
+
+   :returns: Formatted report string
+
+
+.. py:function:: match_chromosomes_with_report(reference_chroms: Set[str], vcf_chroms: Set[str], verbose: bool = True, auto_map_chromosomes: bool = False) -> Tuple[Dict[str, str], Set[str]]
+
+   Match chromosomes and optionally print a detailed report.
+
+   :param reference_chroms: Set of reference chromosome names
+   :param vcf_chroms: Set of VCF chromosome names
+   :param verbose: Whether to print matching report
+   :param auto_map_chromosomes: Whether to automatically map chromosome names when they don't
+                                match exactly (default: False). When False, raises
+                                ChromosomeMismatchError if names don't match.
+
+   :returns: Tuple of (mapping dict, unmatched set)
+
+   :raises ChromosomeMismatchError: If auto_map_chromosomes=False and chromosome names don't
+       match exactly between VCF and reference
+
+
+.. py:function:: validate_chromosomes_early(reference, variants_fn)
+
+   Efficiently validate chromosome compatibility before loading all variant data.
+
+   This function optimizes chromosome checking by:
+   - For VCF file paths: Reading only the chromosome column (very fast and memory efficient)
+   - For DataFrames: Using existing data without reloading
+   - Returning chromosome sets for reuse in subsequent mapping operations
+
+   :param reference: Reference genome (dict-like object with .keys())
+   :param variants_fn: VCF file path (str) or DataFrame with variants
+
+   :returns: Tuple of (ref_chroms, vcf_chroms) as sets
+
+   .. note::
+
+      This function does NOT raise errors or perform mapping - it only extracts
+      chromosome names efficiently. Use match_chromosomes_with_report() for
+      actual validation and mapping.
+
+

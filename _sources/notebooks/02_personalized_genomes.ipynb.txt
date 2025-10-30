@@ -1,0 +1,449 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "id": "0",
+   "metadata": {},
+   "source": [
+    "# Personalized Genome Generation\n",
+    "\n",
+    "Comprehensive guide to creating personalized genomes using supremo_lite.\n",
+    "\n",
+    "## Learning Objectives\n",
+    "\n",
+    "By the end of this notebook, you will understand:\n",
+    "- How different variant types (SNV, INS, DEL, MNV) are applied\n",
+    "- Chromosome order preservation in outputs\n",
+    "- Verbose mode for debugging variant application\n",
+    "- Skipped variant reporting\n",
+    "- Chunked processing for large VCF files\n",
+    "- Best practices for genome personalization"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "1",
+   "metadata": {},
+   "source": [
+    "## Setup"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 13,
+   "id": "2",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "supremo_lite version: 0.5.4\n",
+      "Reference genome loaded: ['chr1', 'chr2', 'chr3', 'chr4', 'chr5']\n"
+     ]
+    }
+   ],
+   "source": [
+    "import supremo_lite as sl\n",
+    "import numpy as np\n",
+    "import matplotlib.pyplot as plt\n",
+    "from pyfaidx import Fasta\n",
+    "import pandas as pd\n",
+    "import os\n",
+    "\n",
+    "# Set up paths to test data\n",
+    "test_data_dir = \"../../tests/data\"\n",
+    "reference_path = os.path.join(test_data_dir, \"test_genome.fa\")\n",
+    "multi_vcf_path = os.path.join(test_data_dir, \"multi\", \"multi.vcf\")\n",
+    "\n",
+    "# Load reference genome\n",
+    "reference = Fasta(reference_path)\n",
+    "\n",
+    "print(f\"supremo_lite version: {sl.__version__}\")\n",
+    "print(f\"Reference genome loaded: {list(reference.keys())}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "3",
+   "metadata": {},
+   "source": [
+    "## Understanding Variant Types\n",
+    "\n",
+    "supremo_lite automatically classifies variants, for more information on how this classification is done and which VCF representations are supported, see the variant classification flowchart."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 14,
+   "id": "4",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Variants in VCF:\n",
+      "  chrom  pos1 id            ref       alt    info  vcf_line variant_type\n",
+      "0  chr1    10  .              A         T  DP=100         9          SNV\n",
+      "1  chr1    11  .              T   TATATAG  DP=100        10          INS\n",
+      "2  chr1    11  .  TATTTTCGAGAAT         T  DP=100        11          DEL\n",
+      "3  chr1    11  .              T    TGGGGG  DP=100        12          INS\n",
+      "4  chr1    25  .              A  AATATAGG  DP=100        13          INS\n",
+      "5  chr1    50  .              G    GGGGGG  DP=100        14          INS\n",
+      "6  chr1    52  .         GTTTTA         G  DP=100        15          DEL\n",
+      "7  chr1    76  .          ATATT     AGATT  DP=100        16          MNV\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Load variants\n",
+    "variants = sl.read_vcf(multi_vcf_path, classify_variants=True)\n",
+    "\n",
+    "print(\"Variants in VCF:\")\n",
+    "print(variants)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "5",
+   "metadata": {},
+   "source": [
+    "## Basic Genome Personalization\n",
+    "\n",
+    "Let's create a personalized genome and examine the results:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 15,
+   "id": "6",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "\n",
+      "Generated personalized genome:\n",
+      "chr1: 93 bp\n",
+      "chr2: 80 bp\n",
+      "chr3: 80 bp\n",
+      "chr4: 80 bp\n",
+      "chr5: 80 bp\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Create personalized genome with verbose output\n",
+    "personal_genome = sl.get_personal_genome(\n",
+    "    reference_fn=reference,\n",
+    "    variants_fn=variants,\n",
+    "    encode=False,  # Get string sequences for easy comparison\n",
+    ")\n",
+    "\n",
+    "print(\"\\nGenerated personalized genome:\")\n",
+    "for chrom in personal_genome.keys():\n",
+    "    print(f\"{chrom}: {len(personal_genome[chrom])} bp\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "9",
+   "metadata": {},
+   "source": [
+    "## Examining Variant Application\n",
+    "\n",
+    "Let's look at specific regions to see how each variant type was applied:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 17,
+   "id": "10",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "============================================================\n",
+      "VARIANT APPLICATION EXAMPLES\n",
+      "============================================================\n",
+      "\n",
+      "SNV variant:\n",
+      "------------------------------------------------------------\n",
+      "chr1:10 A → T\n",
+      "\n",
+      "Reference:    ATGAATATAATATTTTCGAGAATTACTCCT\n",
+      "                       ^\n",
+      "Personalized: ATGAATATATTATATAGATTTTCGAGAATT\n",
+      "                       ^\n",
+      "\n",
+      "\n",
+      "INS variant:\n",
+      "------------------------------------------------------------\n",
+      "chr1:11 T → TATATAG\n",
+      "\n",
+      "Reference:    ATGAATATAATATTTTCGAGAATTACTCCTT\n",
+      "                        ^\n",
+      "Personalized: ATGAATATATTATATAGATTTTCGAGAATTAATATAG\n",
+      "                        ^^^^^^^\n",
+      "\n",
+      "\n",
+      "DEL variant:\n",
+      "------------------------------------------------------------\n",
+      "chr1:11 TATTTTCGAGAAT → T\n",
+      "\n",
+      "Reference:    ATGAATATAATATTTTCGAGAATTACTCCTTTTGGAAATGGAA\n",
+      "                        ^^^^^^^^^^^^^\n",
+      "Personalized: ATGAATATATTATATAGATTTTCGAGAATTA\n",
+      "                        ^\n",
+      "\n",
+      "\n",
+      "INS variant:\n",
+      "------------------------------------------------------------\n",
+      "chr1:11 T → TGGGGG\n",
+      "\n",
+      "Reference:    ATGAATATAATATTTTCGAGAATTACTCCTT\n",
+      "                        ^\n",
+      "Personalized: ATGAATATATTATATAGATTTTCGAGAATTAATATA\n",
+      "                        ^^^^^^\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Function to show variant context\n",
+    "def show_variant_context(chrom, pos1, ref, alt, reference, personal_genome, window=20):\n",
+    "    \"\"\"Display reference and personalized sequence around a variant.\"\"\"\n",
+    "    # VCF uses 1-based, Python uses 0-based\n",
+    "    pos0 = pos1 - 1\n",
+    "\n",
+    "    # Get reference context\n",
+    "    ref_start = max(0, pos0 - window)\n",
+    "    ref_end = min(len(reference[chrom]), pos0 + len(ref) + window)\n",
+    "    ref_context = reference[chrom][ref_start:ref_end].seq\n",
+    "\n",
+    "    # Calculate where variant appears in context\n",
+    "    var_offset = pos0 - ref_start\n",
+    "\n",
+    "    # Get personalized context (may have different length due to indel)\n",
+    "    # For personalized, we need to account for the length change\n",
+    "    len_diff = len(alt) - len(ref)\n",
+    "    pers_end = ref_end + len_diff\n",
+    "    pers_context = personal_genome[chrom][ref_start:pers_end]\n",
+    "\n",
+    "    print(f\"{chrom}:{pos1} {ref} → {alt}\")\n",
+    "    print(f\"\\nReference:    {ref_context}\")\n",
+    "    print(f\"              {' ' * var_offset}{'^' * len(ref)}\")\n",
+    "    print(f\"Personalized: {pers_context}\")\n",
+    "    print(f\"              {' ' * var_offset}{'^' * len(alt)}\")\n",
+    "    print()\n",
+    "\n",
+    "\n",
+    "# Show examples of each variant type\n",
+    "print(\"=\" * 60)\n",
+    "print(\"VARIANT APPLICATION EXAMPLES\")\n",
+    "print(\"=\" * 60)\n",
+    "\n",
+    "for _, row in variants.head(4).iterrows():  # Show first 4 variants\n",
+    "    print(f\"\\n{row['variant_type']} variant:\")\n",
+    "    print(\"-\" * 60)\n",
+    "    show_variant_context(\n",
+    "        row[\"chrom\"], row[\"pos1\"], row[\"ref\"], row[\"alt\"], reference, personal_genome\n",
+    "    )"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "11",
+   "metadata": {},
+   "source": [
+    "## Skipped Variants and Overlap Detection\n",
+    "\n",
+    "When variants overlap or can't be applied, supremo_lite tracks and reports them in verbose mode. Let's see this in action:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 18,
+   "id": "12",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "🧬 Processing 8 variants across 1 chromosomes\n",
+      "   Phase 1: 8 standard variants (SNV, MNV, INS, DEL, SV_DUP, SV_INV)\n",
+      "   Phase 2: 0 BND variants for semantic classification\n",
+      "🔄 Processing chromosome chr1: 8 variants (4 INS, 2 DEL, 1 SNV, 1 MNV)\n",
+      "  ⚠️  Skipped 2 variant(s):\n",
+      "     • overlap with previous variant: VCF line(s) 11, 12 at chr1:11\n",
+      "  ✅ Applied 6/8 variants (2 skipped)\n",
+      "🧬 Completed: 8/8 variants processed → 5 sequences\n"
+     ]
+    }
+   ],
+   "source": [
+    "# The multi.vcf file contains overlapping variants\n",
+    "\n",
+    "# Create personalized genome with verbose output\n",
+    "personal_genome = sl.get_personal_genome(\n",
+    "    reference_fn=reference,\n",
+    "    variants_fn=variants,\n",
+    "    encode=False,  # Get string sequences for easy comparison\n",
+    "    verbose=True,  # Show detailed processing information\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "13",
+   "metadata": {},
+   "source": [
+    "## Sequence Length Changes from Indels\n",
+    "\n",
+    "Insertions and deletions change the length of chromosomes:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 20,
+   "id": "14",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Chromosome length analysis:\n",
+      "============================================================\n",
+      "\n",
+      "chr1:\n",
+      "  Reference length:    80 bp\n",
+      "  Personalized length: 93 bp\n",
+      "  Actual change:       +13 bp\n",
+      "  Expected change*:    +6 bp\n",
+      "  Variants on chrom:   8\n",
+      "  ⚠️  Difference due to overlapping/skipped variants\n",
+      "\n",
+      "chr2:\n",
+      "  Reference length:    80 bp\n",
+      "  Personalized length: 80 bp\n",
+      "  Actual change:       +0 bp\n",
+      "  Expected change*:    +0 bp\n",
+      "  Variants on chrom:   0\n",
+      "\n",
+      "chr3:\n",
+      "  Reference length:    80 bp\n",
+      "  Personalized length: 80 bp\n",
+      "  Actual change:       +0 bp\n",
+      "  Expected change*:    +0 bp\n",
+      "  Variants on chrom:   0\n",
+      "\n",
+      "chr4:\n",
+      "  Reference length:    80 bp\n",
+      "  Personalized length: 80 bp\n",
+      "  Actual change:       +0 bp\n",
+      "  Expected change*:    +0 bp\n",
+      "  Variants on chrom:   0\n",
+      "\n",
+      "chr5:\n",
+      "  Reference length:    80 bp\n",
+      "  Personalized length: 80 bp\n",
+      "  Actual change:       +0 bp\n",
+      "  Expected change*:    +0 bp\n",
+      "  Variants on chrom:   0\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Calculate expected length changes\n",
+    "print(\"Chromosome length analysis:\")\n",
+    "print(\"=\" * 60)\n",
+    "\n",
+    "for chrom in reference.keys():\n",
+    "    ref_len = len(reference[chrom])\n",
+    "    pers_len = len(personal_genome[chrom])\n",
+    "\n",
+    "    # Calculate total length change from variants\n",
+    "    chrom_variants = variants[variants[\"chrom\"] == chrom]\n",
+    "    total_change = sum(\n",
+    "        len(row[\"alt\"]) - len(row[\"ref\"]) for _, row in chrom_variants.iterrows()\n",
+    "    )\n",
+    "\n",
+    "    # Note: total_change may differ from actual due to overlapping variants\n",
+    "    actual_change = pers_len - ref_len\n",
+    "\n",
+    "    print(f\"\\n{chrom}:\")\n",
+    "    print(f\"  Reference length:    {ref_len:,} bp\")\n",
+    "    print(f\"  Personalized length: {pers_len:,} bp\")\n",
+    "    print(f\"  Actual change:       {actual_change:+,} bp\")\n",
+    "    print(f\"  Expected change*:    {total_change:+,} bp\")\n",
+    "    print(f\"  Variants on chrom:   {len(chrom_variants)}\")\n",
+    "\n",
+    "    if total_change != actual_change:\n",
+    "        print(f\"  ⚠️  Difference due to overlapping/skipped variants\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "19",
+   "metadata": {},
+   "source": [
+    "## Best Practices\n",
+    "\n",
+    "### 1. **Always use verbose mode during development**\n",
+    "```python\n",
+    "personal_genome = sl.get_personal_genome(\n",
+    "    reference_fn=reference,\n",
+    "    variants_fn=variants,\n",
+    "    verbose=True  # See what's happening!\n",
+    ")\n",
+    "```\n",
+    "\n",
+    "### 2. **Use chunked processing for large VCF files**\n",
+    "```python\n",
+    "personal_genome = sl.get_personal_genome(\n",
+    "    reference_fn=reference,\n",
+    "    variants_fn='large_variants.vcf',\n",
+    "    chunk_size=10000  # Process vcf in 10k chunks (default is 1)\n",
+    ")\n",
+    "```"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "20",
+   "metadata": {},
+   "source": [
+    "\n",
+    "## Next Steps\n",
+    "\n",
+    "- **[03_prediction_alignment.ipynb](03_prediction_alignment.ipynb)** - Generate variant centered window sequences and align model predictions"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "8c46b676-0c0f-4443-a4ec-86039895e1ae",
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3 (ipykernel)",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "name": "python"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}

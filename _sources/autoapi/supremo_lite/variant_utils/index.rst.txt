@@ -1,0 +1,504 @@
+supremo_lite.variant_utils
+==========================
+
+.. py:module:: supremo_lite.variant_utils
+
+.. autoapi-nested-parse::
+
+   Variant reading and handling utilities for supremo_lite.
+
+   This module provides functions for reading variants from VCF files
+   and other related operations.
+
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   supremo_lite.variant_utils.BreakendVariant
+   supremo_lite.variant_utils.BreakendPair
+   supremo_lite.variant_utils.Breakend
+   supremo_lite.variant_utils.BNDClassifier
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   supremo_lite.variant_utils.read_vcf
+   supremo_lite.variant_utils.read_vcf_chunked
+   supremo_lite.variant_utils.get_vcf_chromosomes
+   supremo_lite.variant_utils.read_vcf_chromosome
+   supremo_lite.variant_utils.read_vcf_chromosomes_chunked
+   supremo_lite.variant_utils.group_variants_by_semantic_type
+   supremo_lite.variant_utils.parse_vcf_info
+   supremo_lite.variant_utils.classify_variant_type
+   supremo_lite.variant_utils.parse_breakend_alt
+   supremo_lite.variant_utils.validate_breakend_pair
+   supremo_lite.variant_utils.create_breakend_pairs
+   supremo_lite.variant_utils.load_breakend_variants
+
+
+Module Contents
+---------------
+
+.. py:class:: BreakendVariant
+
+   Represents a single breakend variant from a VCF file.
+
+   This class stores all information needed to process a BND variant,
+   including mate relationships and inserted sequences.
+
+
+   .. py:attribute:: id
+      :type:  str
+
+
+   .. py:attribute:: chrom
+      :type:  str
+
+
+   .. py:attribute:: pos
+      :type:  int
+
+
+   .. py:attribute:: ref
+      :type:  str
+
+
+   .. py:attribute:: alt
+      :type:  str
+
+
+   .. py:attribute:: mate_id
+      :type:  str
+
+
+   .. py:attribute:: mate_chrom
+      :type:  str
+
+
+   .. py:attribute:: mate_pos
+      :type:  int
+
+
+   .. py:attribute:: orientation
+      :type:  str
+
+
+   .. py:attribute:: inserted_seq
+      :type:  str
+
+
+   .. py:attribute:: info
+      :type:  str
+
+
+   .. py:attribute:: variant_type
+      :type:  str
+      :value: 'SV_BND'
+
+
+
+.. py:class:: BreakendPair
+
+   Represents a pair of mated breakend variants that create a novel adjacency.
+
+   This class coordinates the application of both breakends to create
+   complex rearrangements like translocations, inversions, etc.
+
+
+   .. py:attribute:: breakend1
+      :type:  BreakendVariant
+
+
+   .. py:attribute:: breakend2
+      :type:  BreakendVariant
+
+
+   .. py:attribute:: is_valid
+      :type:  bool
+      :value: True
+
+
+
+   .. py:attribute:: validation_errors
+      :type:  List[str]
+      :value: None
+
+
+
+   .. py:attribute:: validation_warnings
+      :type:  List[str]
+      :value: None
+
+
+
+   .. py:property:: rearrangement_type
+      :type: str
+
+
+      Determine the type of rearrangement represented by this breakend pair.
+
+      :returns: Rearrangement type ('translocation', 'inversion', 'duplication', 'complex')
+      :rtype: str
+
+
+   .. py:method:: get_affected_regions() -> List[Tuple[str, int, int]]
+
+      Get genomic regions affected by this breakend pair.
+
+      :returns: List of tuples (chrom, start, end) for affected regions
+
+
+
+.. py:class:: Breakend
+
+   Enhanced breakend with classification information.
+
+
+   .. py:attribute:: id
+      :type:  str
+
+
+   .. py:attribute:: chrom
+      :type:  str
+
+
+   .. py:attribute:: pos
+      :type:  int
+
+
+   .. py:attribute:: ref
+      :type:  str
+
+
+   .. py:attribute:: alt
+      :type:  str
+
+
+   .. py:attribute:: mate_chrom
+      :type:  str
+
+
+   .. py:attribute:: mate_pos
+      :type:  int
+
+
+   .. py:attribute:: orientation
+      :type:  str
+
+
+   .. py:attribute:: inserted_seq
+      :type:  str
+
+
+   .. py:attribute:: classification
+      :type:  str
+
+
+   .. py:attribute:: mate_breakend
+      :type:  Optional[Breakend]
+      :value: None
+
+
+
+   .. py:method:: from_breakend_variant(variant: BreakendVariant, classification: str) -> Breakend
+      :classmethod:
+
+
+      Create from BreakendVariant.
+
+
+
+.. py:class:: BNDClassifier
+
+   BND classifier that doesn't depend on MATEID fields.
+
+   Classifies BNDs into categories:
+
+   1. Paired breakends - have matching mates by coordinates
+   2. Missing mates - reference coordinates not present in VCF (can be inferred)
+   3. Insertions with mates - insertions where mate is present
+   4. Insertions without mates - insertions where mate is missing (inferred)
+
+
+   .. py:attribute:: all_breakends
+      :value: []
+
+
+
+   .. py:attribute:: coordinate_index
+
+
+   .. py:method:: classify_all_breakends(vcf_path: str, verbose: bool = False) -> Dict[str, List[Breakend]]
+
+      Classify all BND variants from a VCF file.
+
+      :param vcf_path: Path to VCF file containing BND variants
+      :param verbose: Print detailed classification information (default: False)
+
+      :returns: Dict with keys 'paired', 'missing_mate', 'singleton_insertion'
+
+
+
+.. py:function:: read_vcf(path, include_info=True, classify_variants=True)
+
+   Read VCF file into pandas DataFrame with enhanced variant classification.
+
+   :param path: Path to VCF file
+   :param include_info: Whether to include INFO field (default: True)
+   :param classify_variants: Whether to classify variant types (default: True)
+
+   :returns: chrom, pos1, id, ref, alt, [info], [variant_type]
+   :rtype: DataFrame with columns
+
+   .. rubric:: Notes
+
+   - INFO field parsing enables structural variant classification
+   - variant_type column uses VCF 4.2 compliant classification
+   - Compatible with existing code expecting basic 5-column format
+
+
+.. py:function:: read_vcf_chunked(path, n_chunks=1, include_info=True, classify_variants=True)
+
+   Read VCF file in chunks using generator with enhanced variant classification.
+
+   :param path: Path to VCF file
+   :param n_chunks: Number of chunks to split variants into (default: 1)
+   :param include_info: Whether to include INFO field (default: True)
+   :param classify_variants: Whether to classify variant types (default: True)
+
+   :Yields: *DataFrame chunks with columns* -- chrom, pos1, id, ref, alt, [info], [variant_type]
+
+
+.. py:function:: get_vcf_chromosomes(path)
+
+   Get list of chromosomes in VCF file without loading all variants.
+
+   :param path: Path to VCF file
+
+   :returns: Set of chromosome names found in the VCF file
+
+
+.. py:function:: read_vcf_chromosome(path, target_chromosome, include_info=True, classify_variants=True)
+
+   Read VCF file for a specific chromosome only with enhanced variant classification.
+
+   :param path: Path to VCF file
+   :param target_chromosome: Chromosome name to filter for
+   :param include_info: Whether to include INFO field (default: True)
+   :param classify_variants: Whether to classify variant types (default: True)
+
+   :returns: DataFrame with variants only from specified chromosome
+             (columns: chrom, pos1, id, ref, alt, [info], [variant_type])
+
+
+.. py:function:: read_vcf_chromosomes_chunked(path, target_chromosomes, n_chunks=1, include_info=True, classify_variants=True)
+
+   Read VCF file for specific chromosomes in chunks with enhanced variant classification.
+
+   :param path: Path to VCF file
+   :param target_chromosomes: List/set of chromosome names to include
+   :param n_chunks: Number of chunks per chromosome (default: 1)
+   :param include_info: Whether to include INFO field (default: True)
+   :param classify_variants: Whether to classify variant types (default: True)
+
+   :Yields: Tuples of (chromosome, variants_dataframe) for each chunk
+            DataFrame columns: chrom, pos1, id, ref, alt, [info], [variant_type]
+
+
+.. py:function:: group_variants_by_semantic_type(variants_df: pandas.DataFrame, vcf_path: Optional[str] = None) -> Dict[str, pandas.DataFrame]
+
+   Group variants by semantic type for unified processing.
+
+   This function groups variants so that DUP and SV_BND_DUP are processed together,
+   INV and SV_BND_INV are processed together, etc.
+
+   :param variants_df: DataFrame with variants including variant_type column
+   :param vcf_path: Optional VCF path for BND semantic classification
+
+   :returns: 'standard', 'dup_variants', 'inv_variants', 'bnd_variants'
+   :rtype: Dict with keys
+
+
+.. py:function:: parse_vcf_info(info_string: str) -> Dict
+
+   Parse VCF INFO field to extract variant information according to VCF 4.2 specification.
+
+   :param info_string: VCF INFO field string (e.g., "SVTYPE=INV;END=1234;SVLEN=100")
+
+   :returns: Parsed INFO field values with appropriate type conversion
+   :rtype: dict
+
+   VCF 4.2 INFO field specification:
+
+       - Key=Value pairs separated by semicolons
+       - Boolean flags have no value (key presence = True)
+       - Numeric values auto-converted to int/float
+       - Reserved keys: AA, AC, AF, AN, BQ, CIGAR, DB, DP, END, H2, H3, MQ, MQ0, NS, SB, etc.
+
+   .. rubric:: Examples
+
+   >>> parse_vcf_info("SVTYPE=INV;END=1234;SVLEN=100")
+   {'SVTYPE': 'INV', 'END': 1234, 'SVLEN': 100}
+
+   >>> parse_vcf_info("DB;H2;AF=0.5")
+   {'DB': True, 'H2': True, 'AF': 0.5}
+
+
+.. py:function:: classify_variant_type(ref_allele: str, alt_allele: str, info_dict: Optional[Dict] = None) -> str
+
+   Classify variant type according to VCF 4.2 specification using comprehensive heuristics.
+
+   Note: This function only correctly classifies variants that are represented in a single
+   VCF record, this means that an additional classification step is needed for BNDs that
+   actually represent INV or DUP variants as those can be represented as 4 or 2 VCF records
+   respectively.
+
+   This function implements the complete VCF 4.2 variant classification rules with proper
+   handling of structural variants, standard sequence variants, and edge cases.
+
+   :param ref_allele: Reference allele sequence (REF field)
+   :param alt_allele: Alternate allele sequence (ALT field)
+   :param info_dict: Parsed INFO field dictionary (optional, for structural variants)
+
+   :returns: Variant type classification
+   :rtype: str
+
+   VCF 4.2 Variant Types (in classification priority order):
+
+       - 'complex': Complex/multiallelic variants (ALT contains comma)
+       - 'missing': Missing/upstream deletion allele (ALT = '*')
+       - 'SV_INV': Inversion structural variant
+       - 'SV_DUP': Duplication structural variant
+       - 'SV_DEL': Deletion structural variant
+       - 'SV_INS': Insertion structural variant
+       - 'SV_CNV': Copy number variant
+       - 'SV_BND': Breakend/translocation
+       - 'SV_BND_INS': Breakend/translocation with inserted sequence
+       - 'SNV': Single nucleotide variant
+       - 'MNV': Milti-nucleotide variant (alt len = ref len but no prefix)
+       - 'INS': Sequence insertion
+       - 'DEL': Sequence deletion
+       - 'complex': Complex/multi-nucleotide variant (same length substitution)
+       - 'unknown': Unclassifiable variant
+
+   Note: MNV is not part of the official VCF 4.2 spec, they are treated the same as SNVs
+   for all functions in supremo_lite.
+
+   .. rubric:: Examples
+
+   # Multiallelic variants
+   >>> classify_variant_type('A', 'G,T')
+   'multiallelic'
+   >>> classify_variant_type('T', 'TGGG,C')
+   'multiallelic'
+
+   # Standard variants
+   >>> classify_variant_type('A', 'G')
+   'SNV'
+   >>> classify_variant_type('AGG', 'TCG')
+   'MNV'
+   >>> classify_variant_type('T', 'TGGG')
+   'INS'
+   >>> classify_variant_type('CGAGAA', 'C')
+   'DEL'
+
+   # Structural variants
+   >>> classify_variant_type('N', '<INV>')
+   'SV_INV'
+   >>> classify_variant_type('G', 'G]17:198982]')
+   'SV_BND'
+   >>> classify_variant_type('T', ']chr2:20]ATCGT')
+   'SV_BND_INS'
+
+   # Special cases
+   >>> classify_variant_type('T', '*')
+   'missing'
+
+   VCF 4.2 Reference: https://samtools.github.io/hts-specs/VCFv4.2.pdf
+
+
+.. py:function:: parse_breakend_alt(alt_allele: str) -> Dict
+
+   Parse breakend ALT field to extract mate information and inserted sequence.
+
+   :param alt_allele: ALT field from BND variant (e.g., "G]17:198982]", "]13:123456]AGTNNNNNCAT")
+
+   :returns:
+
+             Parsed breakend information with keys:
+                 - 'mate_chrom': Chromosome of mate breakend
+                 - 'mate_pos': Position of mate breakend (1-based)
+                 - 'orientation': Breakend orientation ('t[p[', 't]p]', ']p]t', '[p[t')
+                 - 'inserted_seq': Novel sequence inserted at junction (empty string if none)
+                 - 'is_valid': Boolean indicating if ALT field was successfully parsed
+   :rtype: dict
+
+   Breakend ALT format examples (VCF 4.2):
+
+       - t[p[: piece extending to the right of p is joined after t
+       - t]p]: reverse comp piece extending left of p is joined after t
+       - ]p]t: piece extending to the left of p is joined before t
+       - [p[t: reverse comp piece extending right of p is joined before t
+
+   .. rubric:: Examples
+
+   >>> parse_breakend_alt("G]17:198982]")
+   {'mate_chrom': '17', 'mate_pos': 198982, 'orientation': 't]p]',
+    'inserted_seq': '', 'is_valid': True}
+
+   >>> parse_breakend_alt("]13:123456]AGTNNNNNCAT")
+   {'mate_chrom': '13', 'mate_pos': 123456, 'orientation': ']p]t',
+    'inserted_seq': 'AGTNNNNNCAT', 'is_valid': True}
+
+
+.. py:function:: validate_breakend_pair(bnd1: Dict, bnd2: Dict) -> Dict
+
+   Validate that two breakend variants form a consistent mate pair.
+
+   :param bnd1: First breakend variant (dict with id, mate_id, chrom, pos, etc.)
+   :param bnd2: Second breakend variant (dict with id, mate_id, chrom, pos, etc.)
+
+   :returns:
+
+             Validation result with keys:
+                 - 'is_valid': Boolean indicating if pair is valid
+                 - 'errors': List of validation error messages
+                 - 'warnings': List of validation warning messages
+   :rtype: dict
+
+
+.. py:function:: create_breakend_pairs(variants_df: pandas.DataFrame) -> List[BreakendPair]
+
+   Create BreakendPair objects from BND variants in a DataFrame.
+
+   This function pairs breakend variants based on coordinate matching rather than MATEID,
+   making it more robust and not dependent on optional INFO fields.
+
+   :param variants_df: DataFrame containing BND variants with variant_type='SV_BND'
+
+   :returns: List of BreakendPair objects representing valid breakend pairs
+
+   .. rubric:: Notes
+
+   - Pairs breakends by matching coordinates from ALT field parsing
+   - Does not require MATEID field to be present
+   - Issues warnings for unpaired or invalid breakends
+
+
+.. py:function:: load_breakend_variants(variants_fn: Union[str, pandas.DataFrame]) -> Tuple[pandas.DataFrame, List[Tuple]]
+
+   Load variants and separate BND variants into pairs using enhanced classifier.
+
+   :param variants_fn: Path to VCF file or DataFrame with variant data
+
+   :returns: Tuple of (standard_variants_df, breakend_pairs_list)
+             - standard_variants_df: DataFrame with non-BND variants
+             - breakend_pairs_list: List of tuples (bnd1, bnd2) for BND pairs
+
+

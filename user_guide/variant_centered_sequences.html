@@ -1,0 +1,295 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Variant-Centered Sequence Windows &mdash; supremo_lite  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=fd3f3429" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="PAM Disruption Analysis" href="pam_disruption.html" />
+    <link rel="prev" title="Personalized Genome Generation" href="personalization.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            supremo_lite
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="personalization.html">Personalized Genome Generation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Variant-Centered Sequence Windows</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#main-functions">Main Functions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#get-alt-ref-sequences">get_alt_ref_sequences()</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-pam-disrupting-alt-sequences">get_pam_disrupting_alt_sequences()</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#metadata-structure">Metadata Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#output-formats">Output Formats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#examples">Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#basic-sequence-generation">Basic Sequence Generation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pam-disruption-analysis">PAM Disruption Analysis</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="pam_disruption.html">PAM Disruption Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="prediction_alignment.html">Prediction Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="prediction_alignment_examples.html">Prediction Alignment Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="prediction_alignment_examples.html#variant-type-examples">Variant Type Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mutagenesis.html">Saturation Mutagenesis</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Notebooks</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../notebooks/01_getting_started.html">Getting Started with supremo_lite</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebooks/02_personalized_genomes.html">Personalized Genome Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebooks/03_prediction_alignment.html">Prediction Alignment: From Sequences to Aligned Predictions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebooks/04_pam_disruption.html">PAM Disruption Analysis: Identifying CRISPR-Resistant Variants</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../autoapi/index.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../conduct.html">Code of Conduct</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">supremo_lite</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Variant-Centered Sequence Windows</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/user_guide/variant_centered_sequences.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="variant-centered-sequence-windows">
+<h1>Variant-Centered Sequence Windows<a class="headerlink" href="#variant-centered-sequence-windows" title="Link to this heading"></a></h1>
+<p>Generate sequence windows around variants for model predictions.</p>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>Extract sequence windows centered on variants for genomic model predictions, variant effect analysis, and PAM site disruption analysis.</p>
+</section>
+<section id="main-functions">
+<h2>Main Functions<a class="headerlink" href="#main-functions" title="Link to this heading"></a></h2>
+<section id="get-alt-ref-sequences">
+<h3>get_alt_ref_sequences()<a class="headerlink" href="#get-alt-ref-sequences" title="Link to this heading"></a></h3>
+<p>Generate reference and alternate sequence pairs centered on each variant.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Note: get_alt_ref_sequences is a generator that yields chunks</span>
+<span class="n">results</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">sl</span><span class="o">.</span><span class="n">get_alt_ref_sequences</span><span class="p">(</span>
+    <span class="n">reference_fn</span><span class="o">=</span><span class="n">reference</span><span class="p">,</span>
+    <span class="n">variants_fn</span><span class="o">=</span><span class="n">variants</span><span class="p">,</span>
+    <span class="n">seq_len</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>  <span class="c1"># 1000 bp windows</span>
+    <span class="n">encode</span><span class="o">=</span><span class="kc">True</span>     <span class="c1"># One-hot encoded</span>
+<span class="p">))</span>
+<span class="c1"># Unpack from the first chunk</span>
+<span class="n">alt_seqs</span><span class="p">,</span> <span class="n">ref_seqs</span><span class="p">,</span> <span class="n">metadata</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</pre></div>
+</div>
+<p><strong>Parameters:</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">get_alt_ref_sequences</span><span class="p">(</span>
+    <span class="n">reference_fn</span><span class="p">,</span>           <span class="c1"># Reference genome (path, Fasta, or dict)</span>
+    <span class="n">variants_fn</span><span class="p">,</span>            <span class="c1"># Variants (path or DataFrame)</span>
+    <span class="n">seq_len</span><span class="p">,</span>                <span class="c1"># int: Total sequence length</span>
+    <span class="n">encode</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>            <span class="c1"># bool: Return encoded sequences</span>
+    <span class="n">chunk_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>           <span class="c1"># int: Variants per chunk</span>
+    <span class="n">encoder</span><span class="o">=</span><span class="kc">None</span>            <span class="c1"># Optional custom encoder</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">array</span><span class="o">/</span><span class="nb">list</span><span class="p">,</span> <span class="n">array</span><span class="o">/</span><span class="nb">list</span><span class="p">,</span> <span class="nb">list</span><span class="p">]</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> <code class="docutils literal notranslate"><span class="pre">(ref_seqs,</span> <span class="pre">alt_seqs,</span> <span class="pre">metadata)</span></code></p>
+<ul class="simple">
+<li><p>Variants centered at position <code class="docutils literal notranslate"><span class="pre">seq_len</span> <span class="pre">//</span> <span class="pre">2</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">encode=True</span></code>: shape <code class="docutils literal notranslate"><span class="pre">(n_variants,</span> <span class="pre">4,</span> <span class="pre">seq_len)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">encode=False</span></code>: list of strings</p></li>
+</ul>
+</section>
+<section id="get-pam-disrupting-alt-sequences">
+<h3>get_pam_disrupting_alt_sequences()<a class="headerlink" href="#get-pam-disrupting-alt-sequences" title="Link to this heading"></a></h3>
+<p>Identify variants that disrupt PAM sites (e.g., for CRISPR analysis).</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">results</span> <span class="o">=</span> <span class="n">sl</span><span class="o">.</span><span class="n">get_pam_disrupting_alt_sequences</span><span class="p">(</span>
+    <span class="n">reference_fn</span><span class="o">=</span><span class="n">reference</span><span class="p">,</span>
+    <span class="n">variants_fn</span><span class="o">=</span><span class="n">variants</span><span class="p">,</span>
+    <span class="n">seq_len</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+    <span class="n">max_pam_distance</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>  <span class="c1"># Search within 50 bp of variant</span>
+    <span class="n">pam_sequence</span><span class="o">=</span><span class="s2">&quot;NGG&quot;</span>     <span class="c1"># SpCas9 PAM</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Parameters:</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">get_pam_disrupting_alt_sequences</span><span class="p">(</span>
+    <span class="n">reference_fn</span><span class="p">,</span>           <span class="c1"># Reference genome</span>
+    <span class="n">variants_fn</span><span class="p">,</span>            <span class="c1"># Variants</span>
+    <span class="n">seq_len</span><span class="p">,</span>                <span class="c1"># int: Sequence window length</span>
+    <span class="n">max_pam_distance</span><span class="p">,</span>       <span class="c1"># int: Max distance from variant to PAM</span>
+    <span class="n">pam_sequence</span><span class="o">=</span><span class="s2">&quot;NGG&quot;</span><span class="p">,</span>     <span class="c1"># str: PAM sequence (supports IUPAC codes)</span>
+    <span class="n">encode</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>            <span class="c1"># bool: Return encoded sequences</span>
+    <span class="n">n_chunks</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>             <span class="c1"># int: Number of chunks for processing</span>
+    <span class="n">encoder</span><span class="o">=</span><span class="kc">None</span>            <span class="c1"># Optional custom encoder</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span>
+</pre></div>
+</div>
+<p><strong>Returns dict:</strong> <code class="docutils literal notranslate"><span class="pre">{'variants':</span> <span class="pre">DataFrame,</span> <span class="pre">'pam_intact':</span> <span class="pre">sequences,</span> <span class="pre">'pam_disrupted':</span> <span class="pre">sequences}</span></code></p>
+<p><strong>Supported PAM sequences:</strong> Any PAM sequence specified using (IUPAC degenerate bases)[https://en.wikipedia.org/wiki/Nucleic_acid_notation].</p>
+</section>
+</section>
+<section id="metadata-structure">
+<h2>Metadata Structure<a class="headerlink" href="#metadata-structure" title="Link to this heading"></a></h2>
+<p>Each variant returns metadata with essential information:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s1">&#39;chrom&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>              <span class="c1"># Chromosome name</span>
+    <span class="s1">&#39;window_start&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>       <span class="c1"># Window start (0-based)</span>
+    <span class="s1">&#39;window_end&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>         <span class="c1"># Window end (0-based exclusive)</span>
+    <span class="s1">&#39;variant_pos0&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>       <span class="c1"># Variant position (0-based)</span>
+    <span class="s1">&#39;variant_pos1&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>       <span class="c1"># Variant position (1-based VCF)</span>
+    <span class="s1">&#39;ref&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>                <span class="c1"># Reference allele</span>
+    <span class="s1">&#39;alt&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>                <span class="c1"># Alternate allele</span>
+    <span class="s1">&#39;variant_type&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>       <span class="c1"># SNV, INS, DEL, SV_INV, etc.</span>
+
+    <span class="c1"># Optional fields for structural variants:</span>
+    <span class="s1">&#39;sym_variant_end&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>    <span class="c1"># END position for &lt;INV&gt;, &lt;DUP&gt;</span>
+    <span class="s1">&#39;mate_chrom&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>         <span class="c1"># Mate chromosome (BND only)</span>
+    <span class="s1">&#39;mate_pos&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>           <span class="c1"># Mate position (BND only)</span>
+    <span class="s1">&#39;orientation_1&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>      <span class="c1"># Orientation (BND only)</span>
+    <span class="s1">&#39;orientation_2&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>      <span class="c1"># Orientation (BND only)</span>
+    <span class="s1">&#39;fusion_name&#39;</span><span class="p">:</span> <span class="nb">str</span>         <span class="c1"># Fusion name (BND only)</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>:::{tip}
+The <code class="docutils literal notranslate"><span class="pre">variant_type</span></code> field is automatically determined using the classification logic shown in the <a class="reference download internal" download="" href="../_downloads/4715f8b2989677aaa97732e92525c24c/variant_classification.png"><span class="xref download myst">Variant Classification Flow Chart</span></a>.
+:::</p>
+</section>
+<section id="output-formats">
+<h2>Output Formats<a class="headerlink" href="#output-formats" title="Link to this heading"></a></h2>
+<p><strong>Encoded</strong> (<code class="docutils literal notranslate"><span class="pre">encode=True</span></code>): numpy arrays or PyTorch tensors, shape <code class="docutils literal notranslate"><span class="pre">(n_variants,</span> <span class="pre">4,</span> <span class="pre">seq_len)</span></code></p>
+<p><strong>Raw</strong> (<code class="docutils literal notranslate"><span class="pre">encode=False</span></code>): list of strings</p>
+</section>
+<section id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Link to this heading"></a></h2>
+<section id="basic-sequence-generation">
+<h3>Basic Sequence Generation<a class="headerlink" href="#basic-sequence-generation" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">supremo_lite</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sl</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyfaidx</span><span class="w"> </span><span class="kn">import</span> <span class="n">Fasta</span>
+
+<span class="c1"># File locations</span>
+<span class="n">reference</span> <span class="o">=</span> <span class="s1">&#39;reference.fa&#39;</span>
+<span class="n">variants</span> <span class="o">=</span> <span class="s1">&#39;variants.vcf&#39;</span>
+
+<span class="c1"># Generate 500bp windows</span>
+<span class="n">results</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">sl</span><span class="o">.</span><span class="n">get_alt_ref_sequences</span><span class="p">(</span>
+    <span class="n">reference_fn</span><span class="o">=</span><span class="n">reference</span><span class="p">,</span>
+    <span class="n">variants_fn</span><span class="o">=</span><span class="n">variants</span><span class="p">,</span>
+    <span class="n">seq_len</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>
+    <span class="n">encode</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">))</span>
+<span class="n">alt_seqs</span><span class="p">,</span> <span class="n">ref_seqs</span><span class="p">,</span> <span class="n">metadata</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Generated </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">metadata</span><span class="p">)</span><span class="si">}</span><span class="s2"> sequence pairs&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Reference shape: </span><span class="si">{</span><span class="n">ref_seqs</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Alternate shape: </span><span class="si">{</span><span class="n">alt_seqs</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="pam-disruption-analysis">
+<h3>PAM Disruption Analysis<a class="headerlink" href="#pam-disruption-analysis" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pam_results</span> <span class="o">=</span> <span class="n">sl</span><span class="o">.</span><span class="n">get_pam_disrupting_alt_sequences</span><span class="p">(</span>
+    <span class="n">reference_fn</span><span class="o">=</span><span class="n">reference</span><span class="p">,</span>
+    <span class="n">variants_fn</span><span class="o">=</span><span class="n">variants</span><span class="p">,</span>
+    <span class="n">seq_len</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+    <span class="n">max_pam_distance</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">pam_sequence</span><span class="o">=</span><span class="s2">&quot;NGG&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="see-also">
+<h2>See Also<a class="headerlink" href="#see-also" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="../notebooks/01_getting_started.html"><span class="std std-doc">Notebook: Getting Started</span></a></p></li>
+<li><p><a class="reference internal" href="personalization.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">get_personal_genome()</span></code></span></a></p></li>
+<li><p><a class="reference internal" href="pam_disruption.html"><span class="std std-doc">PAM Disruption Analysis</span></a> - Detailed guide for CRISPR PAM site analysis</p></li>
+<li><p><a class="reference internal" href="prediction_alignment.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">align_predictions_by_coordinate()</span></code></span></a></p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="personalization.html" class="btn btn-neutral float-left" title="Personalized Genome Generation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="pam_disruption.html" class="btn btn-neutral float-right" title="PAM Disruption Analysis" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Gladstone Institutes.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

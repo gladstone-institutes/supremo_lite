@@ -1,0 +1,97 @@
+supremo_lite.mock_models
+========================
+
+.. py:module:: supremo_lite.mock_models
+
+.. autoapi-nested-parse::
+
+   Mock models for testing and demonstration purposes.
+
+   This module provides simple PyTorch models that mimic realistic genomic deep learning
+   architectures without requiring actual training. These models are intended for:
+
+   1. **Testing**: Verifying that prediction alignment functions work correctly with
+      realistic model outputs (binned predictions, edge cropping, diagonal masking)
+
+   2. **Documentation**: Providing immediately runnable examples for users who want to
+      understand the package workflow without training their own models
+
+   **Important**: These models return constant values and should NOT be used for actual
+   genomic predictions or biological interpretation.
+
+   Available Models
+   ----------------
+   TestModel : nn.Module
+       Mock 1D genomic prediction model
+       - Output shape: (batch_size, n_targets, n_final_bins)
+       - Features: binning, edge cropping
+
+   TestModel2D : nn.Module
+       Mock 2D contact map prediction model
+       - Output shape: (batch_size, n_targets, n_flattened_ut_bins)
+       - Features: binning, edge cropping, diagonal masking, flattened output
+
+   .. rubric:: Examples
+
+   Using TestModel for 1D predictions:
+
+   >>> from supremo_lite.mock_models import TestModel, TORCH_AVAILABLE
+   >>> if TORCH_AVAILABLE:
+   ...     import torch
+   ...     model = TestModel(seq_length=1024, bin_length=32, crop_length=128)
+   ...     x = torch.randn(4, 4, 1024)
+   ...     predictions = model(x)
+   ...     print(predictions.shape)
+   torch.Size([4, 1, 24])
+
+   Using TestModel2D for contact maps:
+
+   >>> from supremo_lite.mock_models import TestModel2D
+   >>> if TORCH_AVAILABLE:
+   ...     import torch
+   ...     model = TestModel2D(seq_length=2048, bin_length=64, crop_length=256)
+   ...     x = torch.randn(4, 4, 2048)
+   ...     predictions = model(x)
+   ...     print(predictions.shape)
+   torch.Size([4, 1, 276])
+
+   Checking PyTorch Availability
+   ------------------------------
+   >>> from supremo_lite.mock_models import TORCH_AVAILABLE
+   >>> if not TORCH_AVAILABLE:
+   ...     print("Please install PyTorch to use mock models")
+
+   .. rubric:: Notes
+
+   - Requires PyTorch to be installed
+   - If PyTorch is not available, attempting to instantiate models will raise ImportError
+   - Check TORCH_AVAILABLE before using models
+   - See individual model documentation for architecture details
+
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/supremo_lite/mock_models/testmodel_1d/index
+   /autoapi/supremo_lite/mock_models/testmodel_2d/index
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   supremo_lite.mock_models.TORCH_AVAILABLE
+
+
+Package Contents
+----------------
+
+.. py:data:: TORCH_AVAILABLE
+   :value: True
+
+

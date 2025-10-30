@@ -1,0 +1,331 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Personalized Genome Generation &mdash; supremo_lite  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=fd3f3429" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Variant-Centered Sequence Windows" href="variant_centered_sequences.html" />
+    <link rel="prev" title="supremo_lite" href="../index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            supremo_lite
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Personalized Genome Generation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#basic-usage">Basic Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#function-signature">Function Signature</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#parameters">Parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#output">Output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#variant-handling">Variant Handling</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#supported-variant-types">Supported Variant Types</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#overlapping-variants">Overlapping Variants</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#skipped-variants">Skipped Variants</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#examples">Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#basic-personalization">Basic Personalization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#large-scale-processing">Large-Scale Processing</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#chromosome-name-matching">Chromosome Name Matching</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="variant_centered_sequences.html">Variant-Centered Sequence Windows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pam_disruption.html">PAM Disruption Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="prediction_alignment.html">Prediction Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="prediction_alignment_examples.html">Prediction Alignment Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="prediction_alignment_examples.html#variant-type-examples">Variant Type Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mutagenesis.html">Saturation Mutagenesis</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Notebooks</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../notebooks/01_getting_started.html">Getting Started with supremo_lite</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebooks/02_personalized_genomes.html">Personalized Genome Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebooks/03_prediction_alignment.html">Prediction Alignment: From Sequences to Aligned Predictions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebooks/04_pam_disruption.html">PAM Disruption Analysis: Identifying CRISPR-Resistant Variants</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../autoapi/index.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../conduct.html">Code of Conduct</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">supremo_lite</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Personalized Genome Generation</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/user_guide/personalization.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="personalized-genome-generation">
+<h1>Personalized Genome Generation<a class="headerlink" href="#personalized-genome-generation" title="Link to this heading"></a></h1>
+<p>Apply variants from VCF files to reference genomes.</p>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">get_personal_genome()</span></code> applies variants to a reference genome. Handles SNV, MNV, INS, DEL, and structural variants (INV, DUP, BND) with automatic chromosome name matching and memory-efficient chunked processing.</p>
+</section>
+<section id="basic-usage">
+<h2>Basic Usage<a class="headerlink" href="#basic-usage" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">supremo_lite</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sl</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyfaidx</span><span class="w"> </span><span class="kn">import</span> <span class="n">Fasta</span>
+
+<span class="c1"># Load data</span>
+<span class="n">reference</span> <span class="o">=</span> <span class="n">Fasta</span><span class="p">(</span><span class="s1">&#39;reference.fa&#39;</span><span class="p">)</span>
+<span class="n">variants</span> <span class="o">=</span> <span class="n">sl</span><span class="o">.</span><span class="n">read_vcf</span><span class="p">(</span><span class="s1">&#39;variants.vcf&#39;</span><span class="p">)</span>
+
+<span class="c1"># Generate personalized genome</span>
+<span class="n">personal_genome</span> <span class="o">=</span> <span class="n">sl</span><span class="o">.</span><span class="n">get_personal_genome</span><span class="p">(</span>
+    <span class="n">reference_fn</span><span class="o">=</span><span class="n">reference</span><span class="p">,</span>
+    <span class="n">variants_fn</span><span class="o">=</span><span class="n">variants</span><span class="p">,</span>
+    <span class="n">encode</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># Returns encoded sequences</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span>  <span class="c1"># Show progress</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="function-signature">
+<h2>Function Signature<a class="headerlink" href="#function-signature" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">get_personal_genome</span><span class="p">(</span>
+    <span class="n">reference_fn</span><span class="p">,</span>           <span class="c1"># str, Fasta object, or dict</span>
+    <span class="n">variants_fn</span><span class="p">,</span>            <span class="c1"># str (path) or DataFrame</span>
+    <span class="n">encode</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>            <span class="c1"># bool: return encoded (True) or raw strings (False)</span>
+    <span class="n">chunk_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>           <span class="c1"># int: variants per chunk (1 = no chunking)</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>          <span class="c1"># bool: show progress and skip information</span>
+    <span class="n">encoder</span><span class="o">=</span><span class="kc">None</span>            <span class="c1"># optional custom encoding function</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span>
+</pre></div>
+</div>
+</section>
+<section id="parameters">
+<h2>Parameters<a class="headerlink" href="#parameters" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">reference_fn</span></code></p></td>
+<td><p>str, Fasta, or dict</p></td>
+<td><p>required</p></td>
+<td><p>Reference genome (file path, Fasta object, or dict)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">variants_fn</span></code></p></td>
+<td><p>str or DataFrame</p></td>
+<td><p>required</p></td>
+<td><p>Variants (VCF file path or DataFrame from <code class="docutils literal notranslate"><span class="pre">read_vcf()</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">encode</span></code></p></td>
+<td><p>bool</p></td>
+<td><p>True</p></td>
+<td><p>True: one-hot encoded arrays; False: raw strings</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">chunk_size</span></code></p></td>
+<td><p>int</p></td>
+<td><p>1</p></td>
+<td><p>Variants per chunk (use 10k-50k for large VCFs)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">verbose</span></code></p></td>
+<td><p>bool</p></td>
+<td><p>False</p></td>
+<td><p>Show progress and skip information</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">encoder</span></code></p></td>
+<td><p>function</p></td>
+<td><p>None</p></td>
+<td><p>Optional custom encoding function</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="output">
+<h2>Output<a class="headerlink" href="#output" title="Link to this heading"></a></h2>
+<p>Returns dict mapping chromosome names to sequences (order matches reference):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s1">&#39;chr1&#39;</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">sequence</span><span class="o">&gt;</span><span class="p">,</span> <span class="s1">&#39;chr2&#39;</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">sequence</span><span class="o">&gt;</span><span class="p">,</span> <span class="o">...</span><span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="variant-handling">
+<h2>Variant Handling<a class="headerlink" href="#variant-handling" title="Link to this heading"></a></h2>
+<section id="supported-variant-types">
+<h3>Supported Variant Types<a class="headerlink" href="#supported-variant-types" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Sequence Effect</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>SNV</p></td>
+<td><p>Single nucleotide variant</p></td>
+<td><p>Single base substitution</p></td>
+</tr>
+<tr class="row-odd"><td><p>MNV</p></td>
+<td><p>Multiple nucleotide variant</p></td>
+<td><p>Multiple base substitution</p></td>
+</tr>
+<tr class="row-even"><td><p>INS</p></td>
+<td><p>Insertion</p></td>
+<td><p>Sequence lengthens</p></td>
+</tr>
+<tr class="row-odd"><td><p>DEL</p></td>
+<td><p>Deletion</p></td>
+<td><p>Sequence shortens</p></td>
+</tr>
+<tr class="row-even"><td><p>INV</p></td>
+<td><p>Inversion</p></td>
+<td><p>Reverse complement</p></td>
+</tr>
+<tr class="row-odd"><td><p>DUP</p></td>
+<td><p>Duplication</p></td>
+<td><p>Tandem repeat (length increases)</p></td>
+</tr>
+<tr class="row-even"><td><p>BND</p></td>
+<td><p>Breakend/Translocation</p></td>
+<td><p>Fusion sequence created</p></td>
+</tr>
+</tbody>
+</table>
+<p>:::{tip}
+See the <a class="reference download internal" download="" href="../_downloads/4715f8b2989677aaa97732e92525c24c/variant_classification.png"><span class="xref download myst">Variant Classification Flow Chart</span></a> for the complete decision tree showing how variants are automatically classified from VCF files.
+:::</p>
+</section>
+<section id="overlapping-variants">
+<h3>Overlapping Variants<a class="headerlink" href="#overlapping-variants" title="Link to this heading"></a></h3>
+<p>First variant in VCF is applied; overlapping variants are skipped (reported in verbose mode).</p>
+</section>
+<section id="skipped-variants">
+<h3>Skipped Variants<a class="headerlink" href="#skipped-variants" title="Link to this heading"></a></h3>
+<p>Variants skipped if overlapping, unsupported type, validation errors, or missing INFO fields. Use <code class="docutils literal notranslate"><span class="pre">verbose=True</span></code> to see details.</p>
+</section>
+</section>
+<section id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Link to this heading"></a></h2>
+<section id="basic-personalization">
+<h3>Basic Personalization<a class="headerlink" href="#basic-personalization" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">personal_genome</span> <span class="o">=</span> <span class="n">sl</span><span class="o">.</span><span class="n">get_personal_genome</span><span class="p">(</span>
+    <span class="n">reference_fn</span><span class="o">=</span><span class="s1">&#39;ref.fa&#39;</span><span class="p">,</span>
+    <span class="n">variants_fn</span><span class="o">=</span><span class="s1">&#39;vars.vcf&#39;</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="large-scale-processing">
+<h3>Large-Scale Processing<a class="headerlink" href="#large-scale-processing" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># For millions of variants</span>
+<span class="n">personal_genome</span> <span class="o">=</span> <span class="n">sl</span><span class="o">.</span><span class="n">get_personal_genome</span><span class="p">(</span>
+    <span class="n">reference_fn</span><span class="o">=</span><span class="s1">&#39;/data/hg38.fa&#39;</span><span class="p">,</span>
+    <span class="n">variants_fn</span><span class="o">=</span><span class="s1">&#39;/data/variants.vcf.gz&#39;</span><span class="p">,</span>
+    <span class="n">chunk_size</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>   <span class="c1"># 1k per chunk</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="chromosome-name-matching">
+<h2>Chromosome Name Matching<a class="headerlink" href="#chromosome-name-matching" title="Link to this heading"></a></h2>
+<p>Automatically handles naming differences: chr1 ↔ 1, chrX ↔ X, chrM ↔ MT.</p>
+</section>
+<section id="see-also">
+<h2>See Also<a class="headerlink" href="#see-also" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="../notebooks/02_personalized_genomes.html"><span class="std std-doc">Notebook: Personalized Genomes</span></a></p></li>
+<li><p><a class="reference internal" href="variant_centered_sequences.html#vcf-reading-functions"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">read_vcf()</span></code></span></a></p></li>
+<li><p><a class="reference internal" href="variant_centered_sequences.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">get_alt_ref_sequences()</span></code></span></a></p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../index.html" class="btn btn-neutral float-left" title="supremo_lite" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="variant_centered_sequences.html" class="btn btn-neutral float-right" title="Variant-Centered Sequence Windows" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Gladstone Institutes.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

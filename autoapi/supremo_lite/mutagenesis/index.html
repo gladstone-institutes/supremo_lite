@@ -1,0 +1,258 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>supremo_lite.mutagenesis &mdash; supremo_lite  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=fd3f3429" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="supremo_lite.personalize" href="../personalize/index.html" />
+    <link rel="prev" title="supremo_lite.mock_models.testmodel_2d" href="../mock_models/testmodel_2d/index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            supremo_lite
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/personalization.html">Personalized Genome Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/variant_centered_sequences.html">Variant-Centered Sequence Windows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/pam_disruption.html">PAM Disruption Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/prediction_alignment.html">Prediction Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/prediction_alignment_examples.html">Prediction Alignment Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/prediction_alignment_examples.html#variant-type-examples">Variant Type Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/mutagenesis.html">Saturation Mutagenesis</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Notebooks</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks/01_getting_started.html">Getting Started with supremo_lite</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks/02_personalized_genomes.html">Personalized Genome Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks/03_prediction_alignment.html">Prediction Alignment: From Sequences to Aligned Predictions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks/04_pam_disruption.html">PAM Disruption Analysis: Identifying CRISPR-Resistant Variants</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">supremo_lite</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="../index.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="../chromosome_utils/index.html">supremo_lite.chromosome_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../core/index.html">supremo_lite.core</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../mock_models/index.html">supremo_lite.mock_models</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">supremo_lite.mutagenesis</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../personalize/index.html">supremo_lite.personalize</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../prediction_alignment/index.html">supremo_lite.prediction_alignment</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sequence_utils/index.html">supremo_lite.sequence_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../variant_utils/index.html">supremo_lite.variant_utils</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#attributes">Attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#exceptions">Exceptions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#functions">Functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#package-contents">Package Contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../conduct.html">Code of Conduct</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">supremo_lite</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">supremo_lite</a></li>
+      <li class="breadcrumb-item active">supremo_lite.mutagenesis</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/autoapi/supremo_lite/mutagenesis/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-supremo_lite.mutagenesis">
+<span id="supremo-lite-mutagenesis"></span><h1>supremo_lite.mutagenesis<a class="headerlink" href="#module-supremo_lite.mutagenesis" title="Link to this heading"></a></h1>
+<p>In-silico saturation mutagenesis functionality for supremo_lite.</p>
+<p>This module provides functions for generating saturation mutagenesis sequences,
+where each position in a sequence is systematically mutated.</p>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#supremo_lite.mutagenesis.get_sm_sequences" title="supremo_lite.mutagenesis.get_sm_sequences"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_sm_sequences</span></code></a>(chrom, start, end, reference_fasta[, ...])</p></td>
+<td><p>Generate sequences with all alternate nucleotides at every position (saturation mutagenesis).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#supremo_lite.mutagenesis.get_sm_subsequences" title="supremo_lite.mutagenesis.get_sm_subsequences"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_sm_subsequences</span></code></a>(chrom, seq_len, reference_fasta[, ...])</p></td>
+<td><p>Generate sequences with all alternate nucleotides at positions in specified regions</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="supremo_lite.mutagenesis.get_sm_sequences">
+<span class="sig-prename descclassname"><span class="pre">supremo_lite.mutagenesis.</span></span><span class="sig-name descname"><span class="pre">get_sm_sequences</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">chrom</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference_fasta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/supremo_lite/mutagenesis.html#get_sm_sequences"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#supremo_lite.mutagenesis.get_sm_sequences" title="Link to this definition"></a></dt>
+<dd><p>Generate sequences with all alternate nucleotides at every position (saturation mutagenesis).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>chrom</strong> – Chromosome name</p></li>
+<li><p><strong>start</strong> – Start position (0-based)</p></li>
+<li><p><strong>end</strong> – End position (0-based, exclusive)</p></li>
+<li><p><strong>reference_fasta</strong> – Reference genome object</p></li>
+<li><p><strong>encoder</strong> – Optional custom encoding function. If provided, should accept a single
+sequence string and return encoded array with shape (4, L). Default: None</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple of (reference one-hot, alt one-hot tensor, metadata DataFrame)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="supremo_lite.mutagenesis.get_sm_subsequences">
+<span class="sig-prename descclassname"><span class="pre">supremo_lite.mutagenesis.</span></span><span class="sig-name descname"><span class="pre">get_sm_subsequences</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">chrom</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seq_len</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference_fasta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">anchor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">anchor_radius</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bed_regions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">auto_map_chromosomes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/supremo_lite/mutagenesis.html#get_sm_subsequences"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#supremo_lite.mutagenesis.get_sm_subsequences" title="Link to this definition"></a></dt>
+<dd><p>Generate sequences with all alternate nucleotides at positions in specified regions
+(saturation mutagenesis).</p>
+<p>Supports two mutually exclusive approaches for defining mutation intervals:
+1. Anchor-based: Use anchor + anchor_radius to define a single centered region
+2. BED-based: Use bed_regions to define one or more arbitrary genomic regions</p>
+<p>In both cases, sequences of length seq_len are generated, centered on the mutation interval(s).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>chrom</strong> – Chromosome name</p></li>
+<li><p><strong>seq_len</strong> – Total sequence length for each window</p></li>
+<li><p><strong>reference_fasta</strong> – Reference genome object</p></li>
+<li><p><strong>anchor</strong> – Anchor position (0-based). Required when using anchor_radius.
+Must be provided together with anchor_radius.
+Mutually exclusive with bed_regions.</p></li>
+<li><p><strong>anchor_radius</strong> – Number of bases to include on either side of the anchor for mutations.
+Required when using anchor. Must be provided together with anchor.
+Mutually exclusive with bed_regions.</p></li>
+<li><p><strong>bed_regions</strong> – BED file path or DataFrame defining mutation intervals.
+BED format: chrom, start, end (0-based, half-open intervals).
+Each BED region defines positions to mutate, centered in a seq_len window.
+Mutually exclusive with anchor + anchor_radius.</p></li>
+<li><p><strong>encoder</strong> – Optional custom encoding function. If provided, should accept a single
+sequence string and return encoded array with shape (4, L). Default: None</p></li>
+<li><p><strong>auto_map_chromosomes</strong> – Automatically map chromosome names between reference and BED file
+when they don’t match exactly (e.g., ‘chr1’ &lt;-&gt; ‘1’, ‘chrM’ &lt;-&gt; ‘MT’).
+Only applies when bed_regions is provided. Default: False.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple of (reference one-hot, alt one-hot tensor, metadata DataFrame)</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ValueError</strong> – If invalid parameter combinations are provided</p></li>
+<li><p><a class="reference internal" href="../chromosome_utils/index.html#supremo_lite.chromosome_utils.ChromosomeMismatchError" title="supremo_lite.chromosome_utils.ChromosomeMismatchError"><strong>ChromosomeMismatchError</strong></a> – If auto_map_chromosomes=False and chromosome names in BED file
+and reference don’t match exactly (only when bed_regions is provided)</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p># Approach 1: Anchor-based (single region)
+ref, alts, meta = get_sm_subsequences(</p>
+<blockquote>
+<div><p>chrom=’chr1’,
+seq_len=200,
+reference_fasta=ref,
+anchor=1050,
+anchor_radius=10  # Mutate positions 1040-1060 in a 200bp window</p>
+</div></blockquote>
+<p>)</p>
+<p># Approach 2: BED-based (multiple regions)
+ref, alts, meta = get_sm_subsequences(</p>
+<blockquote>
+<div><p>chrom=’chr1’,
+seq_len=200,
+reference_fasta=ref,
+bed_regions=’regions.bed’  # Each region centered in 200bp window</p>
+</div></blockquote>
+<p>)</p>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../mock_models/testmodel_2d/index.html" class="btn btn-neutral float-left" title="supremo_lite.mock_models.testmodel_2d" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../personalize/index.html" class="btn btn-neutral float-right" title="supremo_lite.personalize" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Gladstone Institutes.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

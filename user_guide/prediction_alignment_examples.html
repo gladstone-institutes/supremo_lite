@@ -1,0 +1,257 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prediction Alignment Examples &mdash; supremo_lite  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=fd3f3429" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Saturation Mutagenesis" href="mutagenesis.html" />
+    <link rel="prev" title="Prediction Alignment" href="prediction_alignment.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            supremo_lite
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="personalization.html">Personalized Genome Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="variant_centered_sequences.html">Variant-Centered Sequence Windows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pam_disruption.html">PAM Disruption Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="prediction_alignment.html">Prediction Alignment</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Prediction Alignment Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#variant-type-examples">Variant Type Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#ins-insertion">INS (Insertion)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#d-example">1D Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id1">2D Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#del-deletion">DEL (Deletion)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id2">1D Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id3">2D Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#dup-duplication">DUP (Duplication)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id4">1D Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id5">2D Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#inv-inversion">INV (Inversion)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id6">1D Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id7">2D Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#bnd-breakend">BND (Breakend)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id8">1D Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id9">2D Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#additional-resources">Additional Resources</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#reproducing-these-examples">Reproducing These Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="mutagenesis.html">Saturation Mutagenesis</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Notebooks</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../notebooks/01_getting_started.html">Getting Started with supremo_lite</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebooks/02_personalized_genomes.html">Personalized Genome Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebooks/03_prediction_alignment.html">Prediction Alignment: From Sequences to Aligned Predictions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebooks/04_pam_disruption.html">PAM Disruption Analysis: Identifying CRISPR-Resistant Variants</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../autoapi/index.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../conduct.html">Code of Conduct</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">supremo_lite</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Prediction Alignment Examples</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/user_guide/prediction_alignment_examples.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="prediction-alignment-examples">
+<h1>Prediction Alignment Examples<a class="headerlink" href="#prediction-alignment-examples" title="Link to this heading"></a></h1>
+<p>This page demonstrates how prediction alignment works for different variant types using simulated example data. Each example shows both <strong>1D predictions</strong> (e.g., chromatin accessibility, transcription factor binding) and <strong>2D predictions</strong> (e.g., Hi-C contact maps).</p>
+</section>
+<section id="variant-type-examples">
+<h1>Variant Type Examples<a class="headerlink" href="#variant-type-examples" title="Link to this heading"></a></h1>
+<section id="ins-insertion">
+<h2>INS (Insertion)<a class="headerlink" href="#ins-insertion" title="Link to this heading"></a></h2>
+<p>Insert NaN bins in reference where insertion occurs in alternate.</p>
+<section id="d-example">
+<h3>1D Example<a class="headerlink" href="#d-example" title="Link to this heading"></a></h3>
+<p><img alt="INS 1D Alignment" src="../_images/ins_1d_alignment.png" /></p>
+</section>
+<section id="id1">
+<h3>2D Example<a class="headerlink" href="#id1" title="Link to this heading"></a></h3>
+<p><img alt="INS 2D Alignment" src="../_images/ins_2d_alignment.png" /></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="del-deletion">
+<h2>DEL (Deletion)<a class="headerlink" href="#del-deletion" title="Link to this heading"></a></h2>
+<p>Insert NaN bins in ALT where deletion removes sequence from reference.</p>
+<section id="id2">
+<h3>1D Example<a class="headerlink" href="#id2" title="Link to this heading"></a></h3>
+<p><img alt="DEL 1D Alignment" src="../_images/del_1d_alignment.png" /></p>
+</section>
+<section id="id3">
+<h3>2D Example<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
+<p><img alt="DEL 2D Alignment" src="../_images/del_2d_alignment.png" /></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="dup-duplication">
+<h2>DUP (Duplication)<a class="headerlink" href="#dup-duplication" title="Link to this heading"></a></h2>
+<p>Same as insertion - duplications add sequence like insertions.</p>
+<section id="id4">
+<h3>1D Example<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
+<p><img alt="DUP 1D Alignment" src="../_images/dup_1d_alignment.png" /></p>
+</section>
+<section id="id5">
+<h3>2D Example<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
+<p><img alt="DUP 2D Alignment" src="../_images/dup_2d_alignment.png" /></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="inv-inversion">
+<h2>INV (Inversion)<a class="headerlink" href="#inv-inversion" title="Link to this heading"></a></h2>
+<p>Mask inverted bins in both REF and ALT. This follows the original <a class="reference external" href="https://github.com/ketringjoni/SuPreMo/blob/9799281ec9b4ea5ea03702931e57950903f75424/scripts/get_Akita_scores_utils.py#L543-L577">Supremo</a> implementation.</p>
+<section id="id6">
+<h3>1D Example<a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
+<p><img alt="INV 1D Alignment" src="../_images/inv_1d_alignment.png" /></p>
+</section>
+<section id="id7">
+<h3>2D Example<a class="headerlink" href="#id7" title="Link to this heading"></a></h3>
+<p><img alt="INV 2D Alignment" src="../_images/inv_2d_alignment.png" /></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="bnd-breakend">
+<h2>BND (Breakend)<a class="headerlink" href="#bnd-breakend" title="Link to this heading"></a></h2>
+<p>Breakends join two distant genomic loci, creating fusion sequences. BND alignment requires special handling with dual loci.</p>
+<p><strong>Alignment strategy:</strong></p>
+<ul class="simple">
+<li><p>Reference: Generate predictions from <strong>two separate loci</strong> (left and right breakpoints), then concatenate</p></li>
+<li><p>Alternate: Single prediction from the <strong>fused sequence</strong></p></li>
+<li><p><strong>1D</strong>: Concatenate left + right reference</p></li>
+<li><p><strong>2D</strong>: Assemble chimeric matrix from quadrants</p></li>
+</ul>
+<section id="id8">
+<h3>1D Example<a class="headerlink" href="#id8" title="Link to this heading"></a></h3>
+<p><img alt="BND 1D Alignment" src="../_images/bnd_1d_alignment.png" /></p>
+</section>
+<section id="id9">
+<h3>2D Example<a class="headerlink" href="#id9" title="Link to this heading"></a></h3>
+<p><img alt="BND 2D Alignment" src="../_images/bnd_2d_alignment.png" /></p>
+</section>
+<hr class="docutils" />
+<section id="additional-resources">
+<h3>Additional Resources<a class="headerlink" href="#additional-resources" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference internal" href="prediction_alignment.html"><span class="std std-doc">Prediction Alignment User Guide</span></a> - Complete API reference</p></li>
+<li><p><strong><a class="reference internal" href="../notebooks/03_prediction_alignment.html"><span class="std std-doc">03_prediction_alignment.ipynb</span></a></strong> - Notebook example</p></li>
+<li><p><a class="reference download internal" download="" href="../_downloads/4715f8b2989677aaa97732e92525c24c/variant_classification.png"><span class="xref download myst">Variant Classification</span></a> - Variant type decision tree</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="reproducing-these-examples">
+<h2>Reproducing These Examples<a class="headerlink" href="#reproducing-these-examples" title="Link to this heading"></a></h2>
+<p>To regenerate these visualizations:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Run the example generation script</span>
+poetry<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>create_prediction_alignment_examples.py
+
+<span class="c1"># Images will be saved to:</span>
+<span class="c1"># docs/_static/images/prediction_alignment_examples/</span>
+</pre></div>
+</div>
+<p>The script source: <a class="reference internal" href="#../../create_prediction_alignment_examples.py"><span class="xref myst"><code class="docutils literal notranslate"><span class="pre">create_prediction_alignment_examples.py</span></code></span></a></p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="prediction_alignment.html" class="btn btn-neutral float-left" title="Prediction Alignment" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="mutagenesis.html" class="btn btn-neutral float-right" title="Saturation Mutagenesis" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Gladstone Institutes.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
