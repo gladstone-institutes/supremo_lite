@@ -96,7 +96,7 @@ class TestSupremoLite(unittest.TestCase):
         # Check metadata
         self.assertEqual(len(metadata), expected_alt_count)
         self.assertEqual(
-            list(metadata.columns), ["chrom", "start", "end", "offset", "ref", "alt"]
+            list(metadata.columns), ["chrom", "window_start", "window_end", "variant_pos0", "ref", "alt"]
         )
 
         # Verify some mutations

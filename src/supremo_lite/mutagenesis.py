@@ -146,7 +146,7 @@ def get_sm_sequences(chrom, start, end, reference_fasta, encoder=None):
 
     # Create a DataFrame for the metadata
     metadata_df = pd.DataFrame(
-        metadata, columns=["chrom", "start", "end", "offset", "ref", "alt"]
+        metadata, columns=["chrom", "window_start", "window_end", "variant_pos0", "ref", "alt"]
     )
 
     return ref_1h, alt_seqs_stacked, metadata_df
@@ -154,77 +154,153 @@ def get_sm_sequences(chrom, start, end, reference_fasta, encoder=None):
 
 def get_sm_subsequences(
     chrom,
-    anchor,
-    anchor_radius,
     seq_len,
     reference_fasta,
+    anchor=None,
+    anchor_radius=None,
     bed_regions=None,
     encoder=None,
     auto_map_chromosomes=False,
 ):
     """
-    Generate sequences with all alternate nucleotides at positions around an anchor
+    Generate sequences with all alternate nucleotides at positions in specified regions
     (saturation mutagenesis).
+
+    Supports two mutually exclusive approaches for defining mutation intervals:
+    1. Anchor-based: Use anchor + anchor_radius to define a single centered region
+    2. BED-based: Use bed_regions to define one or more arbitrary genomic regions
+
+    In both cases, sequences of length seq_len are generated, centered on the mutation interval(s).
 
     Args:
         chrom: Chromosome name
-        anchor: Anchor position (0-based)
-        anchor_radius: Number of bases to include on either side of the anchor
-        seq_len: Total sequence length
+        seq_len: Total sequence length for each window
         reference_fasta: Reference genome object
-        bed_regions: Optional BED file path or DataFrame to limit mutagenesis to specific regions.
+        anchor: Anchor position (0-based). Required when using anchor_radius.
+               Must be provided together with anchor_radius.
+               Mutually exclusive with bed_regions.
+        anchor_radius: Number of bases to include on either side of the anchor for mutations.
+                      Required when using anchor. Must be provided together with anchor.
+                      Mutually exclusive with bed_regions.
+        bed_regions: BED file path or DataFrame defining mutation intervals.
                     BED format: chrom, start, end (0-based, half-open intervals).
-                    If provided, only positions within BED regions will be mutated.
+                    Each BED region defines positions to mutate, centered in a seq_len window.
+                    Mutually exclusive with anchor + anchor_radius.
         encoder: Optional custom encoding function. If provided, should accept a single
                 sequence string and return encoded array with shape (4, L). Default: None
         auto_map_chromosomes: Automatically map chromosome names between reference and BED file
                              when they don't match exactly (e.g., 'chr1' <-> '1', 'chrM' <-> 'MT').
-                             Only applies when bed_regions is provided. Default: False. (default: False)
+                             Only applies when bed_regions is provided. Default: False.
 
     Returns:
         Tuple of (reference one-hot, alt one-hot tensor, metadata DataFrame)
 
     Raises:
+        ValueError: If invalid parameter combinations are provided
         ChromosomeMismatchError: If auto_map_chromosomes=False and chromosome names in BED file
                                 and reference don't match exactly (only when bed_regions is provided)
 
-    Note:
-        When bed_regions is provided and auto_map_chromosomes=True, chromosome name matching
-        is applied to handle naming differences between the reference and BED file (e.g., 'chr1' vs '1').
+    Examples:
+        # Approach 1: Anchor-based (single region)
+        ref, alts, meta = get_sm_subsequences(
+            chrom='chr1',
+            seq_len=200,
+            reference_fasta=ref,
+            anchor=1050,
+            anchor_radius=10  # Mutate positions 1040-1060 in a 200bp window
+        )
+
+        # Approach 2: BED-based (multiple regions)
+        ref, alts, meta = get_sm_subsequences(
+            chrom='chr1',
+            seq_len=200,
+            reference_fasta=ref,
+            bed_regions='regions.bed'  # Each region centered in 200bp window
+        )
     """
-    # Calculate sequence boundaries
-    start = anchor - seq_len // 2
-    end = start + seq_len
+    # Validate parameter combinations
+    has_anchor = anchor is not None
+    has_anchor_radius = anchor_radius is not None
+    has_bed = bed_regions is not None
 
-    # Get the reference sequence
-    ref_seq = reference_fasta[chrom][start:end]
-    if hasattr(ref_seq, "seq"):  # Handle pyfaidx-like objects
-        ref_seq = ref_seq.seq
+    # Check for invalid combinations
+    if (has_anchor or has_anchor_radius) and has_bed:
+        raise ValueError(
+            "Cannot use both (anchor + anchor_radius) and bed_regions. "
+            "These are mutually exclusive approaches."
+        )
 
-    assert (
-        len(ref_seq) == seq_len
-    ), f"Expected sequence length {seq_len}, got {len(ref_seq)}"
-
-    ref_1h = encode_seq(ref_seq, encoder)
+    # Validate anchor approach
+    if has_anchor or has_anchor_radius:
+        if not (has_anchor and has_anchor_radius):
+            raise ValueError(
+                "anchor and anchor_radius must be provided together. "
+                "Both are required when using the anchor-based approach."
+            )
+    elif not has_bed:
+        # Neither approach was specified
+        raise ValueError(
+            "Must provide either (anchor + anchor_radius) or bed_regions."
+        )
 
     alt_seqs = []
     metadata = []
 
-    # Calculate the range to mutate
-    anchor_offset = anchor - start
-    assert anchor_radius <= anchor_offset, "Anchor radius exceeds start of sequence"
+    # Handle the two approaches differently
+    if has_anchor:
+        # APPROACH 1: Anchor-based (single region)
+        # Calculate sequence boundaries centered on anchor
+        start = anchor - seq_len // 2
+        end = start + seq_len
 
-    # Process BED regions if provided
-    valid_positions = None
-    if bed_regions is not None:
+        # Get the reference sequence
+        ref_seq = reference_fasta[chrom][start:end]
+        if hasattr(ref_seq, "seq"):  # Handle pyfaidx-like objects
+            ref_seq = ref_seq.seq
+
+        assert (
+            len(ref_seq) == seq_len
+        ), f"Expected sequence length {seq_len}, got {len(ref_seq)}"
+
+        ref_1h = encode_seq(ref_seq, encoder)
+
+        # Calculate the range to mutate
+        anchor_offset = anchor - start
+        # Validate anchor_radius
+        assert anchor_radius <= anchor_offset, "Anchor radius exceeds start of sequence"
+
+        # Create set of positions to mutate (within anchor_radius of anchor)
+        mut_start = anchor_offset - anchor_radius
+        mut_end = anchor_offset + anchor_radius
+        valid_positions = set(range(mut_start, mut_end))
+
+        # Mutate positions
+        for i in sorted(valid_positions):
+            ref_nt = ref_seq[i]
+            for alt in sorted({"A", "C", "G", "T"} - {ref_nt.upper()}):
+                # Create a clone and substitute the base
+                if TORCH_AVAILABLE and isinstance(ref_1h, torch.Tensor):
+                    alt_1h = ref_1h.clone()
+                    alt_1h[:, i] = torch.tensor(nt_to_1h[alt], dtype=alt_1h.dtype)
+                else:
+                    alt_1h = ref_1h.copy()
+                    alt_1h[:, i] = nt_to_1h[alt]
+
+                alt_seqs.append(alt_1h)
+                metadata.append([chrom, start, end, i, ref_nt, alt])
+
+    else:
+        # APPROACH 2: BED-based (multiple regions)
+        # Each BED region gets its own seq_len window centered on it
+        ref_1h = None  # Will be set for first region
+
         # Parse BED file/DataFrame
         bed_df = _read_bed_file(bed_regions)
 
         # Apply chromosome name matching
-        ref_chroms = {chrom}  # Current chromosome from reference
+        ref_chroms = {chrom}
         bed_chroms = set(bed_df["chrom"].unique())
 
-        # Use chromosome matching to handle name mismatches
         mapping, unmatched = match_chromosomes_with_report(
             ref_chroms,
             bed_chroms,
@@ -242,52 +318,80 @@ def get_sm_subsequences(
             warnings.warn(
                 f"No BED regions found for chromosome {chrom}. No mutagenesis will be performed."
             )
-            valid_positions = set()  # Empty set means no valid positions
         else:
-            # Calculate intersection between mutagenesis window and BED regions
-            mut_start = anchor_offset - anchor_radius
-            mut_end = anchor_offset + anchor_radius
-
-            valid_positions = set()
+            # Process each BED region
             for _, bed_region in chrom_bed_regions.iterrows():
-                # Convert to sequence-relative coordinates
-                bed_start_rel = max(0, bed_region["start"] - start)
-                bed_end_rel = min(seq_len, bed_region["end"] - start)
+                region_start = bed_region["start"]
+                region_end = bed_region["end"]
+                region_center = (region_start + region_end) // 2
 
-                # Find intersection with mutagenesis window
-                intersect_start = max(mut_start, bed_start_rel)
-                intersect_end = min(mut_end, bed_end_rel)
+                # Calculate sequence window centered on this BED region
+                window_start = region_center - seq_len // 2
+                window_end = window_start + seq_len
 
-                if intersect_start < intersect_end:
-                    # Add positions in intersection to valid set
-                    valid_positions.update(
-                        range(int(intersect_start), int(intersect_end))
+                # Adjust window to stay within chromosome bounds
+                chrom_obj = reference_fasta[chrom]
+                chrom_len = len(chrom_obj) if hasattr(chrom_obj, '__len__') else len(chrom_obj.seq)
+                if window_start < 0:
+                    window_start = 0
+                    window_end = min(seq_len, chrom_len)
+                elif window_end > chrom_len:
+                    window_end = chrom_len
+                    window_start = max(0, chrom_len - seq_len)
+
+                # Get the reference sequence for this window
+                region_seq = reference_fasta[chrom][window_start:window_end]
+                if hasattr(region_seq, "seq"):
+                    region_seq = region_seq.seq
+
+                if len(region_seq) != seq_len:
+                    warnings.warn(
+                        f"Region {chrom}:{region_start}-{region_end} produces sequence of length "
+                        f"{len(region_seq)} instead of {seq_len} (chromosome length: {chrom_len}). "
+                        f"Skipping this region."
                     )
+                    continue
 
-            if not valid_positions:
-                warnings.warn(
-                    f"No BED regions overlap with mutagenesis window "
-                    f"[{anchor - anchor_radius}:{anchor + anchor_radius}] on {chrom}. "
-                    f"No mutagenesis will be performed."
-                )
+                region_1h = encode_seq(region_seq, encoder)
 
-    # For each position around the anchor, substitute with each alternate base
-    for i in range(anchor_offset - anchor_radius, anchor_offset + anchor_radius):
-        # Skip position if BED regions are provided and this position is not valid
-        if valid_positions is not None and i not in valid_positions:
-            continue
-        ref_nt = ref_seq[i]
-        for alt in sorted({"A", "C", "G", "T"} - {ref_nt.upper()}):
-            # Create a clone and substitute the base
-            if TORCH_AVAILABLE and isinstance(ref_1h, torch.Tensor):
-                alt_1h = ref_1h.clone()
-                alt_1h[:, i] = torch.tensor(nt_to_1h[alt], dtype=alt_1h.dtype)
+                # Set ref_1h for the first valid region (for return value)
+                if ref_1h is None:
+                    ref_1h = region_1h
+
+                # Calculate which positions to mutate (BED region relative to window)
+                mut_start_rel = max(0, region_start - window_start)
+                mut_end_rel = min(seq_len, region_end - window_start)
+
+                # Check if BED region overlaps with the extracted window
+                if mut_start_rel >= mut_end_rel:
+                    warnings.warn(
+                        f"BED region {chrom}:{region_start}-{region_end} is outside chromosome bounds "
+                        f"(length: {chrom_len}). Skipping this region."
+                    )
+                    continue
+
+                # Mutate positions within this BED region
+                for i in range(mut_start_rel, mut_end_rel):
+                    ref_nt = region_seq[i]
+                    for alt in sorted({"A", "C", "G", "T"} - {ref_nt.upper()}):
+                        # Create a clone and substitute the base
+                        if TORCH_AVAILABLE and isinstance(region_1h, torch.Tensor):
+                            alt_1h = region_1h.clone()
+                            alt_1h[:, i] = torch.tensor(nt_to_1h[alt], dtype=alt_1h.dtype)
+                        else:
+                            alt_1h = region_1h.copy()
+                            alt_1h[:, i] = nt_to_1h[alt]
+
+                        alt_seqs.append(alt_1h)
+                        metadata.append([chrom, window_start, window_end, i, ref_nt, alt])
+
+        # If no regions were processed, create empty ref_1h
+        if ref_1h is None:
+            # Create a dummy empty sequence
+            if TORCH_AVAILABLE:
+                ref_1h = torch.zeros((4, seq_len), dtype=torch.float32)
             else:
-                alt_1h = ref_1h.copy()
-                alt_1h[:, i] = nt_to_1h[alt]
-
-            alt_seqs.append(alt_1h)
-            metadata.append([chrom, start, end, i, ref_nt, alt])
+                ref_1h = np.zeros((4, seq_len), dtype=np.float32)
 
     # Stack the alternate sequences
     if alt_seqs:
@@ -304,7 +408,7 @@ def get_sm_subsequences(
 
     # Create a DataFrame for the metadata
     metadata_df = pd.DataFrame(
-        metadata, columns=["chrom", "start", "end", "offset", "ref", "alt"]
+        metadata, columns=["chrom", "window_start", "window_end", "variant_pos0", "ref", "alt"]
     )
 
     return ref_1h, alt_seqs_stacked, metadata_df

@@ -23,91 +23,46 @@ ref_seq, alt_seqs, metadata = sl.get_sm_sequences(
 
 Generates `(end - start) × 3` mutations. Example: 100 bp → 300 mutations.
 
-**Returns:** `(ref_seq, alt_seqs, metadata)` where metadata contains columns `['chrom', 'start', 'end', 'offset', 'ref', 'alt']`
+**Returns:** `(ref_seq, alt_seqs, metadata)` where metadata contains columns `['chrom', 'window_start', 'window_end', 'variant_pos0', 'ref', 'alt']`
 
 ### get_sm_subsequences() - Targeted Mutagenesis
 
-Mutate only around a specific anchor point.
+Mutate specific regions using either anchor-based or BED-based approach.
+
+**Approach 1: Anchor-based** (requires both `anchor` and `anchor_radius`):
 
 ```python
 ref_seq, alt_seqs, metadata = sl.get_sm_subsequences(
     chrom='chr1',
+    seq_len=200,
+    reference_fasta=reference,
     anchor=1050,        # Center position
-    anchor_radius=10,   # ±10 bp
-    seq_len=200,        # Total sequence length
-    reference_fasta=reference
+    anchor_radius=10    # ±10 bp
 )
 ```
 
-Generates `(2 × radius + 1) × 3` mutations. Example: radius=10 → 63 mutations.
+Generates `(2 × radius) × 3` mutations. Example: radius=10 → 60 mutations.
 
-Mutates positions from `anchor-radius` to `anchor+radius` within a `seq_len` context window.
-
-**Returns:** `(ref_seq, alt_seqs, metadata)`
-
-## Metadata
-
-`offset`: Position within region (0-based from `start` or within `seq_len` window)
-
-## Examples
-
-### Basic Regional Mutagenesis
+**Approach 2: BED-based** (mutually exclusive with anchor/anchor_radius):
 
 ```python
-import supremo_lite as sl
-from pyfaidx import Fasta
-
-reference = Fasta('reference.fa')
-
-# Mutate 50 bp region
-ref_seq, alt_seqs, metadata = sl.get_sm_sequences(
-    chrom='chr1',
-    start=100,
-    end=150,
-    reference_fasta=reference
-)
-
-print(f"Reference shape: {ref_seq.shape}")    # (4, 50)
-print(f"Alternatives shape: {alt_seqs.shape}") # (150, 4, 50)
-print(f"Mutations: {len(metadata)}")          # 150 (50 × 3)
-```
-
-### Model Predictions and Effect Calculation
-
-```python
-from supremo_lite.mock_models import TestModel
-
-model = TestModel(n_targets=1, bin_size=1, crop_length=0)
-ref_pred = model(ref_seq.unsqueeze(0))
-alt_preds = model(alt_seqs)
-
-# Calculate effects
-effects = []
-for i, row in metadata.iterrows():
-    effect = alt_preds[i, 0, row['offset']].item() - ref_pred[0, 0, row['offset']].item()
-    effects.append({'position': row['start'] + row['offset'], 'effect': effect})
-```
-
-### Targeted Mutagenesis
-
-```python
-# Mutate around specific site
 ref_seq, alt_seqs, metadata = sl.get_sm_subsequences(
     chrom='chr1',
-    anchor=1050,        # Center position
-    anchor_radius=5,    # ±5 bp
-    seq_len=100,        # Context window
-    reference_fasta=reference
+    seq_len=200,
+    reference_fasta=reference,
+    bed_regions='regulatory_regions.bed'
 )
 ```
 
-## Which Function?
+**Returns:** `(ref_seq, alt_seqs, metadata)` where metadata contains columns `['chrom', 'window_start', 'window_end', 'variant_pos0', 'ref', 'alt']`
 
-**Use `get_sm_sequences()`** for comprehensive regional screening (entire region, <200 bp)
+## Metadata Columns
 
-**Use `get_sm_subsequences()`** for focused analysis around known sites (lower computational cost, with context for models)
+- `chrom`: Chromosome name
+- `window_start`: Start position of the sequence window (0-based)
+- `window_end`: End position of the sequence window (0-based, exclusive)
+- `variant_pos0`: Position of the mutation within the sequence window (0-based)
+- `ref`: Reference nucleotide
+- `alt`: Alternate nucleotide
 
-## See Also
 
-- [`get_alt_ref_sequences()`](variant_centered_sequences.md)
-- [`align_predictions_by_coordinate()`](prediction_alignment.md)
