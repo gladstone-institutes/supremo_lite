@@ -45,8 +45,6 @@ get_alt_ref_sequences(
 
 Identify variants that disrupt PAM sites (e.g., for CRISPR analysis).
 
-**IMPORTANT**: This function correctly handles INDELs that might CREATE new PAM sites - these are NOT scored as PAM-disrupting since the PAM remains functional.
-
 ```python
 results = sl.get_pam_disrupting_alt_sequences(
     reference_fn=reference,
@@ -73,9 +71,8 @@ get_pam_disrupting_alt_sequences(
 
 **Returns dict:** `{'variants': DataFrame, 'pam_intact': sequences, 'pam_disrupted': sequences}`
 
-**Supported PAM sequences:** `"NGG"` (SpCas9), `"NGGNG"` (SpCas9 extended), `"TTTN"` (Cpf1/Cas12a), `"NNGRRT"` (SaCas9)
+**Supported PAM sequences:** Any PAM sequence specified using (IUPAC degenerate bases)[https://en.wikipedia.org/wiki/Nucleic_acid_notation].
 
-**Key Feature**: Detects when INDELs create new PAMs and correctly excludes them from the disruption list.
 
 ## Metadata Structure
 
@@ -155,4 +152,5 @@ pam_results = sl.get_pam_disrupting_alt_sequences(
 
 - [Notebook: Getting Started](../notebooks/01_getting_started.ipynb)
 - [`get_personal_genome()`](personalization.md)
+- [PAM Disruption Analysis](pam_disruption.md) - Detailed guide for CRISPR PAM site analysis
 - [`align_predictions_by_coordinate()`](prediction_alignment.md)

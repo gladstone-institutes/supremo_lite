@@ -317,7 +317,7 @@ class TestChunkedPersonalizeFunctions:
         reference = get_test_reference()
 
         # Test with default n_chunks=1
-        result1 = sl.get_pam_disrupting_alt_sequences(
+        gen1 = sl.get_pam_disrupting_alt_sequences(
             reference_fn=reference,
             variants_fn=variants_df,
             seq_len=50,  # Smaller seq_len to fit within the test genome
@@ -328,7 +328,7 @@ class TestChunkedPersonalizeFunctions:
         )
 
         # Test with n_chunks=2
-        result2 = sl.get_pam_disrupting_alt_sequences(
+        gen2 = sl.get_pam_disrupting_alt_sequences(
             reference_fn=reference,
             variants_fn=variants_df,
             seq_len=50,
@@ -338,10 +338,16 @@ class TestChunkedPersonalizeFunctions:
             n_chunks=2,
         )
 
-        # Results should be identical
-        assert len(result1["variants"]) == len(result2["variants"])
-        assert len(result1["pam_intact"]) == len(result2["pam_intact"])
-        assert len(result1["pam_disrupted"]) == len(result2["pam_disrupted"])
+        # Collect all results from generators
+        result1_list = list(gen1)
+        result2_list = list(gen2)
+
+        # Count total variants across all chunks
+        total1 = sum(len(meta) for _, _, meta in result1_list)
+        total2 = sum(len(meta) for _, _, meta in result2_list)
+
+        # Results should have same total count
+        assert total1 == total2
 
     def test_chromosome_order_preservation(self):
         """Test that get_personal_genome preserves reference chromosome order."""
@@ -371,16 +377,17 @@ class TestChunkedPersonalizeFunctions:
         )
 
         # Verify all chromosomes are present
-        assert len(result) == 5
+        assert len(result) == 6
         assert "chr1" in result
         assert "chr2" in result
         assert "chr3" in result
         assert "chr4" in result
         assert "chr5" in result
+        assert "chr6" in result
 
         # Verify chromosome order matches reference order
         result_chroms = list(result.keys())
-        expected_order = ["chr1", "chr2", "chr3", "chr4", "chr5"]
+        expected_order = ["chr1", "chr2", "chr3", "chr4", "chr5", "chr6"]
         assert (
             result_chroms == expected_order
         ), f"Expected chromosome order {expected_order}, but got {result_chroms}"
@@ -418,7 +425,7 @@ class TestChunkedPersonalizeFunctions:
 
         # Verify chromosome order is preserved even with encoding
         result_chroms = list(result.keys())
-        expected_order = ["chr1", "chr2", "chr3", "chr4", "chr5"]
+        expected_order = ["chr1", "chr2", "chr3", "chr4", "chr5", "chr6"]
         assert (
             result_chroms == expected_order
         ), f"Expected chromosome order {expected_order}, but got {result_chroms}"

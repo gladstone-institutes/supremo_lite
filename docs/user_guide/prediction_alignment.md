@@ -134,5 +134,6 @@ mean_effect = np.nanmean(np.abs(diff))
 
 ## See Also
 
+- [Prediction Alignment Examples](prediction_alignment_examples.md) - Visual examples for all variant types (INS, DEL, DUP, INV, BND)
 - [Notebook: Prediction Alignment](../notebooks/03_prediction_alignment.ipynb)
 - [`get_alt_ref_sequences()`](variant_centered_sequences.md)

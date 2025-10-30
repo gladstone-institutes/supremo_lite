@@ -439,7 +439,7 @@ class TestIntegrationWithPersonalizeFunctions:
             }
         )
 
-        result = sl.get_pam_disrupting_alt_sequences(
+        gen = sl.get_pam_disrupting_alt_sequences(
             reference_fn=reference,
             variants_fn=variants_df,
             seq_len=50,
@@ -447,12 +447,14 @@ class TestIntegrationWithPersonalizeFunctions:
             pam_sequence="NGG",
             encode=False,
             auto_map_chromosomes=True,
+            n_chunks=1
         )
 
         # Should find PAM-disrupting variants
-        assert len(result["variants"]) > 0
-        assert len(result["pam_intact"]) > 0
-        assert len(result["pam_disrupted"]) > 0
+        alt_seqs, ref_seqs, metadata = next(gen)
+        assert len(metadata) > 0
+        assert len(alt_seqs) > 0
+        assert len(ref_seqs) > 0
 
     def test_chromosome_matching_with_no_matches(self):
         """Test behavior when no chromosomes can be matched."""

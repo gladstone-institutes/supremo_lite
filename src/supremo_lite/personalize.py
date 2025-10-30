@@ -6,6 +6,7 @@ variants to a reference genome and generating sequence windows around variants.
 """
 
 import bisect
+import re
 import warnings
 import os
 from typing import Dict, List, Tuple, Union, NamedTuple
@@ -22,6 +23,27 @@ try:
     import torch
 except ImportError:
     pass  # Already handled in core
+
+
+# IUPAC degenerate nucleotide codes for PAM pattern matching
+IUPAC_CODES = {
+    "A": "A",
+    "C": "C",
+    "G": "G",
+    "T": "T",
+    "U": "U",
+    "W": "[AT]",
+    "S": "[CG]",
+    "M": "[AC]",
+    "K": "[GT]",
+    "R": "[AG]",
+    "Y": "[CT]",
+    "B": "[CGT]",
+    "D": "[AGT]",
+    "H": "[ACT]",
+    "V": "[ACG]",
+    "N": "[ACGT]"
+}
 
 
 class ChromosomeOffsetTracker:
@@ -2361,17 +2383,18 @@ def get_alt_sequences(
                 if right_pad > 0:
                     window_seq = window_seq + "N" * right_pad
 
+                # Truncate or pad as needed
+                if len(window_seq) < seq_len:
+                    window_seq += "N" * (seq_len - len(window_seq))
+                else:
+                    window_seq = window_seq[:seq_len]
+
                 # Ensure correct length
                 if len(window_seq) != seq_len:
                     warnings.warn(
                         f"Sequence length mismatch for variant at {chrom}:{pos}. "
                         f"Expected {seq_len}, got {len(window_seq)}"
                     )
-                # Truncate or pad as needed
-                if len(window_seq) < seq_len:
-                    window_seq += "N" * (seq_len - len(window_seq))
-                else:
-                    window_seq = window_seq[:seq_len]
 
                 if encode:
                     sequences.append(encode_seq(window_seq, encoder))
@@ -2733,29 +2756,100 @@ def get_pam_disrupting_alt_sequences(
     Generate sequences for variants that disrupt PAM sites.
 
     This function identifies variants that disrupt existing PAM sites in the reference
-    genome.
+    genome and generates sequence pairs for each disrupting variant. Works like
+    get_alt_ref_sequences() but filtered to only PAM-disrupting variants.
 
     Args:
         reference_fn: Path to reference genome file or dictionary-like object
         variants_fn: Path to variants file or DataFrame
         seq_len: Length of sequence windows
         max_pam_distance: Maximum distance from variant to PAM site
-        pam_sequence: PAM sequence pattern (default: 'NGG' for SpCas9)
+        pam_sequence: PAM sequence pattern (default: 'NGG' for SpCas9).
+                     Supports all IUPAC degenerate nucleotide codes:
+                     N (any), R (A/G), Y (C/T), W (A/T), S (C/G), M (A/C),
+                     K (G/T), B (C/G/T), D (A/G/T), H (A/C/T), V (A/C/G)
         encode: Return sequences as one-hot encoded numpy arrays (default: True)
         n_chunks: Number of chunks to split variants for processing (default: 1)
         encoder: Optional custom encoding function
         auto_map_chromosomes: Automatically map chromosome names between VCF and reference
                              when they don't match exactly. Default: False. (default: False)
 
-    Returns:
-        A dictionary containing:
-            - variants: List of variants that disrupt PAM sites
-            - pam_intact: List of sequences with variant applied but PAM intact
-            - pam_disrupted: List of sequences with both variant and PAM disrupted
+    Yields:
+        Tuple containing (alt_sequences, ref_sequences, metadata_df):
+            - alt_sequences: Variant sequences with mutations applied
+            - ref_sequences: Reference sequences without mutations
+            - metadata_df: Variant metadata (pandas DataFrame) with PAM-specific columns
+
+    Metadata DataFrame columns:
+        Standard fields:
+            - chrom: Chromosome name (str)
+            - window_start: Window start position, 0-based (int)
+            - window_end: Window end position, 0-based exclusive (int)
+            - variant_pos0: Variant position, 0-based (int)
+            - variant_pos1: Variant position, 1-based VCF standard (int)
+            - ref: Reference allele (str)
+            - alt: Alternate allele (str)
+            - variant_type: Variant classification (str)
+
+        PAM-specific fields:
+            - pam_site_pos: 0-based start position of PAM site in window (int)
+            - pam_ref_sequence: PAM sequence in reference (str)
+            - pam_alt_sequence: PAM sequence after variant (str)
+            - pam_distance: Distance from variant to PAM start (int)
 
     Raises:
         ChromosomeMismatchError: If auto_map_chromosomes=False and chromosome names don't match
+
+    Example:
+        >>> # Process all PAM-disrupting variants at once
+        >>> gen = get_pam_disrupting_alt_sequences(ref, vcf, seq_len=50,
+        ...                                         max_pam_distance=10, n_chunks=1)
+        >>> alt_seqs, ref_seqs, metadata = next(gen)
+        >>>
+        >>> # Or iterate through chunks
+        >>> for alt_seqs, ref_seqs, metadata in get_pam_disrupting_alt_sequences(
+        ...     ref, vcf, seq_len=50, max_pam_distance=10, n_chunks=5):
+        ...     predictions = model.predict(alt_seqs, ref_seqs)
     """
+    # Helper function to find PAM sites in a sequence
+    def _find_pam_sites(sequence, pam_pattern):
+        """Find all PAM site positions in a sequence using IUPAC codes.
+
+        Supports IUPAC degenerate nucleotide codes in the pattern (N, R, Y, W, S, M, K, B, D, H, V).
+        Pattern wildcards match corresponding bases in the sequence.
+        Sequence 'N' (used for padding or unknown bases) matches any pattern base.
+        """
+        sites = []
+        seq_upper = sequence.upper()
+        pat_upper = pam_pattern.upper()
+
+        for i in range(len(seq_upper) - len(pat_upper) + 1):
+            match = True
+            for j in range(len(pat_upper)):
+                seq_base = seq_upper[i + j]
+                pat_base = pat_upper[j]
+
+                # Sequence 'N' (padding or unknown) matches any pattern base
+                if seq_base == 'N':
+                    continue  # Always matches
+
+                # Get allowed bases for this pattern position
+                allowed_bases = IUPAC_CODES.get(pat_base, pat_base)
+
+                # Remove brackets from character class if present
+                if allowed_bases.startswith("["):
+                    allowed_bases = allowed_bases[1:-1]
+
+                # Check if sequence base is in the pattern's allowed bases
+                if seq_base not in allowed_bases:
+                    match = False
+                    break
+
+            if match:
+                sites.append(i)
+
+        return sites
+
     # Load reference and variants
     reference = _load_reference(reference_fn)
     variants = _load_variants(variants_fn)
@@ -2773,11 +2867,11 @@ def get_pam_disrupting_alt_sequences(
     if mapping:
         variants = apply_chromosome_mapping(variants, mapping)
 
-    pam_disrupting_variants = []
-    pam_intact_sequences = []
-    pam_disrupted_sequences = []
+    # Filter variants to find those that disrupt PAM sites
+    pam_disrupting_variants_list = []
+    pam_metadata_list = []
 
-    # Process each variant individually
+    # Process each variant to identify PAM disruption
     for _, var in variants.iterrows():
         chrom = var["chrom"]
         pos = var["pos1"]  # 1-based position
@@ -2799,6 +2893,21 @@ def get_pam_disrupting_alt_sequences(
         half_len = seq_len // 2
         window_start = genomic_pos - half_len
         window_end = window_start + seq_len
+
+        # Check if variant extends past window boundaries
+        ref_allele = var.get("ref", "")
+        alt_allele = var.get("alt", "")
+        variant_length = max(len(ref_allele), len(alt_allele))
+        variant_end = genomic_pos + variant_length
+
+        if variant_end > window_end:
+            overflow = variant_end - window_end
+            warnings.warn(
+                f"Variant at {chrom}:{pos} extends {overflow} bp beyond the "
+                f"requested window (length: {seq_len} bp). This may affect "
+                f"PAM site detection accuracy.",
+                UserWarning,
+            )
 
         # Handle edge cases for reference sequence PAM detection
         if window_start < 0:
@@ -2824,22 +2933,8 @@ def get_pam_disrupting_alt_sequences(
         if right_pad > 0:
             ref_window_seq = ref_window_seq + "N" * right_pad
 
-        # Helper function to find PAM sites in a sequence
-        def find_pam_sites(sequence, pam_pattern):
-            """Find all PAM site positions in a sequence."""
-            sites = []
-            for i in range(len(sequence) - len(pam_pattern) + 1):
-                potential_pam = sequence[i : i + len(pam_pattern)]
-                # Check if the potential PAM matches the pattern
-                if all(
-                    a == b or b == "N"
-                    for a, b in zip(potential_pam.upper(), pam_pattern.upper())
-                ):
-                    sites.append(i)
-            return sites
-
         # Find PAM sites in the reference sequence window
-        ref_pam_sites = find_pam_sites(ref_window_seq, pam_sequence)
+        ref_pam_sites = _find_pam_sites(ref_window_seq, pam_sequence)
 
         # Calculate variant position in padded window
         variant_pos_in_window = left_pad + (genomic_pos - ref_window_start)
@@ -2851,147 +2946,153 @@ def get_pam_disrupting_alt_sequences(
             if abs(p - variant_pos_in_window) <= max_pam_distance
         ]
 
-        if nearby_ref_pam_sites:
-            pam_disrupting_variants.append(var)
+        # Skip if no nearby PAM sites
+        if not nearby_ref_pam_sites:
+            continue
 
-            # Create a temporary applicator with just this variant
-            single_var_df = pd.DataFrame([var])
-            temp_applicator = VariantApplicator(ref_seq, single_var_df)
+        # Create a temporary applicator with just this variant
+        single_var_df = pd.DataFrame([var])
+        temp_applicator = VariantApplicator(ref_seq, single_var_df)
 
-            # Apply the variant to get the full modified chromosome
-            modified_chrom, stats = temp_applicator.apply_variants()
+        # Apply the variant to get the full modified chromosome
+        modified_chrom, stats = temp_applicator.apply_variants()
 
-            # Extract window from modified chromosome
-            if window_start < 0:
-                actual_start = 0
+        # Extract window from modified chromosome
+        if window_start < 0:
+            actual_start = 0
+        else:
+            actual_start = window_start
+
+        if window_end > len(modified_chrom):
+            actual_end = len(modified_chrom)
+        else:
+            actual_end = window_end
+
+        modified_window = modified_chrom[actual_start:actual_end]
+
+        # Add padding
+        if left_pad > 0:
+            modified_window = "N" * left_pad + modified_window
+        if right_pad > 0:
+            modified_window = modified_window + "N" * right_pad
+
+        # Ensure correct length
+        if len(modified_window) != seq_len:
+            if len(modified_window) < seq_len:
+                modified_window += "N" * (seq_len - len(modified_window))
             else:
-                actual_start = window_start
+                modified_window = modified_window[:seq_len]
 
-            if window_end > len(modified_chrom):
-                actual_end = len(modified_chrom)
-            else:
-                actual_end = window_end
+        # Check for new PAM formation in the alternate sequence
+        # Find PAM sites in the modified (alternate) sequence
+        alt_pam_sites = _find_pam_sites(modified_window, pam_sequence)
 
-            modified_window = modified_chrom[actual_start:actual_end]
+        # Filter to nearby PAM sites in the alternate sequence
+        nearby_alt_pam_sites = [
+            p
+            for p in alt_pam_sites
+            if abs(p - variant_pos_in_window) <= max_pam_distance
+        ]
 
-            # Add padding
-            if left_pad > 0:
-                modified_window = "N" * left_pad + modified_window
-            if right_pad > 0:
-                modified_window = modified_window + "N" * right_pad
+        # Identify which reference PAM sites are truly disrupted
+        # Different logic for SNVs vs INDELs:
+        # - SNV: PAM disrupted if the exact PAM sequence changes at that position
+        # - INDEL: PAM disrupted ONLY if no PAM exists in ALT (even at shifted position)
+        #         If INDEL creates/shifts a PAM, it's NOT considered disrupting
 
-            # Ensure correct length
-            if len(modified_window) != seq_len:
-                if len(modified_window) < seq_len:
-                    modified_window += "N" * (seq_len - len(modified_window))
-                else:
-                    modified_window = modified_window[:seq_len]
+        ref_allele = var.get("ref", "")
+        alt_allele = var.get("alt", "")
+        is_indel = (
+            len(ref_allele) != len(alt_allele)
+            or ref_allele == "-"
+            or alt_allele == "-"
+        )
 
-            # CRITICAL: Check for new PAM formation in the alternate sequence
-            # Find PAM sites in the modified (alternate) sequence
-            alt_pam_sites = find_pam_sites(modified_window, pam_sequence)
+        truly_disrupted_pam_sites = []
 
-            # Filter to nearby PAM sites in the alternate sequence
-            nearby_alt_pam_sites = [
-                p
-                for p in alt_pam_sites
-                if abs(p - variant_pos_in_window) <= max_pam_distance
-            ]
+        if is_indel:
+            # For INDELs: check if PAM still exists anywhere nearby (allowing for shifts)
+            for ref_pam_pos in nearby_ref_pam_sites:
+                pam_still_exists = False
+                for alt_pam_pos in nearby_alt_pam_sites:
+                    # Allow for positional shifts due to the INDEL
+                    # If a PAM exists within a reasonable distance, consider it maintained
+                    if abs(ref_pam_pos - alt_pam_pos) <= len(pam_sequence):
+                        pam_still_exists = True
+                        break
 
-            # Identify which reference PAM sites are truly disrupted
-            # Different logic for SNVs vs INDELs:
-            # - SNV: PAM disrupted if the exact PAM sequence changes at that position
-            # - INDEL: PAM disrupted ONLY if no PAM exists in ALT (even at shifted position)
-            #         If INDEL creates/shifts a PAM, it's NOT considered disrupting
+                if not pam_still_exists:
+                    truly_disrupted_pam_sites.append(ref_pam_pos)
+        else:
+            # For SNVs: check if the PAM sequence at the exact position has changed
+            for ref_pam_pos in nearby_ref_pam_sites:
+                # Extract the PAM sequence from both ref and alt at this exact position
+                ref_pam_seq = ref_window_seq[
+                    ref_pam_pos : ref_pam_pos + len(pam_sequence)
+                ]
+                alt_pam_seq = modified_window[
+                    ref_pam_pos : ref_pam_pos + len(pam_sequence)
+                ]
 
-            ref_allele = var.get("ref", "")
-            alt_allele = var.get("alt", "")
-            is_indel = (
-                len(ref_allele) != len(alt_allele)
-                or ref_allele == "-"
-                or alt_allele == "-"
-            )
-
-            truly_disrupted_pam_sites = []
-
-            if is_indel:
-                # For INDELs: check if PAM still exists anywhere nearby (allowing for shifts)
-                for ref_pam_pos in nearby_ref_pam_sites:
-                    pam_still_exists = False
-                    for alt_pam_pos in nearby_alt_pam_sites:
-                        # Allow for positional shifts due to the INDEL
-                        # If a PAM exists within a reasonable distance, consider it maintained
-                        if abs(ref_pam_pos - alt_pam_pos) <= len(pam_sequence):
-                            pam_still_exists = True
-                            break
-
-                    if not pam_still_exists:
-                        truly_disrupted_pam_sites.append(ref_pam_pos)
-            else:
-                # For SNVs: check if the PAM sequence at the exact position has changed
-                for ref_pam_pos in nearby_ref_pam_sites:
-                    # Extract the PAM sequence from both ref and alt at this exact position
-                    ref_pam_seq = ref_window_seq[
-                        ref_pam_pos : ref_pam_pos + len(pam_sequence)
-                    ]
-                    alt_pam_seq = modified_window[
-                        ref_pam_pos : ref_pam_pos + len(pam_sequence)
-                    ]
-
-                    # Check if the PAM pattern still matches after the variant
-                    alt_matches_pattern = all(
-                        a == b or b == "N"
-                        for a, b in zip(alt_pam_seq.upper(), pam_sequence.upper())
-                    )
-
-                    # If the ALT no longer matches the PAM pattern, it's disrupted
-                    if not alt_matches_pattern:
-                        truly_disrupted_pam_sites.append(ref_pam_pos)
-
-            # Only proceed if there are truly disrupted PAM sites
-            # If all reference PAMs are maintained (possibly at shifted positions for INDELs),
-            # skip this variant
-            if not truly_disrupted_pam_sites:
-                # Remove this variant from the disrupting list
-                pam_disrupting_variants.pop()
-                continue
-
-            # Store PAM-intact sequence
-            final_intact = (
-                encode_seq(modified_window, encoder) if encode else modified_window
-            )
-            pam_intact_sequences.append(
-                (
-                    chrom,
-                    max(0, genomic_pos - half_len),
-                    max(0, genomic_pos - half_len) + seq_len,
-                    final_intact,
-                )
-            )
-
-            # Create PAM-disrupted versions (only for truly disrupted sites)
-            for pam_site in truly_disrupted_pam_sites:
-                # Disrupt PAM with NNN
-                disrupted_seq = list(modified_window)
-                for j in range(len(pam_sequence)):
-                    if pam_site + j < len(disrupted_seq):
-                        disrupted_seq[pam_site + j] = "N"
-                disrupted_seq = "".join(disrupted_seq)
-
-                final_disrupted = (
-                    encode_seq(disrupted_seq, encoder) if encode else disrupted_seq
-                )
-                pam_disrupted_sequences.append(
-                    (
-                        chrom,
-                        max(0, genomic_pos - half_len),
-                        max(0, genomic_pos - half_len) + seq_len,
-                        final_disrupted,
-                    )
+                # Check if the PAM pattern still matches after the variant
+                alt_matches_pattern = all(
+                    a == b or b == "N"
+                    for a, b in zip(alt_pam_seq.upper(), pam_sequence.upper())
                 )
 
-    return {
-        "variants": pam_disrupting_variants,
-        "pam_intact": pam_intact_sequences,
-        "pam_disrupted": pam_disrupted_sequences,
-    }
+                # If the ALT no longer matches the PAM pattern, it's disrupted
+                if not alt_matches_pattern:
+                    truly_disrupted_pam_sites.append(ref_pam_pos)
+
+        # Only proceed if there are truly disrupted PAM sites
+        # If all reference PAMs are maintained (possibly at shifted positions for INDELs),
+        # skip this variant
+        if not truly_disrupted_pam_sites:
+            continue
+
+        # For each disrupted PAM site, create a metadata entry
+        for pam_site_pos in truly_disrupted_pam_sites:
+            # Extract PAM sequences
+            ref_pam_seq = ref_window_seq[pam_site_pos : pam_site_pos + len(pam_sequence)]
+            alt_pam_seq = modified_window[pam_site_pos : pam_site_pos + len(pam_sequence)]
+
+            # Calculate distance from variant to PAM
+            pam_distance = abs(pam_site_pos - variant_pos_in_window)
+
+            # Store the variant (may be duplicate if multiple PAMs disrupted)
+            pam_disrupting_variants_list.append(var)
+
+            # Store PAM-specific metadata
+            pam_metadata_list.append({
+                'pam_site_pos': pam_site_pos,
+                'pam_ref_sequence': ref_pam_seq,
+                'pam_alt_sequence': alt_pam_seq,
+                'pam_distance': pam_distance
+            })
+
+    # If no PAM-disrupting variants found, yield empty results
+    if not pam_disrupting_variants_list:
+        # Return empty generator
+        return
+
+    # Create DataFrame with filtered PAM-disrupting variants
+    filtered_variants_df = pd.DataFrame(pam_disrupting_variants_list).reset_index(drop=True)
+    pam_metadata_df = pd.DataFrame(pam_metadata_list)
+
+    # Call get_alt_ref_sequences with the filtered variants
+    for alt_seqs, ref_seqs, base_metadata in get_alt_ref_sequences(
+        reference_fn,
+        filtered_variants_df,
+        seq_len,
+        encode,
+        n_chunks,
+        encoder,
+        auto_map_chromosomes
+    ):
+        # Merge PAM-specific metadata with base metadata
+        # Both should have the same number of rows since we created one entry per PAM site
+        enriched_metadata = pd.concat([base_metadata.reset_index(drop=True),
+                                       pam_metadata_df], axis=1)
+
+        # Yield the chunk with enriched metadata
+        yield (alt_seqs, ref_seqs, enriched_metadata)

@@ -443,4 +443,4 @@ else:
 
 - [Variant-Centered Sequences](variant_centered_sequences.md) - Generate sequence windows around variants
 - [Prediction Alignment](prediction_alignment.md) - Align model predictions across reference and alternate sequences
-- [Notebook: PAM Disruption Analysis](../notebooks/04_pam_disruption_analysis.ipynb) - Interactive examples and visualizations
+- [Getting Started Notebook](../notebooks/01_getting_started.ipynb) - Basic usage examples including PAM disruption

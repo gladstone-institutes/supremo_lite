@@ -323,11 +323,8 @@ class PredictionAligner1D:
         left_portion = left_np[:breakpoint_bin]
         right_portion = right_np[-(self.target_size - breakpoint_bin) :]
 
-        # Assemble chimeric reference
+        # Assemble chimeric reference (continuous, no masking)
         ref_chimeric = np.concatenate([left_portion, right_portion])
-
-        # Insert NaN at breakpoint to mark the transition
-        ref_chimeric[breakpoint_bin] = np.nan
 
         self._validate_size(ref_chimeric, alt_np)
 
