@@ -87,7 +87,7 @@ class TestSupremoLite(unittest.TestCase):
         ref_1h, alt_seqs, metadata = sl.get_sm_sequences("chr1", 0, 12, MockReference())
 
         # Check dimensions
-        self.assertEqual(ref_1h.shape, (12, 4))  # 12 bases, 4 nucleotides
+        self.assertEqual(ref_1h.shape, (4, 12))  # 4 nucleotide channels, 12 bases
 
         # Each position has 3 alternatives, so 12 positions * 3 alts = 36 sequences
         expected_alt_count = 12 * 3
@@ -96,7 +96,7 @@ class TestSupremoLite(unittest.TestCase):
         # Check metadata
         self.assertEqual(len(metadata), expected_alt_count)
         self.assertEqual(
-            list(metadata.columns), ["chrom", "start", "end", "offset", "ref", "alt"]
+            list(metadata.columns), ["chrom", "window_start", "window_end", "variant_pos0", "ref", "alt"]
         )
 
         # Verify some mutations
@@ -106,19 +106,6 @@ class TestSupremoLite(unittest.TestCase):
             alts = metadata[metadata["ref"] == ref]["alt"].unique()
             expected_alts = sorted({"A", "C", "G", "T"} - {ref.upper()})
             self.assertEqual(sorted(alts), expected_alts)
-
-    def test_n_handling(self):
-        """Test handling of ambiguous bases"""
-        # Test encoding of N
-        n_seq = "ACGTN"
-        encoded = sl.encode_seq(n_seq)
-
-        # N should be encoded as [0.25, 0.25, 0.25, 0.25]
-        self.assertTrue(np.allclose(encoded[-1], np.array([0.25, 0.25, 0.25, 0.25])))
-
-        # Decode should give back one of the bases, since we argmax
-        decoded = sl.decode_seq(encoded)
-        self.assertEqual(len(decoded), 5)
 
 
 if __name__ == "__main__":

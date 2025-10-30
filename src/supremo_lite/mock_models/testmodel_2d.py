@@ -1,0 +1,203 @@
+"""
+Mock 2D genomic prediction model for contact map testing and demonstrations.
+
+This module provides a simple PyTorch model that mimics realistic 2D genomic prediction
+architectures (e.g., for chromatin contact maps, Hi-C predictions). It is intended for:
+1. Testing 2D prediction alignment functionality
+2. Providing runnable examples for users without trained models
+
+**NOT for actual genomic predictions** - this model returns constant values and has
+no learned parameters.
+
+Model Architecture Characteristics:
+- **Binning**: Predictions at 2D grid resolution (bin_size × bin_size)
+- **Cropping**: Edge bins removed from all sides
+- **Output shape**: (batch_size, n_targets, n_final_bins, n_final_bins)
+
+Example:
+    >>> from supremo_lite.mock_models import TestModel2D
+    >>> import torch
+    >>>
+    >>> model = TestModel2D(seq_length=2048, bin_length=64, crop_length=256, n_targets=1)
+    >>> x = torch.randn(4, 4, 2048)  # (batch, channels, length)
+    >>> predictions = model(x)
+    >>> predictions.shape
+    torch.Size([4, 1, 24, 24])  # Full contact matrix after cropping
+
+"""
+
+try:
+    import torch
+    import torch.nn as nn
+
+    TORCH_AVAILABLE = True
+except ImportError:
+    TORCH_AVAILABLE = False
+    torch = None
+    nn = None
+
+
+if TORCH_AVAILABLE:
+
+    class TestModel2D(nn.Module):
+        """
+        Mock 2D genomic prediction model (e.g., for contact maps).
+
+        This model demonstrates typical 2D genomic deep learning architecture features:
+        - Accepts one-hot encoded DNA sequences
+        - Outputs 2D contact matrix predictions at binned resolution
+        - Applies edge cropping on all sides
+        - Returns full symmetric contact matrix
+
+        **Warning**: Returns constant values (ones). Not for actual predictions.
+
+        Parameters
+        ----------
+        seq_length : int
+            Length of input sequences in base pairs
+        bin_length : int
+            Number of base pairs per prediction bin (in each dimension)
+        crop_length : int, optional
+            Number of base pairs to crop from each edge (default: 0)
+        n_targets : int, optional
+            Number of prediction targets per bin pair (default: 1)
+
+        Examples
+        --------
+        Basic usage:
+
+        >>> model = TestModel2D(seq_length=2048, bin_length=64)
+        >>> x = torch.randn(4, 4, 2048)  # (batch, channels, length)
+        >>> out = model(x)
+        >>> # Output is full contact matrix
+        >>> # For n=32 bins: 32×32 matrix
+        >>> out.shape
+        torch.Size([4, 1, 32, 32])
+
+        With cropping:
+
+        >>> model = TestModel2D(seq_length=4096, bin_length=128, crop_length=512)
+        >>> model.n_initial_bins
+        32
+        >>> model.crop_bins
+        4
+        >>> model.n_final_bins
+        24
+        >>> # Contact matrix: 24×24
+        """
+
+        def __init__(self, seq_length, bin_length, crop_length=0, n_targets=1):
+            super().__init__()
+
+            self.seq_length = seq_length
+            self.bin_length = bin_length
+            self.crop_length = crop_length
+            self.n_targets = n_targets
+
+            self.crop_bins = crop_length // bin_length
+            self.n_initial_bins = seq_length // bin_length
+            self.n_final_bins = self.n_initial_bins - 2 * self.crop_bins
+
+        def forward(self, x):
+            """
+            Forward pass returning mock 2D contact map predictions.
+
+            Parameters
+            ----------
+            x : torch.Tensor
+                Input tensor of shape (batch_size, 4, seq_length)
+                Channel dimension should be 4 (one-hot encoded A, C, G, T)
+
+            Returns
+            -------
+            torch.Tensor
+                Mock predictions of shape (batch_size, n_targets, n_final_bins, n_final_bins)
+                Full symmetric contact matrix after cropping
+                Contains all ones (not meaningful predictions)
+            """
+            assert x.shape[1] == 4, f"Expected 4 channels (one-hot), got {x.shape[1]}"
+            assert (
+                x.shape[2] == self.seq_length
+            ), f"Expected sequence length {self.seq_length}, got {x.shape[2]}"
+
+            # Create placeholder (N, N) contact matrix
+            y_hat = torch.ones(
+                [x.shape[0], self.n_targets, self.n_initial_bins, self.n_initial_bins]
+            )
+
+            # Crop bins from all edges to focus loss function
+            y_hat = y_hat[
+                :, :, self.crop_bins : -self.crop_bins, self.crop_bins : -self.crop_bins
+            ]
+
+            # Return full contact matrix
+            return y_hat
+
+        def training_step(self, batch, batch_idx):
+            """
+            Mock training step for demonstration purposes.
+
+            Shows how 2D predictions would be trained.
+            This is for educational purposes only - the model has no learnable parameters.
+            """
+            x, y = batch
+            y_hat = self(x)
+            return nn.functional.mse_loss(y_hat, y)
+
+else:
+    # Fallback when PyTorch not available
+    class TestModel2D:
+        """TestModel2D requires PyTorch. Please install with: pip install torch"""
+
+        def __init__(self, *args, **kwargs):
+            raise ImportError(
+                "TestModel2D requires PyTorch. Install with: pip install torch\n"
+                "See https://pytorch.org/get-started/locally/ for installation instructions."
+            )
+
+
+# Make TestModel2D available at module level
+__all__ = ["TestModel2D", "TORCH_AVAILABLE"]
+
+
+if __name__ == "__main__":
+    if not TORCH_AVAILABLE:
+        print("PyTorch not available. Install with: pip install torch")
+        exit(1)
+
+    # Demonstration of model behavior
+    batch_size = 8
+    seq_length = 1048576
+    bin_length = 2048
+    crop_length = 65536
+    n_targets = 2
+
+    crop_bins = crop_length // bin_length
+    n_initial_bins = seq_length // bin_length
+    n_final_bins = n_initial_bins - 2 * crop_bins
+
+    print(f"Model Configuration:")
+    print(f"  Sequence length: {seq_length:,} bp")
+    print(f"  Bin length: {bin_length:,} bp")
+    print(f"  Crop length: {crop_length:,} bp")
+    print(f"  Initial bins (1D): {n_initial_bins}")
+    print(f"  Crop bins per edge: {crop_bins}")
+    print(f"  Final bins (1D): {n_final_bins}")
+    print(f"  Contact matrix size: {n_final_bins} × {n_final_bins}")
+    print(f"  Targets: {n_targets}")
+
+    m = TestModel2D(seq_length, bin_length, crop_length, n_targets)
+    x = torch.ones([batch_size, 4, seq_length])
+
+    y_hat = m(x)
+    assert y_hat.shape[0] == batch_size
+    assert y_hat.shape[1] == n_targets
+    assert y_hat.shape[2] == n_final_bins
+    assert y_hat.shape[3] == n_final_bins
+
+    print(f"\nInput shape: {x.shape}")
+    print(f"Output shape: {y_hat.shape}")
+    print(
+        f"  (batch_size={batch_size}, n_targets={n_targets}, n_final_bins={n_final_bins})"
+    )
+    print("✓ Model test passed!")

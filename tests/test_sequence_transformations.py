@@ -7,6 +7,7 @@ This file tests the encoding, decoding, and reverse complement functions.
 import unittest
 import numpy as np
 import supremo_lite as sl
+from supremo_lite.core import BRISKET_AVAILABLE
 
 try:
     import torch
@@ -34,13 +35,13 @@ class TestSequenceTransformations(unittest.TestCase):
             encoded_np = encoded
 
         # A = [1, 0, 0, 0]
-        self.assertTrue(np.array_equal(encoded_np[0], [1, 0, 0, 0]))
+        self.assertTrue(np.array_equal(encoded_np[:, 0], [1, 0, 0, 0]))
         # C = [0, 1, 0, 0]
-        self.assertTrue(np.array_equal(encoded_np[1], [0, 1, 0, 0]))
+        self.assertTrue(np.array_equal(encoded_np[:, 1], [0, 1, 0, 0]))
         # G = [0, 0, 1, 0]
-        self.assertTrue(np.array_equal(encoded_np[2], [0, 0, 1, 0]))
+        self.assertTrue(np.array_equal(encoded_np[:, 2], [0, 0, 1, 0]))
         # T = [0, 0, 0, 1]
-        self.assertTrue(np.array_equal(encoded_np[3], [0, 0, 0, 1]))
+        self.assertTrue(np.array_equal(encoded_np[:, 3], [0, 0, 0, 1]))
 
     def test_encode_batch(self):
         """Test encoding a batch of sequences."""
@@ -58,9 +59,9 @@ class TestSequenceTransformations(unittest.TestCase):
             encoded_np = encoded
 
         # First sequence: A = [1, 0, 0, 0]
-        self.assertTrue(np.array_equal(encoded_np[0, 0], [1, 0, 0, 0]))
+        self.assertTrue(np.array_equal(encoded_np[0, :, 0], [1, 0, 0, 0]))
         # Second sequence: T = [0, 0, 0, 1]
-        self.assertTrue(np.array_equal(encoded_np[1, 0], [0, 0, 0, 1]))
+        self.assertTrue(np.array_equal(encoded_np[1, :, 0], [0, 0, 0, 1]))
 
     def test_decode_single_seq(self):
         """Test decoding a single sequence."""
@@ -109,20 +110,23 @@ class TestSequenceTransformations(unittest.TestCase):
     def test_ambiguous_bases(self):
         """Test handling of ambiguous bases."""
         seq = "ACGTN"
+
         encoded = sl.encode_seq(seq)
 
-        # N should be encoded as [0.25, 0.25, 0.25, 0.25]
+        # Get N encoding
         if TORCH_AVAILABLE:
-            n_encoding = encoded[-1].numpy()
+            n_encoding = encoded[:, -1].numpy()
         else:
-            n_encoding = encoded[-1]
+            n_encoding = encoded[:, -1]
 
-        self.assertTrue(np.allclose(n_encoding, [0.25, 0.25, 0.25, 0.25]))
+        # Both implementations now encode ambiguous bases as [0,0,0,0]
+        self.assertTrue(np.allclose(n_encoding, [0, 0, 0, 0]))
 
-        # Check decoding (N will be converted to one of ACGT based on argmax)
+        # Check decoding - N becomes 'A' (first in argmax of [0,0,0,0])
         decoded = sl.decode_seq(encoded)
         self.assertEqual(len(decoded), 5)
         self.assertTrue(decoded[:4] == "ACGT")
+        self.assertEqual(decoded[-1], "A")
 
 
 if __name__ == "__main__":

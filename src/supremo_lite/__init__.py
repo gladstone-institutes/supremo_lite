@@ -9,7 +9,7 @@ This package provides functionality for:
 """
 
 # Import core components
-from .core import TORCH_AVAILABLE, nt_to_1h, nts
+from .core import TORCH_AVAILABLE, BRISKET_AVAILABLE, nt_to_1h, nts
 
 # Import sequence transformation utilities
 from .sequence_utils import encode_seq, decode_seq, rc, rc_str
@@ -20,6 +20,8 @@ from .variant_utils import (
     read_vcf_chunked,
     get_vcf_chromosomes,
     read_vcf_chromosome,
+    classify_variant_type,
+    parse_vcf_info,
 )
 
 # Import chromosome matching utilities
@@ -27,21 +29,30 @@ from .chromosome_utils import (
     normalize_chromosome_name,
     create_chromosome_mapping,
     match_chromosomes_with_report,
+    ChromosomeMismatchError,
 )
 
 # Import personalize functions
 from .personalize import (
     get_personal_genome,
-    get_personal_genome_chromosome_chunked,
     get_alt_sequences,
-    get_pam_disrupting_personal_sequences,
+    get_ref_sequences,
+    get_pam_disrupting_alt_sequences,
+    get_alt_ref_sequences,
 )
 
 # Import mutagenesis functions
 from .mutagenesis import get_sm_sequences, get_sm_subsequences
 
+# Import prediction alignment functions
+from .prediction_alignment import align_predictions_by_coordinate
+
+# Mock models are available in a separate submodule
+# Import with: from supremo_lite.mock_models import TestModel, TestModel2D
+# This allows users who don't have PyTorch to still use the main package
+
 # Version
-__version__ = "0.5.2"
+__version__ = "0.5.4"
 # Package metadata
 __description__ = (
     "A module for generating personalized genome sequences and in-silico mutagenesis"

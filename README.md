@@ -1,17 +1,16 @@
 # supremo_lite
 
-A lightweight memory first, model agnostic version of [SuPreMo](https://github.com/ketringjoni/SuPreMo).
+A lightweight memory-first, model-agnostic version of [SuPreMo](https://github.com/ketringjoni/SuPreMo).
 
 ## Key Features
 
 - 🧬 **Personalized Genome Generation**: Apply variants from VCF files to reference genomes
 - 🎯 **Variant-Centered Sequences**: Generate sequence windows around variants
 - ✂️ **PAM Site Analysis**: Identify variants that disrupt CRISPR PAM sites
-- 🧪 **In-Silico Mutagenesis**: Systematic sequence mutation for predictive modeling
+- 🧪 **Saturation Mutagenesis**: Systematic single-nucleotide mutations at every position for predictive modeling
 - 🔧 **Memory Efficient**: Chunked processing for large VCF files
-- 🗺️ **Smart Chromosome Matching**: Automatic handling of chromosome naming differences (chr1 ↔ 1, chrM ↔ MT)
+- 🗺️ **Chromosome Matching**: Optional handling of chromosome naming differences (chr1 ↔ 1, chrM ↔ MT) via `auto_map_chromosomes=True`
 - ⚡ **PyTorch Integration**: Automatic tensor support when PyTorch is available
-- 📊 **Format Flexibility**: Works with file paths, objects, or DataFrames
 
 ## Installation
 
@@ -20,27 +19,14 @@ A lightweight memory first, model agnostic version of [SuPreMo](https://github.c
 For the latest features and bug fixes:
 
 ```bash
-# Install directly from GitHub (latest release)
-pip install git+https://github.com/gladstone-institutes/supremo_lite.git
+# Install directly latest release
+pip install supremo_lite
 
 # Or install a specific version/tag
 pip install git+https://github.com/gladstone-institutes/supremo_lite.git@v0.5.0
 
 # Or install from a specific branch
 pip install git+https://github.com/gladstone-institutes/supremo_lite.git@main
-```
-
-### Install from Local Clone
-
-For development or customization:
-
-```bash
-git clone https://github.com/gladstone-institutes/supremo_lite.git
-cd supremo_lite
-pip install .
-
-# For development with editable install
-pip install -e .
 ```
 
 ### Dependencies
@@ -52,362 +38,127 @@ Required dependencies will be installed automatically:
 
 Optional dependencies:
 - `torch` - For PyTorch tensor support (automatically detected)
+- [https://github.com/gladstone-institutes/brisket](brisket) - Cython powered faster 1 hot encoding for DNA sequences (automatically detected)
 
-## Usage
-
-`supremo_lite` provides functionality for generating personalized genome sequences from reference genomes and variant files, as well as performing in-silico mutagenesis. The package supports both PyTorch tensors and NumPy arrays for sequence encoding.
-
-### Basic Imports
+## Quick Start
 
 ```python
 import supremo_lite as sl
 from pyfaidx import Fasta
-import pandas as pd
-```
 
-### 1. Personalized Genome Generation
-
-Create a complete personalized genome by applying variants to a reference genome:
-
-```python
 # Load reference genome and variants
 reference = Fasta('hg38.fa')
-variants_df = sl.read_vcf('variants.vcf')
+variants = sl.read_vcf('variants.vcf')
+```
 
-# Generate personalized genome (returns encoded sequences by default)
+### DNA Sequence Encoding
+
+supremo_lite uses **one-hot encoding** by default:
+- `A` = `[1,0,0,0]`, `C` = `[0,1,0,0]`, `G` = `[0,0,1,0]`, `T` = `[0,0,0,1]`
+- Ambiguous bases = `[0,0,0,0]`
+- Returns PyTorch tensors when available, otherwise NumPy arrays
+
+### Personalized Genome Generation
+
+```python
+# Apply variants to create personalized genome
 personal_genome = sl.get_personal_genome(
     reference_fn=reference,
-    variants_fn=variants_df,
-    encode=True  # Returns one-hot encoded arrays/tensors
+    variants_fn=variants,
+    encode=True,      # One-hot encoded (or False for strings)
+    chunk_size=10000, # Process 10k variants at a time
+    verbose=True      # Show progress
 )
 
-# Access chromosome sequences
-chr1_encoded = personal_genome['chr1']  # Shape: (seq_length, 4)
-
-# Or get raw sequence strings
-personal_genome_raw = sl.get_personal_genome(
+# If your VCF uses 'chr1' and reference uses '1', enable chromosome mapping
+personal_genome = sl.get_personal_genome(
     reference_fn=reference,
-    variants_fn=variants_df,
-    encode=False  # Returns sequence strings
+    variants_fn=variants,
+    auto_map_chromosomes=True  # Handle chromosome name differences
 )
-chr1_sequence = personal_genome_raw['chr1']
 ```
 
-#### Memory-Efficient Processing for Large VCF Files
+**📖 [Full Guide: Personalized Genomes](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/user_guide/personalization.md) | [Tutorial Notebook](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/notebooks/02_personalized_genomes.ipynb)**
 
-For large variant files, use chunked processing to manage memory usage:
-
-```python
-# Process large VCF files in chunks (reduces memory usage)
-personal_genome = sl.get_personal_genome(
-    reference_fn='hg38.fa',
-    variants_fn='large_variants.vcf',
-    encode=False,
-    chunk_size=10000  # Process 10,000 variants at a time
-)
-
-# chunk_size=1 (default) loads entire VCF
-# chunk_size>1 enables chunked processing for memory efficiency
-```
-
-### 2. Variant-Centered Sequence Windows
-
-Generate sequence windows centered on each variant position:
+### Variant-Centered Sequences
 
 ```python
-# Create 1000bp windows around each variant
-sequences = sl.get_alt_sequences(
-    reference_fn='hg38.fa',
-    variants_fn='variants.vcf',
+# Generate reference and alternate sequences around variants
+# Note: get_alt_ref_sequences is a generator that yields chunks
+results = list(sl.get_alt_ref_sequences(
+    reference_fn=reference,
+    variants_fn=variants,
     seq_len=1000,
-    encode=True,
-    chunk_size=1  # Process variants individually (default)
-)
-
-# Returns tensor/array of shape (n_variants, seq_len, 4)
-print(f"Generated {sequences.shape[0]} sequences of length {sequences.shape[1]}")
-
-# Or get raw sequences with metadata
-sequences_raw = sl.get_alt_sequences(
-    reference_fn='hg38.fa',
-    variants_fn='variants.vcf',
-    seq_len=1000,
-    encode=False
-)
-
-# Returns list of tuples: (chrom, start, end, sequence_string)
-for chrom, start, end, sequence in sequences_raw:
-    print(f"{chrom}:{start}-{end}: {sequence[:50]}...")
+    encode=True
+))
+# Unpack from the first chunk
+alt_seqs, ref_seqs, metadata = results[0]
+# Returns: (n_variants, seq_len, 4) shaped arrays
 ```
 
-#### Automatic Chromosome Name Matching
+**📖 [Full Guide: Variant-Centered Sequences](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/user_guide/variant_centered_sequences.md) | [Getting Started Notebook](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/notebooks/01_getting_started.ipynb)**
 
-The package automatically handles chromosome naming mismatches between VCF and FASTA files:
+### Prediction Alignment
 
 ```python
-# Works automatically even with mismatched naming
-# VCF has: 'chr1', 'chr2', 'chrX', 'chrM' 
-# FASTA has: '1', '2', 'X', 'MT'
+# Align model predictions accounting for variant coordinate changes
+from supremo_lite.mock_models import TestModel
 
-personal_genome = sl.get_personal_genome(
-    reference_fn='reference.fa',  # Uses '1', '2', 'X', 'MT'
-    variants_fn='variants.vcf'    # Uses 'chr1', 'chr2', 'chrX', 'chrM'
+model = TestModel(n_targets=2, bin_size=8, crop_length=10)
+ref_preds = model(ref_seqs)
+alt_preds = model(alt_seqs)
+
+ref_aligned, alt_aligned = sl.align_predictions_by_coordinate(
+    ref_pred=ref_preds[0],
+    alt_pred=alt_preds[0],
+    metadata=metadata[0],
+    prediction_type="1D",
+    bin_size=8,
+    crop_length=10
 )
-# Chromosomes are automatically matched and mapped
-
-# You can also use the chromosome utilities directly
-ref_chroms = {'1', '2', 'X', 'MT'}
-vcf_chroms = {'chr1', 'chr2', 'chrX', 'chrM'}
-
-mapping, unmatched = sl.create_chromosome_mapping(ref_chroms, vcf_chroms)
-print(f"Chromosome mapping: {mapping}")
-# Output: {'chr1': '1', 'chr2': '2', 'chrX': 'X', 'chrM': 'MT'}
 ```
 
-### 3. PAM-Disrupting Variants
+**📖 [Full Guide: Prediction Alignment](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/user_guide/prediction_alignment.md) | [Tutorial with Visualizations](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/notebooks/03_prediction_alignment.ipynb)**
 
-Identify variants that disrupt PAM sites and generate corresponding sequences:
-
-```python
-# Find variants that disrupt SpCas9 PAM sites (NGG)
-pam_results = sl.get_pam_disrupting_personal_sequences(
-    reference_fn='hg38.fa',
-    variants_fn='variants.vcf',
-    seq_len=1000,
-    max_pam_distance=50,  # Maximum distance from variant to PAM
-    pam_sequence="NGG",   # SpCas9 PAM sequence
-    encode=True,
-    chunk_size=1         # Default chunk size
-)
-
-# Access results
-pam_disrupting_variants = pam_results['variants']
-pam_intact_sequences = pam_results['pam_intact']
-pam_disrupted_sequences = pam_results['pam_disrupted']
-
-print(f"Found {len(pam_disrupting_variants)} PAM-disrupting variants")
-```
-
-### 4. In-Silico Mutagenesis
-
-Generate sequences with systematic mutations at every position:
+### Saturation Mutagenesis
 
 ```python
-# Saturation mutagenesis for a genomic region
+# Mutate every position in a region
 ref_seq, alt_seqs, metadata = sl.get_sm_sequences(
     chrom='chr1',
-    start=1000000,
-    end=1001000,
+    start=1000,
+    end=1100,  # 100 bp → 300 mutations (3 per position)
     reference_fasta=reference
 )
-
-print(f"Reference sequence shape: {ref_seq.shape}")
-print(f"Alternative sequences shape: {alt_seqs.shape}")
-print(f"Generated {len(metadata)} mutated sequences")
-
-# Metadata contains mutation information
-print(metadata.head())
-#    chrom    start      end  offset ref alt
-# 0   chr1  1000000  1001000       0   A   C
-# 1   chr1  1000000  1001000       0   A   G
-# 2   chr1  1000000  1001000       0   A   T
-# 3   chr1  1000000  1001000       1   T   A
-# 4   chr1  1000000  1001000       1   T   C
 ```
 
-### 5. Targeted Mutagenesis Around Anchor Points
+**📖 [Full Guide: Mutagenesis](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/user_guide/mutagenesis.md)**
 
-Generate mutations around specific genomic positions:
+## Documentation
 
-```python
-# Mutagenesis around a specific anchor point
-ref_seq, alt_seqs, metadata = sl.get_sm_subsequences(
-    chrom='chr1',
-    anchor=1000500,      # Center position
-    anchor_radius=25,    # Mutate ±25 bp around anchor
-    seq_len=1000,        # Total sequence length
-    reference_fasta=reference
-)
+### 📚 User Guides
+Detailed documentation for each major feature:
+- **[Personalized Genomes](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/user_guide/personalization.md)** - Apply variants to genomes
+- **[Variant-Centered Sequences](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/user_guide/variant_centered_sequences.md)** - Extract sequence windows around variants
+- **[Prediction Alignment](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/user_guide/prediction_alignment.md)** - Align model predictions for variant effect analysis
+- **[Saturation Mutagenesis](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/user_guide/mutagenesis.md)** - In-silico mutagenesis workflows
+- **[Variant Classification](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/_static/images/variant_classification.png)** - Flow chart showing automatic variant classification logic
 
-print(f"Generated mutations around position 1000500")
-print(f"Mutated {alt_seqs.shape[0]} positions")
-```
+### 📓 Interactive Tutorials
+Hands-on Jupyter notebooks with visualizations:
+- **[Getting Started](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/notebooks/01_getting_started.ipynb)** - Installation and basic concepts
+- **[Personalized Genomes](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/notebooks/02_personalized_genomes.ipynb)** - Genome personalization workflows
+- **[Prediction Alignment](https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/notebooks/03_prediction_alignment.ipynb)** - Complete prediction workflow with visualizations ⭐
 
-### 6. Sequence Utilities
+### 🔍 API Reference
+**Core Functions:**
+- `get_personal_genome()` - Generate personalized genomes
+- `get_alt_ref_sequences()` - Generate variant-centered sequences
+- `align_predictions_by_coordinate()` - Align model predictions
+- `get_sm_sequences()` - Saturation mutagenesis
+- `read_vcf()` - Read VCF files
 
-Work with encoded sequences using utility functions:
-
-```python
-# Encode a sequence string
-sequence = "ATCGATCGATCG"
-encoded = sl.encode_seq(sequence)
-print(f"Encoded shape: {encoded.shape}")  # (12, 4)
-
-# Decode back to string
-decoded = sl.decode_seq(encoded)
-print(f"Decoded: {decoded}")  # "ATCGATCGATCG"
-
-# Reverse complement
-rc_encoded = sl.rc(encoded)
-rc_string = sl.rc_str(sequence)
-print(f"Reverse complement: {rc_string}")  # "CGATCGATCGAT"
-
-# Encode multiple sequences
-sequences = ["ATCG", "GCTA", "TTAA"]
-batch_encoded = sl.encode_seq(sequences)
-print(f"Batch encoded shape: {batch_encoded.shape}")  # (3, 4, 4)
-```
-
-### 7. Reading VCF Files
-
-Read and process VCF files:
-
-```python
-# Read VCF file into DataFrame
-variants_df = sl.read_vcf('variants.vcf')
-print(variants_df.head())
-
-# VCF DataFrame contains columns: chrom, pos, id, ref, alt
-filtered_variants = variants_df[variants_df['chrom'] == 'chr1']
-
-# For very large VCF files, use chunked reading
-for chunk in sl.read_vcf_chunked('large_variants.vcf', chunk_size=50000):
-    # Process each chunk of 50,000 variants
-    print(f"Processing chunk with {len(chunk)} variants")
-    # Your processing code here...
-```
-
-### 8. PyTorch Integration
-
-When PyTorch is available, sequences are returned as PyTorch tensors:
-
-```python
-import torch
-
-# Check if PyTorch is available
-print(f"PyTorch available: {sl.TORCH_AVAILABLE}")
-
-# Sequences will be PyTorch tensors if available
-sequences = sl.get_alt_sequences(
-    reference_fn='hg38.fa',
-    variants_fn='variants.vcf',
-    seq_len=1000
-)
-
-if sl.TORCH_AVAILABLE:
-    print(f"Tensor type: {type(sequences)}")  # <class 'torch.Tensor'>
-    print(f"Device: {sequences.device}")      # cpu
-    print(f"Dtype: {sequences.dtype}")        # torch.float32
-    
-    # Move to GPU if available
-    if torch.cuda.is_available():
-        sequences = sequences.cuda()
-```
-
-### 9. Working with Different Reference Formats
-
-The package supports multiple reference genome formats:
-
-```python
-# From FASTA file path
-personal_genome = sl.get_personal_genome('hg38.fa', variants_df)
-
-# From pyfaidx Fasta object
-reference = Fasta('hg38.fa')
-personal_genome = sl.get_personal_genome(reference, variants_df)
-
-# From dictionary (for small sequences)
-reference_dict = {
-    'chr1': 'ATCGATCGATCG...',
-    'chr2': 'GCTAGCTAGCTA...'
-}
-personal_genome = sl.get_personal_genome(reference_dict, variants_df)
-```
-
-### 10. Error Handling and Warnings
-
-The package provides informative warnings for common issues:
-
-```python
-import warnings
-
-# Capture warnings
-with warnings.catch_warnings(record=True) as w:
-    warnings.simplefilter("always")
-    
-    # This may generate warnings for overlapping variants
-    personal_genome = sl.get_personal_genome(
-        reference_fn='hg38.fa',
-        variants_fn='variants.vcf'
-    )
-    
-    for warning in w:
-        print(f"Warning: {warning.message}")
-```
-
-### 11. Performance Tips
-
-For optimal performance with large datasets:
-
-```python
-# Use chunked processing for large VCF files
-personal_genome = sl.get_personal_genome(
-    reference_fn='hg38.fa',
-    variants_fn='large_variants.vcf',
-    encode=False,        # Use strings to save memory
-    chunk_size=50000     # Process in 50k variant chunks
-)
-
-# For sequence generation, balance chunk size with memory
-sequences = list(sl.get_alt_sequences(
-    reference_fn='hg38.fa', 
-    variants_fn='variants.vcf',
-    seq_len=1000,
-    chunk_size=100      # Generate 100 sequences at a time
-))
-
-# Disable encoding for large datasets to save memory
-sequences_raw = sl.get_alt_sequences(
-    reference_fn='hg38.fa',
-    variants_fn='variants.vcf', 
-    seq_len=1000,
-    encode=False        # Returns strings instead of tensors
-)
-```
-
-## API Reference
-
-### Core Functions
-
-- `get_personal_genome(reference_fn, variants_fn, encode=True, chunk_size=1)` - Generate personalized genome with chunked processing
-- `get_alt_sequences(reference_fn, variants_fn, seq_len, encode=True, chunk_size=1)` - Generate variant-centered windows  
-- `get_pam_disrupting_personal_sequences(reference_fn, variants_fn, seq_len, max_pam_distance, pam_sequence="NGG", encode=True, chunk_size=1)` - Find PAM-disrupting variants
-- `get_sm_sequences(chrom, start, end, reference_fasta)` - Saturation mutagenesis
-- `get_sm_subsequences(chrom, anchor, anchor_radius, seq_len, reference_fasta)` - Targeted mutagenesis
-
-### VCF Processing Functions
-
-- `read_vcf(path)` - Read VCF file into DataFrame
-- `read_vcf_chunked(path, chunk_size)` - Read large VCF files in chunks (generator)
-
-### Chromosome Utilities
-
-- `normalize_chromosome_name(chrom_name)` - Normalize chromosome naming
-- `create_chromosome_mapping(ref_chroms, vcf_chroms)` - Create chromosome name mapping
-- `match_chromosomes_with_report(ref_chroms, vcf_chroms, verbose=True)` - Match with detailed reporting
-
-### Sequence Utilities
-
-- `encode_seq(seq)` - Convert nucleotide string to one-hot encoding
-- `decode_seq(seq_1h)` - Convert one-hot encoding to nucleotide string
-- `rc(seq_1h)` - Reverse complement encoded sequence
-- `rc_str(seq)` - Reverse complement string
-
-### Constants
-
-- `TORCH_AVAILABLE` - Boolean indicating if PyTorch is available
-- `nt_to_1h` - Nucleotide to one-hot encoding mapping
-- `nts` - Nucleotide array `['A', 'C', 'G', 'T']`
+For complete API documentation with all parameters, see the [docs/](https://github.com/gladstone-institutes/supremo_lite/tree/main/docs) directory.
 
 ## Issues and Support
 
