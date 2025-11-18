@@ -63,6 +63,7 @@ def test_1d_score_alignment():
         var_metadata,
         bin_size=bin_size,
         prediction_type="1D",
+        crop_length=crop_length,
     )
 
     # Verify outputs are tensors
@@ -96,6 +97,7 @@ def test_1d_score_alignment():
         var_metadata,
         bin_size=bin_size,
         prediction_type="1D",
+        crop_length=crop_length,
     )
 
     # Verify output types
@@ -182,6 +184,7 @@ def test_contact_map_alignment():
         var_metadata,
         bin_size=bin_size,
         prediction_type="2D",
+        crop_length=crop_length,
         matrix_size=matrix_size,
         diag_offset=diag_offset,
     )
@@ -215,6 +218,7 @@ def test_contact_map_alignment():
         var_metadata,
         bin_size=bin_size,
         prediction_type="2D",
+        crop_length=crop_length,
         matrix_size=matrix_size,
         diag_offset=diag_offset,
     )
@@ -249,6 +253,7 @@ def test_contact_map_alignment():
         var_metadata,
         bin_size=bin_size,
         prediction_type="2D",
+        crop_length=crop_length,
         matrix_size=matrix_size,
         diag_offset=diag_offset,
     )
@@ -273,7 +278,12 @@ def test_error_handling():
     # Test invalid prediction type
     try:
         align_predictions_by_coordinate(
-            ref_preds, alt_preds, metadata, bin_size=32, prediction_type="invalid"
+            ref_preds,
+            alt_preds,
+            metadata,
+            bin_size=32,
+            prediction_type="invalid",
+            crop_length=0,
         )
         assert False, "Should have raised ValueError for invalid prediction type"
     except ValueError as e:
@@ -282,7 +292,12 @@ def test_error_handling():
     # Test missing matrix_size for 2D
     try:
         align_predictions_by_coordinate(
-            ref_preds, alt_preds, metadata, bin_size=32, prediction_type="2D"
+            ref_preds,
+            alt_preds,
+            metadata,
+            bin_size=32,
+            prediction_type="2D",
+            crop_length=0,
         )
         assert False, "Should have raised ValueError for missing matrix_size"
     except ValueError as e:
@@ -305,6 +320,7 @@ def test_error_handling():
             metadata_contact,
             bin_size=32,
             prediction_type="2D",
+            crop_length=0,
             matrix_size=3,
             # diag_offset not specified, should default to 0
         )
@@ -330,6 +346,7 @@ def test_error_handling():
             metadata_unsupported,
             bin_size=32,
             prediction_type="2D",
+            crop_length=0,
             matrix_size=3,
             diag_offset=0,
         )

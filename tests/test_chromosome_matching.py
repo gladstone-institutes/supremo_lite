@@ -447,7 +447,7 @@ class TestIntegrationWithPersonalizeFunctions:
             pam_sequence="NGG",
             encode=False,
             auto_map_chromosomes=True,
-            n_chunks=1
+            n_chunks=1,
         )
 
         # Should find PAM-disrupting variants

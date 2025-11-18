@@ -15,7 +15,7 @@ align_predictions_by_coordinate(
     metadata,               # Variant metadata dict
     prediction_type,        # "1D" or "2D"
     bin_size,               # int: Model bin size
-    crop_length=0,          # int: Model crop length (default 0)
+    crop_length,            # int: Model crop length (REQUIRED)
     diag_offset=0,          # int: Diagonal offset for 2D (default 0)
     matrix_size=None        # int: Required for 2D predictions
 ) -> tuple[array/tensor, array/tensor]
@@ -30,7 +30,7 @@ align_predictions_by_coordinate(
 | `metadata` | dict | required | Variant metadata (from `get_alt_ref_sequences()`) |
 | `prediction_type` | str | required | `"1D"` or `"2D"` |
 | `bin_size` | int | required | Model binning resolution (bp per prediction) |
-| `crop_length` | int | 0 | Bases cropped from each edge |
+| `crop_length` | int | **required** | Bases cropped from each edge by model |
 | `diag_offset` | int | 0 | Diagonal bins masked (2D only) |
 | `matrix_size` | int | None | Square matrix size (required for 2D) |
 

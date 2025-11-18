@@ -52,7 +52,7 @@ from .prediction_alignment import align_predictions_by_coordinate
 # This allows users who don't have PyTorch to still use the main package
 
 # Version
-__version__ = "0.5.4"
+__version__ = "0.5.5"
 # Package metadata
 __description__ = (
     "A module for generating personalized genome sequences and in-silico mutagenesis"

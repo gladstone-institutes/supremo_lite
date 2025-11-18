@@ -126,9 +126,13 @@ if TORCH_AVAILABLE:
             )
 
             # Crop bins from all edges to focus loss function
-            y_hat = y_hat[
-                :, :, self.crop_bins : -self.crop_bins, self.crop_bins : -self.crop_bins
-            ]
+            if self.crop_bins > 0:
+                y_hat = y_hat[
+                    :,
+                    :,
+                    self.crop_bins : -self.crop_bins,
+                    self.crop_bins : -self.crop_bins,
+                ]
 
             # Return full contact matrix
             return y_hat

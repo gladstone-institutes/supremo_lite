@@ -146,7 +146,8 @@ def get_sm_sequences(chrom, start, end, reference_fasta, encoder=None):
 
     # Create a DataFrame for the metadata
     metadata_df = pd.DataFrame(
-        metadata, columns=["chrom", "window_start", "window_end", "variant_pos0", "ref", "alt"]
+        metadata,
+        columns=["chrom", "window_start", "window_end", "variant_pos0", "ref", "alt"],
     )
 
     return ref_1h, alt_seqs_stacked, metadata_df
@@ -239,9 +240,7 @@ def get_sm_subsequences(
             )
     elif not has_bed:
         # Neither approach was specified
-        raise ValueError(
-            "Must provide either (anchor + anchor_radius) or bed_regions."
-        )
+        raise ValueError("Must provide either (anchor + anchor_radius) or bed_regions.")
 
     alt_seqs = []
     metadata = []
@@ -331,7 +330,11 @@ def get_sm_subsequences(
 
                 # Adjust window to stay within chromosome bounds
                 chrom_obj = reference_fasta[chrom]
-                chrom_len = len(chrom_obj) if hasattr(chrom_obj, '__len__') else len(chrom_obj.seq)
+                chrom_len = (
+                    len(chrom_obj)
+                    if hasattr(chrom_obj, "__len__")
+                    else len(chrom_obj.seq)
+                )
                 if window_start < 0:
                     window_start = 0
                     window_end = min(seq_len, chrom_len)
@@ -377,13 +380,17 @@ def get_sm_subsequences(
                         # Create a clone and substitute the base
                         if TORCH_AVAILABLE and isinstance(region_1h, torch.Tensor):
                             alt_1h = region_1h.clone()
-                            alt_1h[:, i] = torch.tensor(nt_to_1h[alt], dtype=alt_1h.dtype)
+                            alt_1h[:, i] = torch.tensor(
+                                nt_to_1h[alt], dtype=alt_1h.dtype
+                            )
                         else:
                             alt_1h = region_1h.copy()
                             alt_1h[:, i] = nt_to_1h[alt]
 
                         alt_seqs.append(alt_1h)
-                        metadata.append([chrom, window_start, window_end, i, ref_nt, alt])
+                        metadata.append(
+                            [chrom, window_start, window_end, i, ref_nt, alt]
+                        )
 
         # If no regions were processed, create empty ref_1h
         if ref_1h is None:
@@ -408,7 +415,8 @@ def get_sm_subsequences(
 
     # Create a DataFrame for the metadata
     metadata_df = pd.DataFrame(
-        metadata, columns=["chrom", "window_start", "window_end", "variant_pos0", "ref", "alt"]
+        metadata,
+        columns=["chrom", "window_start", "window_end", "variant_pos0", "ref", "alt"],
     )
 
     return ref_1h, alt_seqs_stacked, metadata_df

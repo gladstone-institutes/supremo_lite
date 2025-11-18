@@ -20,13 +20,10 @@ For the latest features and bug fixes:
 
 ```bash
 # Install directly latest release
-pip install supremo_lite
+pip install supremo-lite
 
 # Or install a specific version/tag
 pip install git+https://github.com/gladstone-institutes/supremo_lite.git@v0.5.0
-
-# Or install from a specific branch
-pip install git+https://github.com/gladstone-institutes/supremo_lite.git@main
 ```
 
 ### Dependencies

@@ -49,7 +49,8 @@ class TestSaturationMutagenesis(unittest.TestCase):
         # Verify metadata
         self.assertEqual(len(metadata), 30)
         self.assertEqual(
-            list(metadata.columns), ["chrom", "window_start", "window_end", "variant_pos0", "ref", "alt"]
+            list(metadata.columns),
+            ["chrom", "window_start", "window_end", "variant_pos0", "ref", "alt"],
         )
 
         # Check each position gets all 3 alternatives
@@ -149,7 +150,9 @@ class TestSaturationMutagenesis(unittest.TestCase):
         # Region 2 [50,60): center=55, window=[15,80) but adjusted to [0,80), mutations at positions 50-59
         # Total positions should be 10+10=20, but need to account for window-relative positions
         self.assertTrue(len(metadata) > 0)
-        self.assertEqual(len(metadata) % 3, 0)  # Should be multiple of 3 (3 alts per position)
+        self.assertEqual(
+            len(metadata) % 3, 0
+        )  # Should be multiple of 3 (3 alts per position)
 
     def test_bed_regions_file(self):
         """Test BED regions filtering using actual BED file."""
@@ -346,6 +349,7 @@ class TestSaturationMutagenesis(unittest.TestCase):
         # Total: 90 mutations
         self.assertTrue(len(metadata) > 0)
         self.assertEqual(len(metadata), 90)  # 30 positions * 3 alternatives
+
 
 if __name__ == "__main__":
     unittest.main()

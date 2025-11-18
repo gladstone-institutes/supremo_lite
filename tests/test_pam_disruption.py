@@ -29,13 +29,17 @@ class TestPAMDisruption:
         """Test disrupting AGG PAM site on chr4 at position 0."""
         # chr4 starts with AGG at position 0-2
         # Create variant at position 2 (1-based) to disrupt the AGG
-        variants = pd.DataFrame([{
-            "chrom": "chr4",
-            "pos": 2,  # 1-based
-            "id": ".",
-            "ref": "G",  # First G in AGG
-            "alt": "A"   # Change to A, disrupting AGG
-        }])
+        variants = pd.DataFrame(
+            [
+                {
+                    "chrom": "chr4",
+                    "pos": 2,  # 1-based
+                    "id": ".",
+                    "ref": "G",  # First G in AGG
+                    "alt": "A",  # Change to A, disrupting AGG
+                }
+            ]
+        )
 
         gen = sl.get_pam_disrupting_alt_sequences(
             reference_fn=test_reference,
@@ -44,7 +48,7 @@ class TestPAMDisruption:
             max_pam_distance=10,
             pam_sequence="NGG",
             encode=False,
-            n_chunks=1
+            n_chunks=1,
         )
 
         # Get the result from generator
@@ -56,22 +60,26 @@ class TestPAMDisruption:
         assert len(ref_seqs) >= 1
 
         # Check metadata has PAM-specific columns
-        assert 'pam_site_pos' in metadata.columns
-        assert 'pam_ref_sequence' in metadata.columns
-        assert 'pam_alt_sequence' in metadata.columns
-        assert 'pam_distance' in metadata.columns
+        assert "pam_site_pos" in metadata.columns
+        assert "pam_ref_sequence" in metadata.columns
+        assert "pam_alt_sequence" in metadata.columns
+        assert "pam_distance" in metadata.columns
 
     def test_chr4_tgg_disruption(self, test_reference):
         """Test disrupting TGG PAM site on chr4."""
         # chr4 has TGG at position 3-5
         # Create variant at position 5 (1-based) = position 4 (0-based)
-        variants = pd.DataFrame([{
-            "chrom": "chr4",
-            "pos": 5,  # 1-based
-            "id": ".",
-            "ref": "G",  # Second G in TGG
-            "alt": "C"   # Change to C, disrupting TGG
-        }])
+        variants = pd.DataFrame(
+            [
+                {
+                    "chrom": "chr4",
+                    "pos": 5,  # 1-based
+                    "id": ".",
+                    "ref": "G",  # Second G in TGG
+                    "alt": "C",  # Change to C, disrupting TGG
+                }
+            ]
+        )
 
         gen = sl.get_pam_disrupting_alt_sequences(
             reference_fn=test_reference,
@@ -80,7 +88,7 @@ class TestPAMDisruption:
             max_pam_distance=8,
             pam_sequence="NGG",
             encode=False,
-            n_chunks=1
+            n_chunks=1,
         )
 
         alt_seqs, ref_seqs, metadata = next(gen)
@@ -93,13 +101,17 @@ class TestPAMDisruption:
         """Test variant far from any PAM site returns empty results."""
         # chr3 has no PAM sites (*GG patterns)
         # Create a variant that won't disrupt anything
-        variants = pd.DataFrame([{
-            "chrom": "chr3",
-            "pos": 40,  # 1-based, middle of chr3
-            "id": ".",
-            "ref": "A",
-            "alt": "T"
-        }])
+        variants = pd.DataFrame(
+            [
+                {
+                    "chrom": "chr3",
+                    "pos": 40,  # 1-based, middle of chr3
+                    "id": ".",
+                    "ref": "A",
+                    "alt": "T",
+                }
+            ]
+        )
 
         gen = sl.get_pam_disrupting_alt_sequences(
             reference_fn=test_reference,
@@ -108,7 +120,7 @@ class TestPAMDisruption:
             max_pam_distance=5,  # Very small distance
             pam_sequence="NGG",
             encode=False,
-            n_chunks=1
+            n_chunks=1,
         )
 
         # Should return empty generator
@@ -119,13 +131,9 @@ class TestPAMDisruption:
         """Test max_pam_distance boundary conditions."""
         # chr4 position 0: AGG
         # Test variant at position 15 with different distances
-        variants = pd.DataFrame([{
-            "chrom": "chr4",
-            "pos": 15,  # 1-based
-            "id": ".",
-            "ref": "A",
-            "alt": "G"
-        }])
+        variants = pd.DataFrame(
+            [{"chrom": "chr4", "pos": 15, "id": ".", "ref": "A", "alt": "G"}]  # 1-based
+        )
 
         # With max_pam_distance=10, AGG at pos 0 should be too far (distance ~14)
         gen_small = sl.get_pam_disrupting_alt_sequences(
@@ -135,7 +143,7 @@ class TestPAMDisruption:
             max_pam_distance=10,
             pam_sequence="NGG",
             encode=False,
-            n_chunks=1
+            n_chunks=1,
         )
 
         # With max_pam_distance=20, AGG at pos 0 might be within range
@@ -146,7 +154,7 @@ class TestPAMDisruption:
             max_pam_distance=20,
             pam_sequence="NGG",
             encode=False,
-            n_chunks=1
+            n_chunks=1,
         )
 
         # Count results
@@ -163,13 +171,17 @@ class TestPAMDisruption:
         """Test TTTN PAM pattern (Cas12a) with IUPAC N matching."""
         # Look for TTTA, TTTC, TTTG, or TTTT patterns in chr1
         # chr1 has "TTTT" at positions 13-16 and other TT patterns
-        variants = pd.DataFrame([{
-            "chrom": "chr1",
-            "pos": 15,  # 1-based, disrupts TTTT
-            "id": ".",
-            "ref": "T",
-            "alt": "A"
-        }])
+        variants = pd.DataFrame(
+            [
+                {
+                    "chrom": "chr1",
+                    "pos": 15,  # 1-based, disrupts TTTT
+                    "id": ".",
+                    "ref": "T",
+                    "alt": "A",
+                }
+            ]
+        )
 
         gen = sl.get_pam_disrupting_alt_sequences(
             reference_fn=test_reference,
@@ -178,7 +190,7 @@ class TestPAMDisruption:
             max_pam_distance=8,
             pam_sequence="TTTN",
             encode=False,
-            n_chunks=1
+            n_chunks=1,
         )
 
         # Should find at least one PAM disruption
@@ -189,13 +201,9 @@ class TestPAMDisruption:
     def test_purine_pam_pattern(self, test_reference):
         """Test PAM pattern with R (purine = A or G)."""
         # Test RGG pattern on chr4 which has AGG at position 0
-        variants = pd.DataFrame([{
-            "chrom": "chr4",
-            "pos": 2,  # 1-based
-            "id": ".",
-            "ref": "G",
-            "alt": "C"
-        }])
+        variants = pd.DataFrame(
+            [{"chrom": "chr4", "pos": 2, "id": ".", "ref": "G", "alt": "C"}]  # 1-based
+        )
 
         gen = sl.get_pam_disrupting_alt_sequences(
             reference_fn=test_reference,
@@ -204,7 +212,7 @@ class TestPAMDisruption:
             max_pam_distance=10,
             pam_sequence="RGG",  # R matches A or G
             encode=False,
-            n_chunks=1
+            n_chunks=1,
         )
 
         # AGG should match RGG pattern
@@ -214,13 +222,9 @@ class TestPAMDisruption:
     def test_pyrimidine_pam_pattern(self, test_reference):
         """Test PAM pattern with Y (pyrimidine = C or T)."""
         # Test YGG pattern on chr2 which has CGG at position 50
-        variants = pd.DataFrame([{
-            "chrom": "chr2",
-            "pos": 51,  # 1-based
-            "id": ".",
-            "ref": "G",
-            "alt": "A"
-        }])
+        variants = pd.DataFrame(
+            [{"chrom": "chr2", "pos": 51, "id": ".", "ref": "G", "alt": "A"}]  # 1-based
+        )
 
         gen = sl.get_pam_disrupting_alt_sequences(
             reference_fn=test_reference,
@@ -229,7 +233,7 @@ class TestPAMDisruption:
             max_pam_distance=10,
             pam_sequence="YGG",  # Y matches C or T
             encode=False,
-            n_chunks=1
+            n_chunks=1,
         )
 
         # CGG should match YGG pattern
@@ -238,13 +242,9 @@ class TestPAMDisruption:
 
     def test_encoded_vs_string_output(self, test_reference):
         """Test that encoded and string outputs are consistent."""
-        variants = pd.DataFrame([{
-            "chrom": "chr4",
-            "pos": 2,
-            "id": ".",
-            "ref": "G",
-            "alt": "A"
-        }])
+        variants = pd.DataFrame(
+            [{"chrom": "chr4", "pos": 2, "id": ".", "ref": "G", "alt": "A"}]
+        )
 
         # Get string output
         gen_str = sl.get_pam_disrupting_alt_sequences(
@@ -254,7 +254,7 @@ class TestPAMDisruption:
             max_pam_distance=10,
             pam_sequence="NGG",
             encode=False,
-            n_chunks=1
+            n_chunks=1,
         )
 
         # Get encoded output
@@ -265,7 +265,7 @@ class TestPAMDisruption:
             max_pam_distance=10,
             pam_sequence="NGG",
             encode=True,
-            n_chunks=1
+            n_chunks=1,
         )
 
         alt_str, ref_str, meta_str = next(gen_str)
@@ -285,13 +285,15 @@ class TestPAMDisruption:
     def test_no_variants_provided(self, test_reference):
         """Test with empty variants list."""
         # Create properly typed empty DataFrame
-        variants = pd.DataFrame({
-            "chrom": pd.Series([], dtype=str),
-            "pos": pd.Series([], dtype=int),
-            "id": pd.Series([], dtype=str),
-            "ref": pd.Series([], dtype=str),
-            "alt": pd.Series([], dtype=str)
-        })
+        variants = pd.DataFrame(
+            {
+                "chrom": pd.Series([], dtype=str),
+                "pos": pd.Series([], dtype=int),
+                "id": pd.Series([], dtype=str),
+                "ref": pd.Series([], dtype=str),
+                "alt": pd.Series([], dtype=str),
+            }
+        )
 
         gen = sl.get_pam_disrupting_alt_sequences(
             reference_fn=test_reference,
@@ -300,7 +302,7 @@ class TestPAMDisruption:
             max_pam_distance=10,
             pam_sequence="NGG",
             encode=False,
-            n_chunks=1
+            n_chunks=1,
         )
 
         result_list = list(gen)
@@ -310,13 +312,17 @@ class TestPAMDisruption:
         """Test region with overlapping PAM sites."""
         # chr2 has CGG at position 50 and GGG at position 51 (overlapping)
         # Disrupting position 52 (1-based) should affect both
-        variants = pd.DataFrame([{
-            "chrom": "chr2",
-            "pos": 52,  # 1-based
-            "id": ".",
-            "ref": "G",  # Last G in both overlapping PAMs
-            "alt": "A"
-        }])
+        variants = pd.DataFrame(
+            [
+                {
+                    "chrom": "chr2",
+                    "pos": 52,  # 1-based
+                    "id": ".",
+                    "ref": "G",  # Last G in both overlapping PAMs
+                    "alt": "A",
+                }
+            ]
+        )
 
         gen = sl.get_pam_disrupting_alt_sequences(
             reference_fn=test_reference,
@@ -325,7 +331,7 @@ class TestPAMDisruption:
             max_pam_distance=10,
             pam_sequence="NGG",
             encode=False,
-            n_chunks=1
+            n_chunks=1,
         )
 
         alt_seqs, ref_seqs, metadata = next(gen)
