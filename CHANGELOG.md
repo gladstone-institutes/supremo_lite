@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.5.5 (11/18/2025)
+
+### Critical Bug Fixes
+- **Prediction Alignment `crop_length` Handling** **CRITICAL BUG FIX**
+  - **Impact**: Previous versions of prediction alignment functions did NOT account for `crop_length` (edge bases removed by models before prediction). This caused masked bins to be shifted by `crop_length / bin_size` bins away from the true variant position. Additionally the bin location was not being calculated correctly.
+  - **⚠️ WARNING**: Do NOT use prediction alignment functions (`align_predictions_by_coordinate`, `PredictionAligner1D`, `PredictionAligner2D`) from versions prior to v0.5.5. Results will have incorrect bin masking positions.
+  - **Fix**: `crop_length` is now properly subtracted before correctly calculating bin positions, ensuring variants are masked at the correct genomic coordinates
+  - **Additional Fix**: Changed from ceiling division to floor division for correct bin index calculation
+
+### Breaking Changes
+- **`crop_length` Parameter Now Required**: The `crop_length` parameter is now required (no default value) in:
+  - `align_predictions_by_coordinate()`
+  - `PredictionAligner1D.__init__()`
+  - `PredictionAligner2D.__init__()`
+  - This breaking change prevents silent errors from using incorrect default values
+
+
 ## v0.5.4 (10/24/2025)
 
 ### Critical Bug Fixes
