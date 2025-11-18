@@ -40,14 +40,17 @@ class VariantPosition:
     svlen: int  # Length of structural variant (base pairs, signed for DEL/INS)
     variant_type: str  # Type of variant ('SNV', 'INS', 'DEL', 'DUP', 'INV', 'BND')
 
-    def get_bin_positions(self, bin_size: int, window_start: int = 0) -> Tuple[int, int, int]:
+    def get_bin_positions(
+        self, bin_size: int, window_start: int, crop_length: int
+    ) -> Tuple[int, int, int]:
         """
         Convert base pair positions to bin indices relative to window.
 
         Args:
             bin_size: Number of base pairs per prediction bin
             window_start: Start position of the sequence window (0-based genomic coord).
-                         Defaults to 0 for backward compatibility.
+            crop_length: Number of base pairs cropped from each edge by the model.
+                        This accounts for edge bases removed before prediction.
 
         Returns:
             Tuple of (ref_bin, alt_start_bin, alt_end_bin) as bin indices
@@ -56,16 +59,20 @@ class VariantPosition:
 
         Notes:
             - Positions are calculated relative to window_start, not absolute genomic coords
+            - crop_length accounts for edge bases removed before prediction
             - Masked bins are centered on the variant position
-            - This matches the original SuPreMo implementation behavior
         """
         # Calculate positions relative to window
         rel_ref_pos = self.ref_pos - window_start
         rel_alt_pos = self.alt_pos - window_start
 
-        # Convert to bin indices (center of the variant)
-        ref_bin_center = int(np.ceil(rel_ref_pos / bin_size))
-        alt_bin_center = int(np.ceil(rel_alt_pos / bin_size))
+        # Account for cropping (bases removed from start of window before prediction)
+        rel_ref_pos -= crop_length
+        rel_alt_pos -= crop_length
+
+        # Convert to bin indices using floor division (not ceil!)
+        ref_bin_center = rel_ref_pos // bin_size
+        alt_bin_center = rel_alt_pos // bin_size
 
         # Calculate number of bins to mask
         svlen_bins = int(np.ceil(abs(self.svlen) / bin_size))
@@ -94,24 +101,27 @@ class PredictionAligner1D:
     Args:
         target_size: Expected number of bins in the prediction output
         bin_size: Number of base pairs per prediction bin (model-specific)
+        crop_length: Number of base pairs cropped from each edge by the model
 
     Example:
-        >>> aligner = PredictionAligner1D(target_size=896, bin_size=128)
+        >>> aligner = PredictionAligner1D(target_size=896, bin_size=128, crop_length=0)
         >>> ref_aligned, alt_aligned = aligner.align_predictions(
         ...     ref_pred, alt_pred, 'INS', variant_position
         ... )
     """
 
-    def __init__(self, target_size: int, bin_size: int):
+    def __init__(self, target_size: int, bin_size: int, crop_length: int):
         """
         Initialize the 1D prediction aligner.
 
         Args:
             target_size: Expected number of bins in prediction (e.g., 896 for Enformer)
             bin_size: Base pairs per bin (e.g., 128 for Enformer)
+            crop_length: Number of base pairs cropped from each edge by the model
         """
         self.target_size = target_size
         self.bin_size = bin_size
+        self.crop_length = crop_length
 
     def align_predictions(
         self,
@@ -149,7 +159,9 @@ class PredictionAligner1D:
                 ref_pred, alt_pred, svtype_normalized, var_pos, window_start
             )
         elif svtype_normalized == "INV":
-            return self._align_inversion_predictions(ref_pred, alt_pred, var_pos, window_start)
+            return self._align_inversion_predictions(
+                ref_pred, alt_pred, var_pos, window_start
+            )
         elif svtype_normalized in ["SNV", "MNV"]:
             # SNVs don't change coordinates, direct alignment
             is_torch = TORCH_AVAILABLE and torch.is_tensor(ref_pred)
@@ -202,7 +214,7 @@ class PredictionAligner1D:
 
         # Get bin positions (window-relative, centered)
         ref_bin, alt_start_bin, alt_end_bin = var_pos.get_bin_positions(
-            self.bin_size, window_start
+            self.bin_size, window_start, self.crop_length
         )
         bins_to_add = alt_end_bin - alt_start_bin
 
@@ -306,7 +318,9 @@ class PredictionAligner1D:
             ref_np = ref_pred.copy()
             alt_np = alt_pred.copy()
 
-        var_start, _, var_end = var_pos.get_bin_positions(self.bin_size, window_start)
+        var_start, _, var_end = var_pos.get_bin_positions(
+            self.bin_size, window_start, self.crop_length
+        )
 
         # Mask inverted region in both REF and ALT
         ref_np[var_start : var_end + 1] = np.nan
@@ -409,19 +423,23 @@ class PredictionAligner2D:
         target_size: Expected matrix dimension (NxN)
         bin_size: Number of base pairs per matrix bin (model-specific)
         diag_offset: Number of diagonal bins to mask (model-specific)
+        crop_length: Number of base pairs cropped from each edge by the model
 
     Example:
         >>> aligner = PredictionAligner2D(
         ...     target_size=448,
         ...     bin_size=2048,
-        ...     diag_offset=2
+        ...     diag_offset=2,
+        ...     crop_length=0
         ... )
         >>> ref_aligned, alt_aligned = aligner.align_predictions(
         ...     ref_matrix, alt_matrix, 'DEL', variant_position
         ... )
     """
 
-    def __init__(self, target_size: int, bin_size: int, diag_offset: int):
+    def __init__(
+        self, target_size: int, bin_size: int, diag_offset: int, crop_length: int
+    ):
         """
         Initialize the 2D prediction aligner.
 
@@ -429,10 +447,12 @@ class PredictionAligner2D:
             target_size: Matrix dimension (e.g., 448 for Akita)
             bin_size: Base pairs per bin (e.g., 2048 for Akita)
             diag_offset: Diagonal masking offset (e.g., 2 for Akita)
+            crop_length: Number of base pairs cropped from each edge by the model
         """
         self.target_size = target_size
         self.bin_size = bin_size
         self.diag_offset = diag_offset
+        self.crop_length = crop_length
 
     def align_predictions(
         self,
@@ -470,7 +490,9 @@ class PredictionAligner2D:
                 ref_pred, alt_pred, svtype_normalized, var_pos, window_start
             )
         elif svtype_normalized == "INV":
-            return self._align_inversion_matrices(ref_pred, alt_pred, var_pos, window_start)
+            return self._align_inversion_matrices(
+                ref_pred, alt_pred, var_pos, window_start
+            )
         elif svtype_normalized in ["SNV", "MNV"]:
             # SNVs don't change coordinates, direct alignment
             is_torch = TORCH_AVAILABLE and torch.is_tensor(ref_pred)
@@ -520,7 +542,7 @@ class PredictionAligner2D:
 
         # Get bin positions (window-relative, centered)
         ref_bin, alt_start_bin, alt_end_bin = var_pos.get_bin_positions(
-            self.bin_size, window_start
+            self.bin_size, window_start, self.crop_length
         )
         bins_to_add = alt_end_bin - alt_start_bin
 
@@ -616,7 +638,9 @@ class PredictionAligner2D:
             ref_np = ref_pred.copy()
             alt_np = alt_pred.copy()
 
-        var_start, _, var_end = var_pos.get_bin_positions(self.bin_size, window_start)
+        var_start, _, var_end = var_pos.get_bin_positions(
+            self.bin_size, window_start, self.crop_length
+        )
 
         # Mask inverted region in REF (cross-pattern: rows + columns)
         ref_np[var_start : var_end + 1, :] = np.nan
@@ -851,6 +875,7 @@ def align_predictions_by_coordinate(
     metadata_row: dict,
     bin_size: int,
     prediction_type: str,
+    crop_length: int,
     matrix_size: Optional[int] = None,
     diag_offset: int = 0,
 ) -> Tuple[Union[np.ndarray, "torch.Tensor"], Union[np.ndarray, "torch.Tensor"]]:
@@ -861,7 +886,7 @@ def align_predictions_by_coordinate(
     vectors (e.g., chromatin accessibility, TF binding) and 2D matrices (e.g., Hi-C contact maps),
     routing to the appropriate alignment strategy based on variant type.
 
-    IMPORTANT: Model-specific parameters (bin_size, matrix_size) must be explicitly
+    IMPORTANT: Model-specific parameters (bin_size, crop_length, matrix_size) must be explicitly
     provided by the user. There are no defaults because these vary across different models.
 
     Args:
@@ -873,10 +898,13 @@ def align_predictions_by_coordinate(
             - 'variant_pos0': Variant position (0-based, absolute genomic coordinate)
             - 'svlen': Length of structural variant (optional, for symbolic alleles)
         bin_size: Number of base pairs per prediction bin (REQUIRED, model-specific)
-            Examples: 2048 for Akita
+            Examples: 2048 for Akita, 128 for Enformer
         prediction_type: Type of predictions ("1D" or "2D")
             - "1D": Vector predictions (chromatin accessibility, TF binding, etc.)
             - "2D": Matrix predictions (Hi-C contact maps, Micro-C, etc.)
+        crop_length: Number of base pairs cropped from each edge by the model (REQUIRED)
+            This accounts for edge bases removed before prediction.
+            Examples: 0 for models without cropping
         matrix_size: Size of contact matrix (REQUIRED for 2D type)
             Examples: 448 for Akita
         diag_offset: Number of diagonal bins to mask (default: 0 for no masking)
@@ -898,7 +926,8 @@ def align_predictions_by_coordinate(
         ...     metadata_row={'variant_type': 'INS', 'window_start': 0,
         ...                   'variant_pos0': 500, 'svlen': 100},
         ...     bin_size=128,
-        ...     prediction_type="1D"
+        ...     prediction_type="1D",
+        ...     crop_length=0
         ... )
 
     Example (2D contact maps with diagonal masking):
@@ -909,6 +938,7 @@ def align_predictions_by_coordinate(
         ...                   'variant_pos0': 50000, 'svlen': -2048},
         ...     bin_size=2048,
         ...     prediction_type="2D",
+        ...     crop_length=0,
         ...     matrix_size=448,
         ...     diag_offset=2  # Optional: use 0 if no diagonal masking
         ... )
@@ -921,6 +951,7 @@ def align_predictions_by_coordinate(
         ...                   'variant_pos0': 1000, 'svlen': 500},
         ...     bin_size=1000,
         ...     prediction_type="2D",
+        ...     crop_length=0,
         ...     matrix_size=512
         ...     # diag_offset defaults to 0 (no masking)
         ... )
@@ -986,7 +1017,9 @@ def align_predictions_by_coordinate(
         # Handle multi-target predictions [n_targets, n_bins]
         if ndim > 1:
             target_size = ref_preds.shape[-1]  # Number of bins
-            aligner = PredictionAligner1D(target_size=target_size, bin_size=bin_size)
+            aligner = PredictionAligner1D(
+                target_size=target_size, bin_size=bin_size, crop_length=crop_length
+            )
 
             # Align each target separately
             n_targets = ref_preds.shape[0]
@@ -1014,7 +1047,9 @@ def align_predictions_by_coordinate(
         else:
             # Single target prediction [n_bins]
             target_size = len(ref_preds)
-            aligner = PredictionAligner1D(target_size=target_size, bin_size=bin_size)
+            aligner = PredictionAligner1D(
+                target_size=target_size, bin_size=bin_size, crop_length=crop_length
+            )
             return aligner.align_predictions(
                 ref_preds, alt_preds, variant_type, var_pos, window_start
             )
@@ -1038,7 +1073,10 @@ def align_predictions_by_coordinate(
 
             # Align matrices
             aligner = PredictionAligner2D(
-                target_size=matrix_size, bin_size=bin_size, diag_offset=diag_offset
+                target_size=matrix_size,
+                bin_size=bin_size,
+                diag_offset=diag_offset,
+                crop_length=crop_length,
             )
             aligned_ref_matrix, aligned_alt_matrix = aligner.align_predictions(
                 ref_matrix, alt_matrix, variant_type, var_pos, window_start
@@ -1056,7 +1094,10 @@ def align_predictions_by_coordinate(
         else:
             # Already 2D matrices
             aligner = PredictionAligner2D(
-                target_size=matrix_size, bin_size=bin_size, diag_offset=diag_offset
+                target_size=matrix_size,
+                bin_size=bin_size,
+                diag_offset=diag_offset,
+                crop_length=crop_length,
             )
             return aligner.align_predictions(
                 ref_preds, alt_preds, variant_type, var_pos, window_start

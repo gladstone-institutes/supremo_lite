@@ -23,13 +23,9 @@ class TestPAMINDELFormation:
     def test_real_deletion_chr1(self, test_reference):
         """Test with real deletion from del.vcf on chr1."""
         # chr1	17	.	CGAGAA	C
-        variants = pd.DataFrame([{
-            "chrom": "chr1",
-            "pos": 17,
-            "id": ".",
-            "ref": "CGAGAA",
-            "alt": "C"
-        }])
+        variants = pd.DataFrame(
+            [{"chrom": "chr1", "pos": 17, "id": ".", "ref": "CGAGAA", "alt": "C"}]
+        )
 
         gen = sl.get_pam_disrupting_alt_sequences(
             reference_fn=test_reference,
@@ -38,7 +34,7 @@ class TestPAMINDELFormation:
             max_pam_distance=20,
             pam_sequence="NGG",
             encode=False,
-            n_chunks=1
+            n_chunks=1,
         )
 
         # Verify deletion is processed correctly (generator returns tuples)
@@ -49,13 +45,9 @@ class TestPAMINDELFormation:
     def test_real_deletion_chr2(self, test_reference):
         """Test with real deletion from del.vcf on chr2."""
         # chr2	23	.	ATTAATTTA	A
-        variants = pd.DataFrame([{
-            "chrom": "chr2",
-            "pos": 23,
-            "id": ".",
-            "ref": "ATTAATTTA",
-            "alt": "A"
-        }])
+        variants = pd.DataFrame(
+            [{"chrom": "chr2", "pos": 23, "id": ".", "ref": "ATTAATTTA", "alt": "A"}]
+        )
 
         gen = sl.get_pam_disrupting_alt_sequences(
             reference_fn=test_reference,
@@ -64,7 +56,7 @@ class TestPAMINDELFormation:
             max_pam_distance=20,
             pam_sequence="NGG",
             encode=False,
-            n_chunks=1
+            n_chunks=1,
         )
 
         # Verify deletion is processed correctly
@@ -80,7 +72,7 @@ class TestPAMINDELFormation:
             max_pam_distance=20,
             pam_sequence="NGG",
             encode=False,
-            n_chunks=1
+            n_chunks=1,
         )
 
         # Should process all deletions from VCF
@@ -91,13 +83,9 @@ class TestPAMINDELFormation:
         """Test SNV disrupting a real PAM site on chr4."""
         # chr4 starts with AGGTGGAAAA - has AGG at 0-2, TGG at 3-5
         # Disrupt the AGG at position 2 (1-based)
-        variants = pd.DataFrame([{
-            "chrom": "chr4",
-            "pos": 2,
-            "id": ".",
-            "ref": "G",
-            "alt": "C"
-        }])
+        variants = pd.DataFrame(
+            [{"chrom": "chr4", "pos": 2, "id": ".", "ref": "G", "alt": "C"}]
+        )
 
         gen = sl.get_pam_disrupting_alt_sequences(
             reference_fn=test_reference,
@@ -106,7 +94,7 @@ class TestPAMINDELFormation:
             max_pam_distance=10,
             pam_sequence="NGG",
             encode=False,
-            n_chunks=1
+            n_chunks=1,
         )
 
         # Should find PAM disruption
@@ -124,7 +112,7 @@ class TestPAMINDELFormation:
             max_pam_distance=20,
             pam_sequence="NGG",
             encode=False,
-            n_chunks=1
+            n_chunks=1,
         )
 
         # Should process all SNVs from VCF
@@ -134,13 +122,9 @@ class TestPAMINDELFormation:
     def test_overlapping_pam_sites_chr2(self, test_reference):
         """Test handling of overlapping PAM sites on chr2."""
         # chr2 has CGG at 50 and GGG at 51 (overlapping)
-        variants = pd.DataFrame([{
-            "chrom": "chr2",
-            "pos": 52,
-            "id": ".",
-            "ref": "G",
-            "alt": "A"
-        }])
+        variants = pd.DataFrame(
+            [{"chrom": "chr2", "pos": 52, "id": ".", "ref": "G", "alt": "A"}]
+        )
 
         gen = sl.get_pam_disrupting_alt_sequences(
             reference_fn=test_reference,
@@ -149,7 +133,7 @@ class TestPAMINDELFormation:
             max_pam_distance=10,
             pam_sequence="NGG",
             encode=False,
-            n_chunks=1
+            n_chunks=1,
         )
 
         # Should detect disruption of overlapping PAMs
@@ -161,13 +145,17 @@ class TestPAMINDELFormation:
         import warnings
 
         # Use a real deletion with small window to trigger warning
-        variants = pd.DataFrame([{
-            "chrom": "chr1",
-            "pos": 17,
-            "id": ".",
-            "ref": "CGAGAA",  # 6 bp
-            "alt": "C"
-        }])
+        variants = pd.DataFrame(
+            [
+                {
+                    "chrom": "chr1",
+                    "pos": 17,
+                    "id": ".",
+                    "ref": "CGAGAA",  # 6 bp
+                    "alt": "C",
+                }
+            ]
+        )
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
@@ -179,17 +167,20 @@ class TestPAMINDELFormation:
                 max_pam_distance=5,
                 pam_sequence="NGG",
                 encode=False,
-                n_chunks=1
+                n_chunks=1,
             )
 
             # Consume generator to trigger warnings
             result_list = list(gen)
 
             # Check if extension warning was issued
-            extension_warnings = [warning for warning in w
-                                if "extends" in str(warning.message)]
+            extension_warnings = [
+                warning for warning in w if "extends" in str(warning.message)
+            ]
 
-            assert len(extension_warnings) >= 1, "Should warn about variant extending past window"
+            assert (
+                len(extension_warnings) >= 1
+            ), "Should warn about variant extending past window"
 
 
 if __name__ == "__main__":

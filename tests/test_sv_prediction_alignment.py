@@ -25,9 +25,10 @@ class TestInversionPredictionAlignment:
 
         # Model parameters
         # Note: Use larger seq_len for 2D models to get reasonable matrix size after binning/cropping
+        # Use crop_length=0 since test variants are positioned very close to chromosome start
         self.seq_len = 512
         self.bin_size = 32
-        self.crop_length = 64
+        self.crop_length = 0
 
         # Initialize 1D model
         self.model_1d = TestModel(
@@ -86,6 +87,7 @@ class TestInversionPredictionAlignment:
             var_metadata,
             bin_size=self.bin_size,
             prediction_type="1D",
+            crop_length=self.crop_length,
         )
 
         # For inversions, bins in the inverted region should be masked (NaN) in both REF and ALT
@@ -134,6 +136,7 @@ class TestInversionPredictionAlignment:
             var_metadata,
             bin_size=self.bin_size,
             prediction_type="2D",
+            crop_length=self.crop_length,
             matrix_size=self.matrix_size,
             diag_offset=self.diag_offset,
         )
@@ -202,9 +205,10 @@ class TestDuplicationPredictionAlignment:
 
         # Model parameters
         # Note: Use larger seq_len for 2D models to get reasonable matrix size after binning/cropping
+        # Use crop_length=0 since test variants are positioned very close to chromosome start
         self.seq_len = 512
         self.bin_size = 32
-        self.crop_length = 64
+        self.crop_length = 0
 
         # Initialize 1D model
         self.model_1d = TestModel(
@@ -263,6 +267,7 @@ class TestDuplicationPredictionAlignment:
             var_metadata,
             bin_size=self.bin_size,
             prediction_type="1D",
+            crop_length=self.crop_length,
         )
 
         # For duplications, alignment should handle length differences
@@ -311,6 +316,7 @@ class TestDuplicationPredictionAlignment:
             var_metadata,
             bin_size=self.bin_size,
             prediction_type="2D",
+            crop_length=self.crop_length,
             matrix_size=self.matrix_size,
             diag_offset=self.diag_offset,
         )
@@ -526,7 +532,12 @@ class TestEdgeCases:
         alt_preds = torch.tensor([])
 
         aligned_ref, aligned_alt = align_predictions_by_coordinate(
-            ref_preds, alt_preds, metadata, bin_size=32, prediction_type="1D"
+            ref_preds,
+            alt_preds,
+            metadata,
+            bin_size=32,
+            prediction_type="1D",
+            crop_length=0,
         )
 
         assert len(aligned_ref) == 0, "Empty input should produce empty output"
@@ -542,7 +553,12 @@ class TestEdgeCases:
         alt_preds = torch.tensor([0.7])
 
         aligned_ref, aligned_alt = align_predictions_by_coordinate(
-            ref_preds, alt_preds, metadata, bin_size=32, prediction_type="1D"
+            ref_preds,
+            alt_preds,
+            metadata,
+            bin_size=32,
+            prediction_type="1D",
+            crop_length=0,
         )
 
         assert len(aligned_ref) == 1, "Single bin should remain single bin"

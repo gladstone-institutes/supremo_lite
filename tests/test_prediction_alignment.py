@@ -67,6 +67,7 @@ class TestBasic1DPredictionAlignment:
             var_metadata,
             bin_size=self.bin_size,
             prediction_type="1D",
+            crop_length=self.crop_length,
         )
 
         # For SNV, lengths should be identical
@@ -114,6 +115,7 @@ class TestBasic1DPredictionAlignment:
             var_metadata,
             bin_size=self.bin_size,
             prediction_type="1D",
+            crop_length=self.crop_length,
         )
 
         # After alignment, should have same length
@@ -162,6 +164,7 @@ class TestBasic1DPredictionAlignment:
             var_metadata,
             bin_size=self.bin_size,
             prediction_type="1D",
+            crop_length=self.crop_length,
         )
 
         # After alignment, should have same length
@@ -236,6 +239,7 @@ class TestBasic2DPredictionAlignment:
             var_metadata,
             bin_size=self.bin_size,
             prediction_type="2D",
+            crop_length=self.crop_length,
             matrix_size=self.matrix_size,
             diag_offset=self.diag_offset,
         )
@@ -291,6 +295,7 @@ class TestBasic2DPredictionAlignment:
             var_metadata,
             bin_size=self.bin_size,
             prediction_type="2D",
+            crop_length=self.crop_length,
             matrix_size=self.matrix_size,
             diag_offset=self.diag_offset,
         )
@@ -347,6 +352,7 @@ class TestBasic2DPredictionAlignment:
             var_metadata,
             bin_size=self.bin_size,
             prediction_type="2D",
+            crop_length=self.crop_length,
             matrix_size=self.matrix_size,
             diag_offset=self.diag_offset,
         )
@@ -425,7 +431,7 @@ class TestCenteredMasking:
         var_metadata = metadata.iloc[var_idx].to_dict()
 
         # Verify this is the deletion we expect
-        assert var_metadata['variant_type'] == 'DEL', "Expected DEL variant at index 2"
+        assert var_metadata["variant_type"] == "DEL", "Expected DEL variant at index 2"
 
         # Align predictions
         aligned_ref, aligned_alt = align_predictions_by_coordinate(
@@ -434,6 +440,7 @@ class TestCenteredMasking:
             var_metadata,
             bin_size=self.bin_size,
             prediction_type="1D",
+            crop_length=self.crop_length,
         )
 
         # Find NaN positions (should be in the alternate, as deletion removes sequence)
@@ -449,7 +456,9 @@ class TestCenteredMasking:
             # Variant is at position 10 in window starting at 0
             # After crop (2bp from each side), position 10 becomes position 8 in cropped sequence
             # Bin index: 8 / 2 = 4
-            variant_rel_pos = var_metadata['variant_pos0'] - var_metadata['window_start']
+            variant_rel_pos = (
+                var_metadata["variant_pos0"] - var_metadata["window_start"]
+            )
             variant_rel_pos_cropped = variant_rel_pos - self.crop_length
             expected_variant_bin = variant_rel_pos_cropped / self.bin_size
 
@@ -464,9 +473,13 @@ class TestCenteredMasking:
                 f"  Variant pos: {var_metadata['variant_pos0']}, window_start: {var_metadata['window_start']}"
             )
 
-            print(f"✓ Deletion masking centered on variant: NaN bins {nan_positions[0]}-{nan_positions[-1]}, "
-                  f"center={nan_center:.2f}, expected_variant_bin={expected_variant_bin:.2f}")
-            print(f"  Variant at position {var_metadata['variant_pos0']} in window starting at {var_metadata['window_start']}")
+            print(
+                f"✓ Deletion masking centered on variant: NaN bins {nan_positions[0]}-{nan_positions[-1]}, "
+                f"center={nan_center:.2f}, expected_variant_bin={expected_variant_bin:.2f}"
+            )
+            print(
+                f"  Variant at position {var_metadata['variant_pos0']} in window starting at {var_metadata['window_start']}"
+            )
         else:
             # If no NaN, fail - we expect NaN for this deletion
             pytest.fail("Expected NaN masking for deletion variant")
@@ -490,18 +503,18 @@ class TestCenteredMasking:
             ref_pos=variant_pos,
             alt_pos=variant_pos,
             svlen=64,  # 2 bins worth
-            variant_type="INS"
+            variant_type="INS",
         )
 
         # Get bin positions with window_start
         ref_bin, alt_start_bin, alt_end_bin = var_pos.get_bin_positions(
-            bin_size, window_start
+            bin_size, window_start, crop_length=0
         )
 
         # The variant is 100bp from window start
         # Expected bin (centered): ceil(100/32) = 4 (center of variant)
         # With 64bp insertion (2 bins), centered masking should place bins around position 4
-        expected_center_bin = (100 / bin_size)  # ~3.125
+        expected_center_bin = 100 / bin_size  # ~3.125
 
         # Calculate actual center of masked region
         actual_center = (alt_start_bin + alt_end_bin) / 2.0
@@ -519,8 +532,114 @@ class TestCenteredMasking:
             f"Expected center ~{expected_center_bin:.2f}, got {actual_center:.2f}"
         )
 
-        print(f"✓ Window-relative positioning correct: ref_bin={ref_bin}, "
-              f"masked region center={actual_center:.2f}")
+        print(
+            f"✓ Window-relative positioning correct: ref_bin={ref_bin}, "
+            f"masked region center={actual_center:.2f}"
+        )
+
+
+class TestCropLengthHandling:
+    """Test that crop_length is correctly accounted for in bin position calculations."""
+
+    def test_get_bin_positions_with_crop_length(self):
+        """Test VariantPosition.get_bin_positions() correctly accounts for crop_length.
+
+        This test verifies the bug fix described in BUG_REPORT_crop_length.md.
+        Without accounting for crop_length, bins are shifted by crop_length/bin_size positions.
+        """
+        from supremo_lite.prediction_alignment import VariantPosition
+
+        # Use the exact example from the bug report
+        var_pos = VariantPosition(
+            ref_pos=138777,  # 0-based genomic position
+            alt_pos=138777,
+            svlen=-3,
+            variant_type="DEL",
+        )
+
+        window_start = 138677
+        bin_size = 20
+        crop_length = 20
+
+        # With crop_length (correct behavior)
+        ref_bin_with_crop, _, _ = var_pos.get_bin_positions(
+            bin_size=bin_size, window_start=window_start, crop_length=crop_length
+        )
+
+        # Expected calculation:
+        # rel_pos = 138777 - 138677 = 100
+        # rel_pos_after_crop = 100 - 20 = 80
+        # bin_center = 80 // 20 = 4
+        expected_bin = 4
+
+        assert ref_bin_with_crop == expected_bin, (
+            f"crop_length not correctly accounted for. "
+            f"Expected bin {expected_bin}, got {ref_bin_with_crop}. "
+            f"This indicates the bug is not fixed!"
+        )
+
+        print(
+            f"✓ crop_length correctly accounted for: bin={ref_bin_with_crop} (expected {expected_bin})"
+        )
+
+    def test_floor_division_vs_ceiling(self):
+        """Test that floor division is used instead of ceiling for bin calculation.
+
+        This tests the secondary bug fix: using floor division instead of np.ceil.
+        """
+        from supremo_lite.prediction_alignment import VariantPosition
+
+        # Position at end of bin should stay in that bin (not move to next)
+        var_pos = VariantPosition(
+            ref_pos=99,  # Position 99 with bin_size=2 should map to bin 49, not 50
+            alt_pos=99,
+            svlen=0,
+            variant_type="SNV",
+        )
+
+        bin_size = 2
+        window_start = 0
+        crop_length = 0
+
+        ref_bin, _, _ = var_pos.get_bin_positions(
+            bin_size=bin_size, window_start=window_start, crop_length=crop_length
+        )
+
+        # With floor division: 99 // 2 = 49 ✓
+        # With ceiling: ceil(99/2) = ceil(49.5) = 50 ✗
+        expected_bin = 49
+
+        assert ref_bin == expected_bin, (
+            f"Floor division not used correctly. "
+            f"Expected bin {expected_bin}, got {ref_bin}. "
+            f"This indicates ceiling division is still being used!"
+        )
+
+        print(
+            f"✓ Floor division correctly used: bin={ref_bin} (expected {expected_bin})"
+        )
+
+    def test_crop_length_zero_backward_compatibility(self):
+        """Test that crop_length=0 works correctly (backward compatibility scenario)."""
+        from supremo_lite.prediction_alignment import VariantPosition
+
+        var_pos = VariantPosition(
+            ref_pos=100, alt_pos=100, svlen=-10, variant_type="DEL"
+        )
+
+        # With crop_length=0, should behave like original (but with floor division)
+        ref_bin, _, _ = var_pos.get_bin_positions(
+            bin_size=20, window_start=0, crop_length=0
+        )
+
+        # 100 // 20 = 5
+        expected_bin = 5
+
+        assert (
+            ref_bin == expected_bin
+        ), f"crop_length=0 case not working. Expected bin {expected_bin}, got {ref_bin}"
+
+        print(f"✓ crop_length=0 works correctly: bin={ref_bin}")
 
 
 if __name__ == "__main__":

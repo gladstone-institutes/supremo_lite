@@ -42,7 +42,7 @@ IUPAC_CODES = {
     "D": "[AGT]",
     "H": "[ACT]",
     "V": "[ACG]",
-    "N": "[ACGT]"
+    "N": "[ACGT]",
 }
 
 
@@ -2811,6 +2811,7 @@ def get_pam_disrupting_alt_sequences(
         ...     ref, vcf, seq_len=50, max_pam_distance=10, n_chunks=5):
         ...     predictions = model.predict(alt_seqs, ref_seqs)
     """
+
     # Helper function to find PAM sites in a sequence
     def _find_pam_sites(sequence, pam_pattern):
         """Find all PAM site positions in a sequence using IUPAC codes.
@@ -2830,7 +2831,7 @@ def get_pam_disrupting_alt_sequences(
                 pat_base = pat_upper[j]
 
                 # Sequence 'N' (padding or unknown) matches any pattern base
-                if seq_base == 'N':
+                if seq_base == "N":
                     continue  # Always matches
 
                 # Get allowed bases for this pattern position
@@ -3003,9 +3004,7 @@ def get_pam_disrupting_alt_sequences(
         ref_allele = var.get("ref", "")
         alt_allele = var.get("alt", "")
         is_indel = (
-            len(ref_allele) != len(alt_allele)
-            or ref_allele == "-"
-            or alt_allele == "-"
+            len(ref_allele) != len(alt_allele) or ref_allele == "-" or alt_allele == "-"
         )
 
         truly_disrupted_pam_sites = []
@@ -3053,8 +3052,12 @@ def get_pam_disrupting_alt_sequences(
         # For each disrupted PAM site, create a metadata entry
         for pam_site_pos in truly_disrupted_pam_sites:
             # Extract PAM sequences
-            ref_pam_seq = ref_window_seq[pam_site_pos : pam_site_pos + len(pam_sequence)]
-            alt_pam_seq = modified_window[pam_site_pos : pam_site_pos + len(pam_sequence)]
+            ref_pam_seq = ref_window_seq[
+                pam_site_pos : pam_site_pos + len(pam_sequence)
+            ]
+            alt_pam_seq = modified_window[
+                pam_site_pos : pam_site_pos + len(pam_sequence)
+            ]
 
             # Calculate distance from variant to PAM
             pam_distance = abs(pam_site_pos - variant_pos_in_window)
@@ -3063,12 +3066,14 @@ def get_pam_disrupting_alt_sequences(
             pam_disrupting_variants_list.append(var)
 
             # Store PAM-specific metadata
-            pam_metadata_list.append({
-                'pam_site_pos': pam_site_pos,
-                'pam_ref_sequence': ref_pam_seq,
-                'pam_alt_sequence': alt_pam_seq,
-                'pam_distance': pam_distance
-            })
+            pam_metadata_list.append(
+                {
+                    "pam_site_pos": pam_site_pos,
+                    "pam_ref_sequence": ref_pam_seq,
+                    "pam_alt_sequence": alt_pam_seq,
+                    "pam_distance": pam_distance,
+                }
+            )
 
     # If no PAM-disrupting variants found, yield empty results
     if not pam_disrupting_variants_list:
@@ -3076,7 +3081,9 @@ def get_pam_disrupting_alt_sequences(
         return
 
     # Create DataFrame with filtered PAM-disrupting variants
-    filtered_variants_df = pd.DataFrame(pam_disrupting_variants_list).reset_index(drop=True)
+    filtered_variants_df = pd.DataFrame(pam_disrupting_variants_list).reset_index(
+        drop=True
+    )
     pam_metadata_df = pd.DataFrame(pam_metadata_list)
 
     # Call get_alt_ref_sequences with the filtered variants
@@ -3087,12 +3094,13 @@ def get_pam_disrupting_alt_sequences(
         encode,
         n_chunks,
         encoder,
-        auto_map_chromosomes
+        auto_map_chromosomes,
     ):
         # Merge PAM-specific metadata with base metadata
         # Both should have the same number of rows since we created one entry per PAM site
-        enriched_metadata = pd.concat([base_metadata.reset_index(drop=True),
-                                       pam_metadata_df], axis=1)
+        enriched_metadata = pd.concat(
+            [base_metadata.reset_index(drop=True), pam_metadata_df], axis=1
+        )
 
         # Yield the chunk with enriched metadata
         yield (alt_seqs, ref_seqs, enriched_metadata)
