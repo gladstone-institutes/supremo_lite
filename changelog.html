@@ -1,0 +1,336 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Changelog &mdash; supremo_lite  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=fd3f3429" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Contributing" href="contributing.html" />
+    <link rel="prev" title="supremo_lite.variant_utils" href="autoapi/supremo_lite/variant_utils/index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            supremo_lite
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/personalization.html">Personalized Genome Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/variant_centered_sequences.html">Variant-Centered Sequence Windows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/pam_disruption.html">PAM Disruption Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/prediction_alignment.html">Prediction Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/prediction_alignment_examples.html">Prediction Alignment Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/prediction_alignment_examples.html#variant-type-examples">Variant Type Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/mutagenesis.html">Saturation Mutagenesis</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Notebooks</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="notebooks/01_getting_started.html">Getting Started with supremo_lite</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebooks/02_personalized_genomes.html">Personalized Genome Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebooks/03_prediction_alignment.html">Prediction Alignment: From Sequences to Aligned Predictions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebooks/04_pam_disruption.html">PAM Disruption Analysis: Identifying CRISPR-Resistant Variants</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="autoapi/index.html">API Reference</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Changelog</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#v0-5-5-11-18-2025">v0.5.5 (11/18/2025)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#critical-bug-fixes">Critical Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#breaking-changes">Breaking Changes</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#v0-5-4-10-24-2025">v0.5.4 (10/24/2025)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id1">Critical Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#major-features">Major Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">Breaking Changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#documentation">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#code-quality">Code Quality</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#v0-5-3-10-17-2025">v0.5.3 (10/17/2025)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id3">Major Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#improvements">Improvements</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#v0-5-2-08-19-2025">v0.5.2 (08/19/2025)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#v0-5-1-08-19-2025">v0.5.1 (08/19/2025)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#v0-5-0-07-21-2025">v0.5.0 (07/21/2025)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#v0-4-0-06-14-2025">v0.4.0 (06/14/2025)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#v0-1-0-01-05-2025">v0.1.0 (01/05/2025)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="conduct.html">Code of Conduct</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">supremo_lite</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Changelog</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/changelog.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="changelog">
+<h1>Changelog<a class="headerlink" href="#changelog" title="Link to this heading"></a></h1>
+<section id="v0-5-5-11-18-2025">
+<h2>v0.5.5 (11/18/2025)<a class="headerlink" href="#v0-5-5-11-18-2025" title="Link to this heading"></a></h2>
+<section id="critical-bug-fixes">
+<h3>Critical Bug Fixes<a class="headerlink" href="#critical-bug-fixes" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Prediction Alignment <code class="docutils literal notranslate"><span class="pre">crop_length</span></code> Handling</strong> <strong>CRITICAL BUG FIX</strong></p>
+<ul>
+<li><p><strong>Impact</strong>: Previous versions of prediction alignment functions did NOT account for <code class="docutils literal notranslate"><span class="pre">crop_length</span></code> (edge bases removed by models before prediction). This caused masked bins to be shifted by <code class="docutils literal notranslate"><span class="pre">crop_length</span> <span class="pre">/</span> <span class="pre">bin_size</span></code> bins away from the true variant position. Additionally the bin location was not being calculated correctly.</p></li>
+<li><p><strong>⚠️ WARNING</strong>: Do NOT use prediction alignment functions (<code class="docutils literal notranslate"><span class="pre">align_predictions_by_coordinate</span></code>, <code class="docutils literal notranslate"><span class="pre">PredictionAligner1D</span></code>, <code class="docutils literal notranslate"><span class="pre">PredictionAligner2D</span></code>) from versions prior to v0.5.5. Results will have incorrect bin masking positions.</p></li>
+<li><p><strong>Fix</strong>: <code class="docutils literal notranslate"><span class="pre">crop_length</span></code> is now properly subtracted before correctly calculating bin positions, ensuring variants are masked at the correct genomic coordinates</p></li>
+<li><p><strong>Additional Fix</strong>: Changed from ceiling division to floor division for correct bin index calculation</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="breaking-changes">
+<h3>Breaking Changes<a class="headerlink" href="#breaking-changes" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">crop_length</span></code> Parameter Now Required</strong>: The <code class="docutils literal notranslate"><span class="pre">crop_length</span></code> parameter is now required (no default value) in:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">align_predictions_by_coordinate()</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PredictionAligner1D.__init__()</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PredictionAligner2D.__init__()</span></code></p></li>
+<li><p>This breaking change prevents silent errors from using incorrect default values</p></li>
+</ul>
+</li>
+</ul>
+</section>
+</section>
+<section id="v0-5-4-10-24-2025">
+<h2>v0.5.4 (10/24/2025)<a class="headerlink" href="#v0-5-4-10-24-2025" title="Link to this heading"></a></h2>
+<section id="id1">
+<h3>Critical Bug Fixes<a class="headerlink" href="#id1" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>**<code class="docutils literal notranslate"><span class="pre">get_alt_sequences()</span></code> **: Fixed critical bug where ALL variants were being applied together instead of individually</p>
+<ul>
+<li><p><strong>Impact</strong>: Previously, each window contained effects from ALL variants in the chunk/chromosome, not just the single variant it was centered on. This will only effect pervious results where there are varaints clos enough to each other in the VCF that they end up in the same window.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="major-features">
+<h3>Major Features<a class="headerlink" href="#major-features" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>PAM Disruption INDEL Detection</strong>: Enhanced <code class="docutils literal notranslate"><span class="pre">get_pam_disrupting_alt_sequences</span></code> (renamed from <code class="docutils literal notranslate"><span class="pre">get_pam_disrupting_personal_sequences</span></code>) to correctly detect when INDELs create new PAM sites</p>
+<ul>
+<li><p><strong>Key Enhancement</strong>: Variants that create new PAMs or shift existing PAMs are now correctly identified as NOT disrupting (PAM remains functional)</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="id2">
+<h3>Breaking Changes<a class="headerlink" href="#id2" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Function Renamed</strong>: <code class="docutils literal notranslate"><span class="pre">get_pam_disrupting_personal_sequences</span></code> → <code class="docutils literal notranslate"><span class="pre">get_pam_disrupting_alt_sequences</span></code> for consistency with naming conventions (<code class="docutils literal notranslate"><span class="pre">get_alt_sequences</span></code>, <code class="docutils literal notranslate"><span class="pre">get_alt_ref_sequences</span></code>)</p></li>
+<li><p><strong>Shape of encoded sequences</strong>: Encoded DNA sequences now have the shape (4, L) for a single sequence or (N, 4, L) for a list, where L is the sequence length and N is the number of sequences.</p></li>
+</ul>
+</section>
+<section id="documentation">
+<h3>Documentation<a class="headerlink" href="#documentation" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Variant Classification Flowchart</strong>: Added variant classification flowchart (SVG and PNG) showing the decision tree for automatic variant type detection</p></li>
+<li><p><strong>Updated Notebooks</strong>: Updated all tutorial notebook</p></li>
+<li><p><strong>Documentation Cleanup</strong>: Removed deprecated notebooks</p></li>
+<li><p><strong>New User Guide</strong>: Added <a class="reference internal" href="#docs/user_guide/pam_disruption.md"><span class="xref myst">PAM Disruption Analysis</span></a> guide with INDEL detection examples</p></li>
+<li><p><strong>Updated References</strong>: Updated all documentation and examples to use new function name</p></li>
+</ul>
+</section>
+<section id="code-quality">
+<h3>Code Quality<a class="headerlink" href="#code-quality" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Test Improvements</strong>: Enhanced test coverage for contact map alignment and prediction alignment edge cases</p></li>
+<li><p><strong>Single-Variant Isolation Tests</strong>: Added tests to verify each variant window contains only its specific variant</p></li>
+<li><p><strong>INDEL PAM Formation Tests</strong>: Added new test suite (<code class="docutils literal notranslate"><span class="pre">test_pam_indel_formation.py</span></code>) with 8 tests covering deletion/insertion PAM creation scenarios</p></li>
+<li><p><strong>Mock Model Refinements</strong>: Improved TestModel2D implementation for better matrix handling</p></li>
+<li><p><strong>Bug Fixes</strong>: Fixed minor issues in prediction alignment for edge cases</p></li>
+</ul>
+</section>
+</section>
+<section id="v0-5-3-10-17-2025">
+<h2>v0.5.3 (10/17/2025)<a class="headerlink" href="#v0-5-3-10-17-2025" title="Link to this heading"></a></h2>
+<section id="id3">
+<h3>Major Features<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>BND Variant Support</strong>: Complete support for breakend (BND) translocations and complex structural variants</p>
+<ul>
+<li><p>Multi-phase variant processing with coordinate tracking</p></li>
+<li><p>Automatic BND classification to detect duplications and inversions</p></li>
+<li><p>Proper handling of inter-chromosomal and intra-chromosomal breakends</p></li>
+<li><p>Chimeric reference sequence creation for translocations</p></li>
+</ul>
+</li>
+<li><p><strong>Prediction Alignment System</strong>: New <code class="docutils literal notranslate"><span class="pre">align_predictions_by_coordinate()</span></code> function</p>
+<ul>
+<li><p>Aligns reference and alternate predictions accounting for coordinate changes from variants</p></li>
+<li><p>Supports 1D and 2D predictions</p></li>
+<li><p>Handles all variant types: SNV, INS, DEL, DUP, INV, BND</p></li>
+<li><p>Cross-pattern masking for 2D inversions</p></li>
+</ul>
+</li>
+<li><p><strong>Mock Models for Testing</strong>: Added TestModel and TestModel2D</p>
+<ul>
+<li><p>PyTorch-based mock genomic models for testing workflows</p></li>
+<li><p>Configurable binning and cropping</p></li>
+<li><p>Complete documentation and examples in notebooks</p></li>
+</ul>
+</li>
+<li><p><strong>Brisket Integration</strong>: Optional fast one-hot encoding</p>
+<ul>
+<li><p>10x faster sequence encoding when brisket is installed</p></li>
+<li><p>Automatic fallback to numpy implementation</p></li>
+<li><p>Install with: <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">supremo_lite[fast]</span></code></p></li>
+</ul>
+</li>
+<li><p><strong>Custom Encoder Support</strong>: All sequence generation functions now accept custom encoder functions</p>
+<ul>
+<li><p>Allows integration with specialized encoding schemes</p></li>
+<li><p>Backward compatible with default one-hot encoding</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="improvements">
+<h3>Improvements<a class="headerlink" href="#improvements" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Enhanced Variant Classification</strong>: Automatic structural variant type detection from VCF INFO fields</p></li>
+<li><p><strong>Chromosome Ordering</strong>: Output sequences now maintain reference genome chromosome order</p></li>
+<li><p><strong>Metadata Tracking</strong>: Enhanced metadata for BND variants including mate positions and orientations</p></li>
+<li><p><strong>SVLEN Extraction</strong>: Automatic extraction of structural variant length from VCF INFO field</p></li>
+</ul>
+</section>
+</section>
+<section id="v0-5-2-08-19-2025">
+<h2>v0.5.2 (08/19/2025)<a class="headerlink" href="#v0-5-2-08-19-2025" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Minimum dependency versions established</strong>: Set minimum supported versions for all dependencies</p>
+<ul>
+<li><p>Python: <code class="docutils literal notranslate"><span class="pre">^3.8</span></code></p></li>
+<li><p>torch: <code class="docutils literal notranslate"><span class="pre">&gt;=1.13.0</span></code></p></li>
+<li><p>pandas: <code class="docutils literal notranslate"><span class="pre">&gt;=1.5.0</span></code></p></li>
+<li><p>pyfaidx: <code class="docutils literal notranslate"><span class="pre">&gt;=0.7.0</span></code></p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="v0-5-1-08-19-2025">
+<h2>v0.5.1 (08/19/2025)<a class="headerlink" href="#v0-5-1-08-19-2025" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Fixed VCF position column handling</strong>: All VCF reading functions now consistently treat the second column as <code class="docutils literal notranslate"><span class="pre">pos1</span></code> regardless of header name</p></li>
+<li><p><strong>Added numeric validation</strong>: Position columns are now validated to be numeric, throwing clear error messages for invalid data types</p></li>
+<li><p><strong>Simplified DataFrame input</strong>: Removed complex column name handling logic in favor of consistent <code class="docutils literal notranslate"><span class="pre">pos1</span></code> column naming</p></li>
+<li><p><strong>Updated tests</strong>: All test cases now use standardized <code class="docutils literal notranslate"><span class="pre">pos1</span></code> column names for consistency</p></li>
+<li><p>Addressed issues #5, #6, #7, #8</p></li>
+</ul>
+</section>
+<section id="v0-5-0-07-21-2025">
+<h2>v0.5.0 (07/21/2025)<a class="headerlink" href="#v0-5-0-07-21-2025" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Chromosome Name Matching</strong>: Added intelligent heuristics to handle chromosome name mismatches between FASTA and VCF files (e.g., <code class="docutils literal notranslate"><span class="pre">chr1</span></code> ↔ <code class="docutils literal notranslate"><span class="pre">1</span></code>, <code class="docutils literal notranslate"><span class="pre">chrM</span></code> ↔ <code class="docutils literal notranslate"><span class="pre">MT</span></code>)</p></li>
+<li><p><strong>Chunked VCF Processing</strong>: Implemented memory-efficient chunked processing for large VCF files with <code class="docutils literal notranslate"><span class="pre">chunk_size</span></code> parameter across all VCF-processing functions</p></li>
+<li><p><strong>Enhanced API</strong>: All functions now support <code class="docutils literal notranslate"><span class="pre">chunk_size=1</span></code> parameter for backward compatibility and memory efficiency</p></li>
+<li><p><strong>Comprehensive PAM Disruption Testing</strong>: Added extensive test suite for PAM disruption functionality covering multiple scenarios and edge cases</p></li>
+<li><p><strong>Enhanced Error Handling</strong>: Improved chromosome matching with detailed reporting and warnings for unmatched chromosomes</p></li>
+<li><p><strong>Updated Documentation</strong>: Comprehensive README with GitHub installation instructions, new features, and performance tips</p></li>
+<li><p><strong>Test Coverage</strong>: Added 67 tests with 87% code coverage including chunked processing and chromosome matching scenarios</p></li>
+</ul>
+</section>
+<section id="v0-4-0-06-14-2025">
+<h2>v0.4.0 (06/14/2025)<a class="headerlink" href="#v0-4-0-06-14-2025" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Ovelapping indels are handled according to the same strategy as bcftools consensus. After an indel is applied that position is frozen and no other variants can be applied to the same region.</p></li>
+<li><p>Test cases for variant application</p></li>
+</ul>
+</section>
+<section id="v0-1-0-01-05-2025">
+<h2>v0.1.0 (01/05/2025)<a class="headerlink" href="#v0-1-0-01-05-2025" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>First release of <code class="docutils literal notranslate"><span class="pre">supremo_lite</span></code>!</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="autoapi/supremo_lite/variant_utils/index.html" class="btn btn-neutral float-left" title="supremo_lite.variant_utils" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="contributing.html" class="btn btn-neutral float-right" title="Contributing" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Gladstone Institutes.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

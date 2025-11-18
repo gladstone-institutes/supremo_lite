@@ -1,0 +1,542 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Getting Started with supremo_lite &mdash; supremo_lite  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=fd3f3429" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Personalized Genome Generation" href="02_personalized_genomes.html" />
+    <link rel="prev" title="Saturation Mutagenesis" href="../user_guide/mutagenesis.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            supremo_lite
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/personalization.html">Personalized Genome Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/variant_centered_sequences.html">Variant-Centered Sequence Windows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/pam_disruption.html">PAM Disruption Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/prediction_alignment.html">Prediction Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/prediction_alignment_examples.html">Prediction Alignment Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/prediction_alignment_examples.html#variant-type-examples">Variant Type Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/mutagenesis.html">Saturation Mutagenesis</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Notebooks</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Getting Started with supremo_lite</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#what-is-supremo-lite">What is supremo_lite?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#basic-imports">Basic Imports</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#dna-sequence-encoding">DNA Sequence Encoding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#loading-test-data">Loading Test Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#reading-vcf-files">Reading VCF Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#basic-usage-creating-a-personalized-genome">Basic Usage: Creating a Personalized Genome</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#getting-raw-sequence-strings">Getting Raw Sequence Strings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#generating-variant-centered-windows">Generating Variant-Centered Windows</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sequence-utilities">Sequence Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#working-with-encoded-sequences">Working with Encoded Sequences</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#next-steps">Next Steps</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="02_personalized_genomes.html">Personalized Genome Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="03_prediction_alignment.html">Prediction Alignment: From Sequences to Aligned Predictions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="04_pam_disruption.html">PAM Disruption Analysis: Identifying CRISPR-Resistant Variants</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../autoapi/index.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../conduct.html">Code of Conduct</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">supremo_lite</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Getting Started with supremo_lite</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/notebooks/01_getting_started.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="getting-started-with-supremo-lite">
+<h1>Getting Started with supremo_lite<a class="headerlink" href="#getting-started-with-supremo-lite" title="Link to this heading"></a></h1>
+<p>Introduction to core functionality for generating personalized genome sequences and variant-centered windows.</p>
+<section id="what-is-supremo-lite">
+<h2>What is supremo_lite?<a class="headerlink" href="#what-is-supremo-lite" title="Link to this heading"></a></h2>
+<p>supremo_lite is a lightweight Python package for:</p>
+<ul class="simple">
+<li><p>Generating personalized genome sequences from reference genomes and variant files</p></li>
+<li><p>Creating variant-centered sequence windows for model predictions</p></li>
+<li><p>Performing in-silico saturation mutagenesis</p></li>
+<li><p>Aligning predictions across reference and variant sequences</p></li>
+</ul>
+<p>Designed to be memory-efficient and model-agnostic, supporting both PyTorch tensors and NumPy arrays.</p>
+</section>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h2>
+<p>If you haven’t already installed supremo_lite:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>supremo-lite
+</pre></div>
+</div>
+</section>
+<section id="basic-imports">
+<h2>Basic Imports<a class="headerlink" href="#basic-imports" title="Link to this heading"></a></h2>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">supremo_lite</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sl</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyfaidx</span><span class="w"> </span><span class="kn">import</span> <span class="n">Fasta</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;supremo_lite version: </span><span class="si">{</span><span class="n">sl</span><span class="o">.</span><span class="n">__version__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="c1">## Optional packages:</span>
+
+<span class="c1"># Check PyTorch availability</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;PyTorch available: </span><span class="si">{</span><span class="n">sl</span><span class="o">.</span><span class="n">TORCH_AVAILABLE</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="c1"># Check brisket availability (faster 1h encoding)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;brisket available: </span><span class="si">{</span><span class="n">sl</span><span class="o">.</span><span class="n">BRISKET_AVAILABLE</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>supremo_lite version: 0.5.5
+PyTorch available: True
+brisket available: True
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="dna-sequence-encoding">
+<h2>DNA Sequence Encoding<a class="headerlink" href="#dna-sequence-encoding" title="Link to this heading"></a></h2>
+<p>supremo_lite uses one-hot encoding: A=[1,0,0,0], C=[0,1,0,0], G=[0,0,1,0], T=[0,0,0,1].</p>
+<p>Functions automatically return PyTorch tensors when available, otherwise NumPy arrays.</p>
+</section>
+<section id="loading-test-data">
+<h2>Loading Test Data<a class="headerlink" href="#loading-test-data" title="Link to this heading"></a></h2>
+<p>For this tutorial, we’ll use small test data included with the package. This allows for quick demonstrations without requiring large genomic datasets.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+
+<span class="c1"># Find the test data directory</span>
+<span class="c1"># Assuming we&#39;re in the package directory structure</span>
+<span class="n">test_data_dir</span> <span class="o">=</span> <span class="s2">&quot;../../tests/data&quot;</span>
+
+<span class="c1"># Load reference genome</span>
+<span class="n">reference_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">test_data_dir</span><span class="p">,</span> <span class="s2">&quot;test_genome.fa&quot;</span><span class="p">)</span>
+<span class="n">reference</span> <span class="o">=</span> <span class="n">Fasta</span><span class="p">(</span><span class="n">reference_path</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Reference genome chromosomes:&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">chrom</span> <span class="ow">in</span> <span class="n">reference</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+    <span class="n">seq_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">reference</span><span class="p">[</span><span class="n">chrom</span><span class="p">])</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">chrom</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">seq_len</span><span class="si">}</span><span class="s2"> bp&quot;</span><span class="p">)</span>
+
+<span class="c1"># Show first 80 bp of chr1</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">chr1 sequence (first 80 bp):&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">reference</span><span class="p">[</span><span class="s2">&quot;chr1&quot;</span><span class="p">][:</span><span class="mi">80</span><span class="p">]</span><span class="o">.</span><span class="n">seq</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Reference genome chromosomes:
+  chr1: 80 bp
+  chr2: 80 bp
+  chr3: 80 bp
+  chr4: 80 bp
+  chr5: 80 bp
+  chr6: 80 bp
+
+chr1 sequence (first 80 bp):
+ATGAATATAATATTTTCGAGAATTACTCCTTTTGGAAATGGAACATTATGCGTTTTAAGAGTTTCTGGTAACAATATATT
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="reading-vcf-files">
+<h2>Reading VCF Files<a class="headerlink" href="#reading-vcf-files" title="Link to this heading"></a></h2>
+<p>supremo_lite provides utilities to read VCF (Variant Call Format) files:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Load SNP variants</span>
+<span class="n">snp_vcf_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">test_data_dir</span><span class="p">,</span> <span class="s2">&quot;snp&quot;</span><span class="p">,</span> <span class="s2">&quot;snp.vcf&quot;</span><span class="p">)</span>
+<span class="n">snp_variants</span> <span class="o">=</span> <span class="n">sl</span><span class="o">.</span><span class="n">read_vcf</span><span class="p">(</span><span class="n">snp_vcf_path</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;SNP variants:&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">snp_variants</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Loaded </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">snp_variants</span><span class="p">)</span><span class="si">}</span><span class="s2"> SNP variant(s)&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>SNP variants:
+  chrom  pos1 id ref alt    info  vcf_line variant_type
+0  chr1     2  .   T   G  DP=100         8          SNV
+1  chr1    31  .   T   A  DP=100         9          SNV
+2  chr2    19  .   A   G  DP=100        10          SNV
+3  chr2    57  .   C   G  DP=100        11          SNV
+
+Loaded 4 SNP variant(s)
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="basic-usage-creating-a-personalized-genome">
+<h2>Basic Usage: Creating a Personalized Genome<a class="headerlink" href="#basic-usage-creating-a-personalized-genome" title="Link to this heading"></a></h2>
+<p>The most fundamental operation is applying variants to a reference genome to create a personalized genome:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Create personalized genome (returns encoded sequences by default)</span>
+<span class="n">personal_genome</span> <span class="o">=</span> <span class="n">sl</span><span class="o">.</span><span class="n">get_personal_genome</span><span class="p">(</span>
+    <span class="n">reference_fn</span><span class="o">=</span><span class="n">reference</span><span class="p">,</span>
+    <span class="n">variants_fn</span><span class="o">=</span><span class="n">snp_variants</span><span class="p">,</span>
+    <span class="n">encode</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># Show progress</span>
+<span class="p">)</span>
+
+<span class="c1"># Check the result</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Personalized genome chromosomes: </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">personal_genome</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;chr1 encoded shape: </span><span class="si">{</span><span class="n">personal_genome</span><span class="p">[</span><span class="s1">&#39;chr1&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Data type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">personal_genome</span><span class="p">[</span><span class="s1">&#39;chr1&#39;</span><span class="p">])</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>🧬 Processing 4 variants across 2 chromosomes
+   Phase 1: 4 standard variants (SNV, MNV, INS, DEL, SV_DUP, SV_INV)
+   Phase 2: 0 BND variants for semantic classification
+🔄 Processing chromosome chr1: 2 variants (2 SNV)
+  ✅ Applied 2/2 variants (0 skipped)
+🔄 Processing chromosome chr2: 2 variants (2 SNV)
+  ✅ Applied 2/2 variants (0 skipped)
+🧬 Completed: 4/4 variants processed → 6 sequences
+
+Personalized genome chromosomes: [&#39;chr1&#39;, &#39;chr2&#39;, &#39;chr3&#39;, &#39;chr4&#39;, &#39;chr5&#39;, &#39;chr6&#39;]
+chr1 encoded shape: torch.Size([4, 80])
+Data type: &lt;class &#39;torch.Tensor&#39;&gt;
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="getting-raw-sequence-strings">
+<h2>Getting Raw Sequence Strings<a class="headerlink" href="#getting-raw-sequence-strings" title="Link to this heading"></a></h2>
+<p>You can also get the sequences as strings instead of encoded arrays:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Get raw sequences</span>
+<span class="n">personal_genome_raw</span> <span class="o">=</span> <span class="n">sl</span><span class="o">.</span><span class="n">get_personal_genome</span><span class="p">(</span>
+    <span class="n">reference_fn</span><span class="o">=</span><span class="n">reference</span><span class="p">,</span> <span class="n">variants_fn</span><span class="o">=</span><span class="n">snp_variants</span><span class="p">,</span> <span class="n">encode</span><span class="o">=</span><span class="kc">False</span>
+<span class="p">)</span>
+
+<span class="c1"># Compare reference and personalized sequences</span>
+<span class="n">ref_seq</span> <span class="o">=</span> <span class="n">reference</span><span class="p">[</span><span class="s2">&quot;chr1&quot;</span><span class="p">][:</span><span class="mi">80</span><span class="p">]</span><span class="o">.</span><span class="n">seq</span>
+<span class="n">pers_seq</span> <span class="o">=</span> <span class="n">personal_genome_raw</span><span class="p">[</span><span class="s2">&quot;chr1&quot;</span><span class="p">][:</span><span class="mi">80</span><span class="p">]</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Reference chr1 (first 80 bp):&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">ref_seq</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Personalized chr1 (first 80 bp):&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">pers_seq</span><span class="p">)</span>
+
+<span class="c1"># Highlight the difference</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Differences (position: ref → alt):&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">ref_seq</span><span class="p">,</span> <span class="n">pers_seq</span><span class="p">)):</span>
+    <span class="k">if</span> <span class="n">r</span> <span class="o">!=</span> <span class="n">p</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Position </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">r</span><span class="si">}</span><span class="s2"> → </span><span class="si">{</span><span class="n">p</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Reference chr1 (first 80 bp):
+ATGAATATAATATTTTCGAGAATTACTCCTTTTGGAAATGGAACATTATGCGTTTTAAGAGTTTCTGGTAACAATATATT
+
+Personalized chr1 (first 80 bp):
+AGGAATATAATATTTTCGAGAATTACTCCTATTGGAAATGGAACATTATGCGTTTTAAGAGTTTCTGGTAACAATATATT
+
+Differences (position: ref → alt):
+  Position 1: T → G
+  Position 30: T → A
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="generating-variant-centered-windows">
+<h2>Generating Variant-Centered Windows<a class="headerlink" href="#generating-variant-centered-windows" title="Link to this heading"></a></h2>
+<p>Often you want to extract sequence windows centered on each variant, which is useful for model predictions:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Generate windows around variants</span>
+<span class="c1"># Note: get_alt_ref_sequences is a generator that yields chunks</span>
+<span class="n">results</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+    <span class="n">sl</span><span class="o">.</span><span class="n">get_alt_ref_sequences</span><span class="p">(</span>
+        <span class="n">reference_fn</span><span class="o">=</span><span class="n">reference</span><span class="p">,</span>
+        <span class="n">variants_fn</span><span class="o">=</span><span class="n">snp_variants</span><span class="p">,</span>
+        <span class="n">seq_len</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span>  <span class="c1"># 40 bp windows</span>
+        <span class="n">encode</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>  <span class="c1"># Get strings for visualization</span>
+    <span class="p">)</span>
+<span class="p">)</span>
+
+<span class="c1"># Unpack from the first chunk</span>
+<span class="n">alt_seqs</span><span class="p">,</span> <span class="n">ref_seqs</span><span class="p">,</span> <span class="n">metadata</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Generated </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">metadata</span><span class="p">)</span><span class="si">}</span><span class="s2"> sequence pair(s)&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Metadata:&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">metadata</span><span class="o">.</span><span class="n">head</span><span class="p">())</span>  <span class="c1"># Show first few variants</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Reference sequence (2nd variant):&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">ref_seqs</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Alternate sequence (2nd variant):&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">alt_seqs</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+<span class="c1"># Find the variant position in the window</span>
+<span class="n">variant_offset</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref_seqs</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">3</span><span class="p">])</span> <span class="o">//</span> <span class="mi">2</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Variant is centered at position </span><span class="si">{</span><span class="n">variant_offset</span><span class="si">}</span><span class="s2"> in the window&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Reference allele: </span><span class="si">{</span><span class="n">ref_seqs</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">3</span><span class="p">][</span><span class="n">variant_offset</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Alternate allele: </span><span class="si">{</span><span class="n">alt_seqs</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">3</span><span class="p">][</span><span class="n">variant_offset</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Generated 4 sequence pair(s)
+
+Metadata:
+  chrom  window_start  window_end  variant_pos0  variant_pos1 ref alt  \
+0  chr1             0          40             1             2   T   G   
+1  chr1            10          50            30            31   T   A   
+2  chr2             0          40            18            19   A   G   
+3  chr2            36          76            56            57   C   G   
+
+  variant_type  
+0          SNV  
+1          SNV  
+2          SNV  
+3          SNV  
+
+Reference sequence (2nd variant):
+(&#39;chr1&#39;, np.int64(10), np.int64(50), &#39;TATTTTCGAGAATTACTCCTTTTGGAAATGGAACATTATG&#39;)
+
+Alternate sequence (2nd variant):
+(&#39;chr1&#39;, np.int64(10), np.int64(50), &#39;TATTTTCGAGAATTACTCCTATTGGAAATGGAACATTATG&#39;)
+
+Variant is centered at position 20 in the window
+Reference allele: T
+Alternate allele: A
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="sequence-utilities">
+<h2>Sequence Utilities<a class="headerlink" href="#sequence-utilities" title="Link to this heading"></a></h2>
+<p>supremo_lite provides useful utilities for working with DNA sequences:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Reverse complement</span>
+<span class="n">sequence</span> <span class="o">=</span> <span class="s2">&quot;ATCGATCG&quot;</span>
+<span class="n">rc_sequence</span> <span class="o">=</span> <span class="n">sl</span><span class="o">.</span><span class="n">rc_str</span><span class="p">(</span><span class="n">sequence</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Original:          </span><span class="si">{</span><span class="n">sequence</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Reverse complement: </span><span class="si">{</span><span class="n">rc_sequence</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="c1"># Encode and decode</span>
+<span class="n">encoded</span> <span class="o">=</span> <span class="n">sl</span><span class="o">.</span><span class="n">encode_seq</span><span class="p">(</span><span class="n">sequence</span><span class="p">)</span>  <span class="c1"># Automatically uses brisket if installed</span>
+<span class="n">decoded</span> <span class="o">=</span> <span class="n">sl</span><span class="o">.</span><span class="n">decode_seq</span><span class="p">(</span><span class="n">encoded</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Decoded matches original: </span><span class="si">{</span><span class="n">decoded</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">sequence</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="c1"># Reverse complement of encoded sequence</span>
+<span class="n">rc_encoded</span> <span class="o">=</span> <span class="n">sl</span><span class="o">.</span><span class="n">rc</span><span class="p">(</span><span class="n">encoded</span><span class="p">)</span>
+<span class="n">rc_decoded</span> <span class="o">=</span> <span class="n">sl</span><span class="o">.</span><span class="n">decode_seq</span><span class="p">(</span><span class="n">rc_encoded</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;RC from encoded:   </span><span class="si">{</span><span class="n">rc_decoded</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;RC from string:    </span><span class="si">{</span><span class="n">rc_sequence</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Match: </span><span class="si">{</span><span class="n">rc_decoded</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">rc_sequence</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Original:          ATCGATCG
+Reverse complement: CGATCGAT
+
+Decoded matches original: True
+RC from encoded:   CGATCGAT
+RC from string:    CGATCGAT
+Match: True
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="working-with-encoded-sequences">
+<h2>Working with Encoded Sequences<a class="headerlink" href="#working-with-encoded-sequences" title="Link to this heading"></a></h2>
+<p>Let’s see how to work with encoded sequences for downstream analysis:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Generate encoded windows</span>
+<span class="n">results</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+    <span class="n">sl</span><span class="o">.</span><span class="n">get_alt_ref_sequences</span><span class="p">(</span>
+        <span class="n">reference_fn</span><span class="o">=</span><span class="n">reference</span><span class="p">,</span>
+        <span class="n">variants_fn</span><span class="o">=</span><span class="n">snp_variants</span><span class="p">,</span>
+        <span class="n">seq_len</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span>
+        <span class="n">encode</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># Get encoded arrays/tensors</span>
+    <span class="p">)</span>
+<span class="p">)</span>
+
+<span class="c1"># Unpack from the first chunk</span>
+<span class="n">alt_seqs_enc</span><span class="p">,</span> <span class="n">ref_seqs_enc</span><span class="p">,</span> <span class="n">metadata</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Reference sequences shape: </span><span class="si">{</span><span class="n">ref_seqs_enc</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Alternate sequences shape: </span><span class="si">{</span><span class="n">alt_seqs_enc</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Data type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">ref_seqs_enc</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="c1"># Visualize the first sequence pair</span>
+<span class="n">fig</span><span class="p">,</span> <span class="p">(</span><span class="n">ax1</span><span class="p">,</span> <span class="n">ax2</span><span class="p">)</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
+
+<span class="c1"># Convert to numpy if needed for visualization</span>
+<span class="n">ref_viz</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">ref_seqs_enc</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">ref_seqs_enc</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="s2">&quot;numpy&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="n">ref_seqs_enc</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+<span class="p">)</span>
+<span class="n">alt_viz</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">alt_seqs_enc</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">alt_seqs_enc</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="s2">&quot;numpy&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="n">alt_seqs_enc</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+<span class="p">)</span>
+
+<span class="c1"># Reference sequence - data is already in (4, L) format</span>
+<span class="n">im1</span> <span class="o">=</span> <span class="n">ax1</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">ref_viz</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;Blues&quot;</span><span class="p">,</span> <span class="n">aspect</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">set_yticklabels</span><span class="p">([</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="s2">&quot;G&quot;</span><span class="p">,</span> <span class="s2">&quot;T&quot;</span><span class="p">])</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Reference Sequence (Encoded) - Shape: (4, 40)&quot;</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Nucleotide Channel&quot;</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;red&quot;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Variant position&quot;</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+
+<span class="c1"># Alternate sequence - data is already in (4, L) format</span>
+<span class="n">im2</span> <span class="o">=</span> <span class="n">ax2</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">alt_viz</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;Oranges&quot;</span><span class="p">,</span> <span class="n">aspect</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">set_yticklabels</span><span class="p">([</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="s2">&quot;G&quot;</span><span class="p">,</span> <span class="s2">&quot;T&quot;</span><span class="p">])</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Alternate Sequence (Encoded) - Shape: (4, 40)&quot;</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Position in window&quot;</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Nucleotide Channel&quot;</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;red&quot;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Variant position&quot;</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">The variant at position 20 shows different encoding between ref and alt&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Note: Sequences are encoded in channel-first format (4, L) for compatibility with PyTorch models&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Reference sequences shape: torch.Size([4, 4, 40])
+Alternate sequences shape: torch.Size([4, 4, 40])
+Data type: &lt;class &#39;torch.Tensor&#39;&gt;
+</pre></div>
+</div>
+<img alt="../_images/758110acddbb8d57cef334f7a00a012f34994ec40e54b26f5a163856d578ca90.png" src="../_images/758110acddbb8d57cef334f7a00a012f34994ec40e54b26f5a163856d578ca90.png" />
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>The variant at position 20 shows different encoding between ref and alt
+Note: Sequences are encoded in channel-first format (4, L) for compatibility with PyTorch models
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="next-steps">
+<h2>Next Steps<a class="headerlink" href="#next-steps" title="Link to this heading"></a></h2>
+<p>Continue with the other notebooks:</p>
+<ul class="simple">
+<li><p><strong><a class="reference internal" href="02_personalized_genomes.html"><span class="std std-doc">02_personalized_genomes.ipynb</span></a></strong> - Genome personalization workflows</p></li>
+<li><p><strong><a class="reference internal" href="03_prediction_alignment.html"><span class="std std-doc">03_prediction_alignment.ipynb</span></a></strong> - Model predictions and alignment</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../user_guide/mutagenesis.html" class="btn btn-neutral float-left" title="Saturation Mutagenesis" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="02_personalized_genomes.html" class="btn btn-neutral float-right" title="Personalized Genome Generation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Gladstone Institutes.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

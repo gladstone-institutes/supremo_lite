@@ -1,0 +1,242 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>supremo_lite.mock_models &mdash; supremo_lite  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=fd3f3429" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="supremo_lite.mock_models.testmodel_1d" href="testmodel_1d/index.html" />
+    <link rel="prev" title="supremo_lite.core" href="../core/index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            supremo_lite
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/personalization.html">Personalized Genome Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/variant_centered_sequences.html">Variant-Centered Sequence Windows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/pam_disruption.html">PAM Disruption Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/prediction_alignment.html">Prediction Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/prediction_alignment_examples.html">Prediction Alignment Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/prediction_alignment_examples.html#variant-type-examples">Variant Type Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/mutagenesis.html">Saturation Mutagenesis</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Notebooks</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks/01_getting_started.html">Getting Started with supremo_lite</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks/02_personalized_genomes.html">Personalized Genome Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks/03_prediction_alignment.html">Prediction Alignment: From Sequences to Aligned Predictions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks/04_pam_disruption.html">PAM Disruption Analysis: Identifying CRISPR-Resistant Variants</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">supremo_lite</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="../index.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="../chromosome_utils/index.html">supremo_lite.chromosome_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../core/index.html">supremo_lite.core</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">supremo_lite.mock_models</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../mutagenesis/index.html">supremo_lite.mutagenesis</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../personalize/index.html">supremo_lite.personalize</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../prediction_alignment/index.html">supremo_lite.prediction_alignment</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sequence_utils/index.html">supremo_lite.sequence_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../variant_utils/index.html">supremo_lite.variant_utils</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#attributes">Attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#exceptions">Exceptions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#functions">Functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#package-contents">Package Contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../conduct.html">Code of Conduct</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">supremo_lite</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">supremo_lite</a></li>
+      <li class="breadcrumb-item active">supremo_lite.mock_models</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/autoapi/supremo_lite/mock_models/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-supremo_lite.mock_models">
+<span id="supremo-lite-mock-models"></span><h1>supremo_lite.mock_models<a class="headerlink" href="#module-supremo_lite.mock_models" title="Link to this heading"></a></h1>
+<p>Mock models for testing and demonstration purposes.</p>
+<p>This module provides simple PyTorch models that mimic realistic genomic deep learning
+architectures without requiring actual training. These models are intended for:</p>
+<ol class="arabic simple">
+<li><p><strong>Testing</strong>: Verifying that prediction alignment functions work correctly with
+realistic model outputs (binned predictions, edge cropping, diagonal masking)</p></li>
+<li><p><strong>Documentation</strong>: Providing immediately runnable examples for users who want to
+understand the package workflow without training their own models</p></li>
+</ol>
+<p><strong>Important</strong>: These models return constant values and should NOT be used for actual
+genomic predictions or biological interpretation.</p>
+<section id="available-models">
+<h2>Available Models<a class="headerlink" href="#available-models" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>TestModel<span class="classifier">nn.Module</span></dt><dd><p>Mock 1D genomic prediction model
+- Output shape: (batch_size, n_targets, n_final_bins)
+- Features: binning, edge cropping</p>
+</dd>
+<dt>TestModel2D<span class="classifier">nn.Module</span></dt><dd><p>Mock 2D contact map prediction model
+- Output shape: (batch_size, n_targets, n_flattened_ut_bins)
+- Features: binning, edge cropping, diagonal masking, flattened output</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p>Using TestModel for 1D predictions:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">supremo_lite.mock_models</span><span class="w"> </span><span class="kn">import</span> <span class="n">TestModel</span><span class="p">,</span> <span class="n">TORCH_AVAILABLE</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">if</span> <span class="n">TORCH_AVAILABLE</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="gp">... </span>    <span class="n">model</span> <span class="o">=</span> <span class="n">TestModel</span><span class="p">(</span><span class="n">seq_length</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">bin_length</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span> <span class="n">crop_length</span><span class="o">=</span><span class="mi">128</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1024</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="n">predictions</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="n">predictions</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+<span class="go">torch.Size([4, 1, 24])</span>
+</pre></div>
+</div>
+<p>Using TestModel2D for contact maps:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">supremo_lite.mock_models</span><span class="w"> </span><span class="kn">import</span> <span class="n">TestModel2D</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">if</span> <span class="n">TORCH_AVAILABLE</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="gp">... </span>    <span class="n">model</span> <span class="o">=</span> <span class="n">TestModel2D</span><span class="p">(</span><span class="n">seq_length</span><span class="o">=</span><span class="mi">2048</span><span class="p">,</span> <span class="n">bin_length</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">crop_length</span><span class="o">=</span><span class="mi">256</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">2048</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="n">predictions</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="n">predictions</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+<span class="go">torch.Size([4, 1, 276])</span>
+</pre></div>
+</div>
+</section>
+<section id="checking-pytorch-availability">
+<h2>Checking PyTorch Availability<a class="headerlink" href="#checking-pytorch-availability" title="Link to this heading"></a></h2>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">supremo_lite.mock_models</span><span class="w"> </span><span class="kn">import</span> <span class="n">TORCH_AVAILABLE</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">if</span> <span class="ow">not</span> <span class="n">TORCH_AVAILABLE</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Please install PyTorch to use mock models&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Requires PyTorch to be installed</p></li>
+<li><p>If PyTorch is not available, attempting to instantiate models will raise ImportError</p></li>
+<li><p>Check TORCH_AVAILABLE before using models</p></li>
+<li><p>See individual model documentation for architecture details</p></li>
+</ul>
+</section>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="testmodel_1d/index.html">supremo_lite.mock_models.testmodel_1d</a></li>
+<li class="toctree-l1"><a class="reference internal" href="testmodel_2d/index.html">supremo_lite.mock_models.testmodel_2d</a></li>
+</ul>
+</div>
+</section>
+<section id="attributes">
+<h2>Attributes<a class="headerlink" href="#attributes" title="Link to this heading"></a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#supremo_lite.mock_models.TORCH_AVAILABLE" title="supremo_lite.mock_models.TORCH_AVAILABLE"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TORCH_AVAILABLE</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="package-contents">
+<h2>Package Contents<a class="headerlink" href="#package-contents" title="Link to this heading"></a></h2>
+<dl class="py data">
+<dt class="sig sig-object py" id="supremo_lite.mock_models.TORCH_AVAILABLE">
+<span class="sig-prename descclassname"><span class="pre">supremo_lite.mock_models.</span></span><span class="sig-name descname"><span class="pre">TORCH_AVAILABLE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#supremo_lite.mock_models.TORCH_AVAILABLE" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../core/index.html" class="btn btn-neutral float-left" title="supremo_lite.core" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="testmodel_1d/index.html" class="btn btn-neutral float-right" title="supremo_lite.mock_models.testmodel_1d" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Gladstone Institutes.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

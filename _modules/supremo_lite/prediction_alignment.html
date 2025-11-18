@@ -1,0 +1,1260 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>supremo_lite.prediction_alignment &mdash; supremo_lite  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=fd3f3429" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            supremo_lite
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../user_guide/personalization.html">Personalized Genome Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../user_guide/variant_centered_sequences.html">Variant-Centered Sequence Windows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../user_guide/pam_disruption.html">PAM Disruption Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../user_guide/prediction_alignment.html">Prediction Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../user_guide/prediction_alignment_examples.html">Prediction Alignment Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../user_guide/prediction_alignment_examples.html#variant-type-examples">Variant Type Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../user_guide/mutagenesis.html">Saturation Mutagenesis</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Notebooks</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../notebooks/01_getting_started.html">Getting Started with supremo_lite</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../notebooks/02_personalized_genomes.html">Personalized Genome Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../notebooks/03_prediction_alignment.html">Prediction Alignment: From Sequences to Aligned Predictions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../notebooks/04_pam_disruption.html">PAM Disruption Analysis: Identifying CRISPR-Resistant Variants</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../autoapi/index.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../conduct.html">Code of Conduct</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">supremo_lite</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">supremo_lite.prediction_alignment</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for supremo_lite.prediction_alignment</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Utilities for aligning model predictions between reference and variant sequences.</span>
+
+<span class="sd">This module provides functions to handle the alignment of ML model predictions</span>
+<span class="sd">when reference and variant sequences have position offsets due to structural variants.</span>
+
+<span class="sd">The alignment logic properly handles:</span>
+<span class="sd">- 1D predictions (chromatin accessibility, TF binding, etc.)</span>
+<span class="sd">- 2D contact maps (Hi-C, Micro-C predictions)</span>
+<span class="sd">- All variant types: SNV, INS, DEL, DUP, INV, BND</span>
+
+<span class="sd">Key principle: Users must specify all model-specific parameters (bin_size, diag_offset)</span>
+<span class="sd">as these vary across different prediction models.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+    <span class="n">TORCH_AVAILABLE</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">TORCH_AVAILABLE</span> <span class="o">=</span> <span class="kc">False</span>
+
+
+<div class="viewcode-block" id="VariantPosition">
+<a class="viewcode-back" href="../../autoapi/supremo_lite/prediction_alignment/index.html#supremo_lite.VariantPosition">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">VariantPosition</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Container for variant position information in both REF and ALT sequences.</span>
+
+<span class="sd">    This class encapsulates the essential positional information needed to align</span>
+<span class="sd">    predictions across reference and alternate sequences that may differ in length.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">ref_pos</span><span class="p">:</span> <span class="nb">int</span>  <span class="c1"># Position in reference sequence (base pairs, 0-based)</span>
+    <span class="n">alt_pos</span><span class="p">:</span> <span class="nb">int</span>  <span class="c1"># Position in alternate sequence (base pairs, 0-based)</span>
+    <span class="n">svlen</span><span class="p">:</span> <span class="nb">int</span>  <span class="c1"># Length of structural variant (base pairs, signed for DEL/INS)</span>
+    <span class="n">variant_type</span><span class="p">:</span> <span class="nb">str</span>  <span class="c1"># Type of variant (&#39;SNV&#39;, &#39;INS&#39;, &#39;DEL&#39;, &#39;DUP&#39;, &#39;INV&#39;, &#39;BND&#39;)</span>
+
+<div class="viewcode-block" id="VariantPosition.get_bin_positions">
+<a class="viewcode-back" href="../../autoapi/supremo_lite/prediction_alignment/index.html#supremo_lite.VariantPosition.get_bin_positions">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_bin_positions</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">bin_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">window_start</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">crop_length</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert base pair positions to bin indices relative to window.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            bin_size: Number of base pairs per prediction bin</span>
+<span class="sd">            window_start: Start position of the sequence window (0-based genomic coord).</span>
+<span class="sd">            crop_length: Number of base pairs cropped from each edge by the model.</span>
+<span class="sd">                        This accounts for edge bases removed before prediction.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple of (ref_bin, alt_start_bin, alt_end_bin) as bin indices</span>
+<span class="sd">            relative to the prediction vector. For centered masking, these</span>
+<span class="sd">            represent the center and extent of the masked region.</span>
+
+<span class="sd">        Notes:</span>
+<span class="sd">            - Positions are calculated relative to window_start, not absolute genomic coords</span>
+<span class="sd">            - crop_length accounts for edge bases removed before prediction</span>
+<span class="sd">            - Masked bins are centered on the variant position</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Calculate positions relative to window</span>
+        <span class="n">rel_ref_pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_pos</span> <span class="o">-</span> <span class="n">window_start</span>
+        <span class="n">rel_alt_pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">alt_pos</span> <span class="o">-</span> <span class="n">window_start</span>
+
+        <span class="c1"># Account for cropping (bases removed from start of window before prediction)</span>
+        <span class="n">rel_ref_pos</span> <span class="o">-=</span> <span class="n">crop_length</span>
+        <span class="n">rel_alt_pos</span> <span class="o">-=</span> <span class="n">crop_length</span>
+
+        <span class="c1"># Convert to bin indices using floor division (not ceil!)</span>
+        <span class="n">ref_bin_center</span> <span class="o">=</span> <span class="n">rel_ref_pos</span> <span class="o">//</span> <span class="n">bin_size</span>
+        <span class="n">alt_bin_center</span> <span class="o">=</span> <span class="n">rel_alt_pos</span> <span class="o">//</span> <span class="n">bin_size</span>
+
+        <span class="c1"># Calculate number of bins to mask</span>
+        <span class="n">svlen_bins</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">svlen</span><span class="p">)</span> <span class="o">/</span> <span class="n">bin_size</span><span class="p">))</span>
+        <span class="n">half_bins</span> <span class="o">=</span> <span class="n">svlen_bins</span> <span class="o">//</span> <span class="mi">2</span>
+
+        <span class="c1"># Center the masked region on the variant</span>
+        <span class="n">ref_bin</span> <span class="o">=</span> <span class="n">ref_bin_center</span> <span class="o">-</span> <span class="n">half_bins</span>
+        <span class="n">alt_start_bin</span> <span class="o">=</span> <span class="n">alt_bin_center</span> <span class="o">-</span> <span class="n">half_bins</span>
+        <span class="n">alt_end_bin</span> <span class="o">=</span> <span class="n">alt_bin_center</span> <span class="o">+</span> <span class="p">(</span><span class="n">svlen_bins</span> <span class="o">-</span> <span class="n">half_bins</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">ref_bin</span><span class="p">,</span> <span class="n">alt_start_bin</span><span class="p">,</span> <span class="n">alt_end_bin</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="PredictionAligner1D">
+<a class="viewcode-back" href="../../autoapi/supremo_lite/prediction_alignment/index.html#supremo_lite.PredictionAligner1D">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PredictionAligner1D</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Aligns reference and alternate 1D prediction vectors for variant comparison.</span>
+
+<span class="sd">    Handles alignment of 1D genomic predictions (e.g., chromatin accessibility,</span>
+<span class="sd">    transcription factor binding, epigenetic marks) between reference and variant</span>
+<span class="sd">    sequences that may differ in length due to structural variants.</span>
+
+<span class="sd">    The aligner uses a masking strategy where positions that exist in one sequence</span>
+<span class="sd">    but not the other are marked with NaN values, enabling direct comparison of</span>
+<span class="sd">    corresponding genomic positions.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        target_size: Expected number of bins in the prediction output</span>
+<span class="sd">        bin_size: Number of base pairs per prediction bin (model-specific)</span>
+<span class="sd">        crop_length: Number of base pairs cropped from each edge by the model</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; aligner = PredictionAligner1D(target_size=896, bin_size=128, crop_length=0)</span>
+<span class="sd">        &gt;&gt;&gt; ref_aligned, alt_aligned = aligner.align_predictions(</span>
+<span class="sd">        ...     ref_pred, alt_pred, &#39;INS&#39;, variant_position</span>
+<span class="sd">        ... )</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">bin_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">crop_length</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the 1D prediction aligner.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            target_size: Expected number of bins in prediction (e.g., 896 for Enformer)</span>
+<span class="sd">            bin_size: Base pairs per bin (e.g., 128 for Enformer)</span>
+<span class="sd">            crop_length: Number of base pairs cropped from each edge by the model</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">target_size</span> <span class="o">=</span> <span class="n">target_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bin_size</span> <span class="o">=</span> <span class="n">bin_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">crop_length</span> <span class="o">=</span> <span class="n">crop_length</span>
+
+<div class="viewcode-block" id="PredictionAligner1D.align_predictions">
+<a class="viewcode-back" href="../../autoapi/supremo_lite/prediction_alignment/index.html#supremo_lite.PredictionAligner1D.align_predictions">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">align_predictions</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">ref_pred</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">],</span>
+        <span class="n">alt_pred</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">],</span>
+        <span class="n">svtype</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">var_pos</span><span class="p">:</span> <span class="n">VariantPosition</span><span class="p">,</span>
+        <span class="n">window_start</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">],</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Main entry point for 1D prediction alignment.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            ref_pred: Reference prediction vector (length N)</span>
+<span class="sd">            alt_pred: Alternate prediction vector (length N)</span>
+<span class="sd">            svtype: Variant type (&#39;DEL&#39;, &#39;DUP&#39;, &#39;INS&#39;, &#39;INV&#39;, &#39;SNV&#39;)</span>
+<span class="sd">            var_pos: Variant position information</span>
+<span class="sd">            window_start: Start position of sequence window (0-based genomic coord).</span>
+<span class="sd">                         Required for correct bin calculation. Defaults to 0.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple of (aligned_ref, aligned_alt) vectors with NaN masking applied</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: For unsupported variant types or if using BND (use align_bnd_predictions)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">svtype</span> <span class="o">==</span> <span class="s2">&quot;BND&quot;</span> <span class="ow">or</span> <span class="n">svtype</span> <span class="o">==</span> <span class="s2">&quot;SV_BND&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Use align_bnd_predictions() for breakends&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Normalize variant type names</span>
+        <span class="n">svtype_normalized</span> <span class="o">=</span> <span class="n">svtype</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;SV_&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">svtype_normalized</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;DEL&quot;</span><span class="p">,</span> <span class="s2">&quot;DUP&quot;</span><span class="p">,</span> <span class="s2">&quot;INS&quot;</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_align_indel_predictions</span><span class="p">(</span>
+                <span class="n">ref_pred</span><span class="p">,</span> <span class="n">alt_pred</span><span class="p">,</span> <span class="n">svtype_normalized</span><span class="p">,</span> <span class="n">var_pos</span><span class="p">,</span> <span class="n">window_start</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">svtype_normalized</span> <span class="o">==</span> <span class="s2">&quot;INV&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_align_inversion_predictions</span><span class="p">(</span>
+                <span class="n">ref_pred</span><span class="p">,</span> <span class="n">alt_pred</span><span class="p">,</span> <span class="n">var_pos</span><span class="p">,</span> <span class="n">window_start</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">svtype_normalized</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;SNV&quot;</span><span class="p">,</span> <span class="s2">&quot;MNV&quot;</span><span class="p">]:</span>
+            <span class="c1"># SNVs don&#39;t change coordinates, direct alignment</span>
+            <span class="n">is_torch</span> <span class="o">=</span> <span class="n">TORCH_AVAILABLE</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_tensor</span><span class="p">(</span><span class="n">ref_pred</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">is_torch</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">ref_pred</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span> <span class="n">alt_pred</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">ref_pred</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="n">alt_pred</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown variant type: </span><span class="si">{</span><span class="n">svtype</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_align_indel_predictions</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">ref_pred</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">],</span>
+        <span class="n">alt_pred</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">],</span>
+        <span class="n">svtype</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">var_pos</span><span class="p">:</span> <span class="n">VariantPosition</span><span class="p">,</span>
+        <span class="n">window_start</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">],</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Align predictions for insertions, deletions, and duplications.</span>
+
+<span class="sd">        Strategy:</span>
+<span class="sd">        1. For DEL: Swap REF/ALT (deletion removes from REF)</span>
+<span class="sd">        2. Insert NaN bins in shorter sequence (centered on variant)</span>
+<span class="sd">        3. Crop edges to maintain target size</span>
+<span class="sd">        4. For DEL: Swap back</span>
+
+<span class="sd">        This ensures that positions present in one sequence but not the other</span>
+<span class="sd">        are marked with NaN, enabling fair comparison of overlapping regions.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            window_start: Start position of sequence window (0-based genomic coord)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">is_torch</span> <span class="o">=</span> <span class="n">TORCH_AVAILABLE</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_tensor</span><span class="p">(</span><span class="n">ref_pred</span><span class="p">)</span>
+
+        <span class="c1"># Convert to numpy for manipulation</span>
+        <span class="k">if</span> <span class="n">is_torch</span><span class="p">:</span>
+            <span class="n">ref_np</span> <span class="o">=</span> <span class="n">ref_pred</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+            <span class="n">alt_np</span> <span class="o">=</span> <span class="n">alt_pred</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ref_np</span> <span class="o">=</span> <span class="n">ref_pred</span>
+            <span class="n">alt_np</span> <span class="o">=</span> <span class="n">alt_pred</span>
+
+        <span class="c1"># Swap for deletions (treat as insertion in reverse)</span>
+        <span class="k">if</span> <span class="n">svtype</span> <span class="o">==</span> <span class="s2">&quot;DEL&quot;</span><span class="p">:</span>
+            <span class="n">ref_np</span><span class="p">,</span> <span class="n">alt_np</span> <span class="o">=</span> <span class="n">alt_np</span><span class="p">,</span> <span class="n">ref_np</span>
+            <span class="n">var_pos</span> <span class="o">=</span> <span class="n">VariantPosition</span><span class="p">(</span>
+                <span class="n">var_pos</span><span class="o">.</span><span class="n">alt_pos</span><span class="p">,</span> <span class="n">var_pos</span><span class="o">.</span><span class="n">ref_pos</span><span class="p">,</span> <span class="n">var_pos</span><span class="o">.</span><span class="n">svlen</span><span class="p">,</span> <span class="n">svtype</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Get bin positions (window-relative, centered)</span>
+        <span class="n">ref_bin</span><span class="p">,</span> <span class="n">alt_start_bin</span><span class="p">,</span> <span class="n">alt_end_bin</span> <span class="o">=</span> <span class="n">var_pos</span><span class="o">.</span><span class="n">get_bin_positions</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bin_size</span><span class="p">,</span> <span class="n">window_start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">crop_length</span>
+        <span class="p">)</span>
+        <span class="n">bins_to_add</span> <span class="o">=</span> <span class="n">alt_end_bin</span> <span class="o">-</span> <span class="n">alt_start_bin</span>
+
+        <span class="c1"># Insert NaN bins in REF where variant exists in ALT</span>
+        <span class="n">ref_masked</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_insert_nan_bins</span><span class="p">(</span><span class="n">ref_np</span><span class="p">,</span> <span class="n">ref_bin</span><span class="p">,</span> <span class="n">bins_to_add</span><span class="p">)</span>
+
+        <span class="c1"># Crop to maintain target size</span>
+        <span class="n">ref_masked</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_crop_vector</span><span class="p">(</span><span class="n">ref_masked</span><span class="p">,</span> <span class="n">ref_bin</span><span class="p">,</span> <span class="n">alt_start_bin</span><span class="p">)</span>
+        <span class="n">alt_masked</span> <span class="o">=</span> <span class="n">alt_np</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="c1"># Swap back for deletions</span>
+        <span class="k">if</span> <span class="n">svtype</span> <span class="o">==</span> <span class="s2">&quot;DEL&quot;</span><span class="p">:</span>
+            <span class="n">ref_masked</span><span class="p">,</span> <span class="n">alt_masked</span> <span class="o">=</span> <span class="n">alt_masked</span><span class="p">,</span> <span class="n">ref_masked</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_size</span><span class="p">(</span><span class="n">ref_masked</span><span class="p">,</span> <span class="n">alt_masked</span><span class="p">)</span>
+
+        <span class="c1"># Convert back to torch if needed</span>
+        <span class="k">if</span> <span class="n">is_torch</span><span class="p">:</span>
+            <span class="n">ref_masked</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">ref_masked</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">ref_pred</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">ref_pred</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">alt_masked</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">alt_masked</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">alt_pred</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">alt_pred</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">ref_masked</span><span class="p">,</span> <span class="n">alt_masked</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_insert_nan_bins</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">vector</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">position</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">num_bins</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Insert NaN values at specified position in vector.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            vector: Input prediction vector</span>
+<span class="sd">            position: Position to insert NaN values (bin index)</span>
+<span class="sd">            num_bins: Number of NaN values to insert</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Vector with NaN values inserted</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">vector</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">offset</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_bins</span><span class="p">):</span>
+            <span class="n">insert_pos</span> <span class="o">=</span> <span class="n">position</span> <span class="o">+</span> <span class="n">offset</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">insert_pos</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_crop_vector</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">vector</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">ref_bin</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">alt_bin</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Crop vector edges to maintain target size.</span>
+
+<span class="sd">        After inserting NaN bins, the vector is longer than expected.</span>
+<span class="sd">        This function crops from edges proportionally to center the variant.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            vector: Vector to crop</span>
+<span class="sd">            ref_bin: Reference bin position</span>
+<span class="sd">            alt_bin: Alternate bin position</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Cropped vector of target_size length</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">remove_left</span> <span class="o">=</span> <span class="n">ref_bin</span> <span class="o">-</span> <span class="n">alt_bin</span>
+        <span class="n">remove_right</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">vector</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_size</span> <span class="o">-</span> <span class="n">remove_left</span>
+
+        <span class="c1"># Apply cropping</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">remove_left</span><span class="p">)</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">vector</span><span class="p">)</span> <span class="o">-</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">remove_right</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">vector</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_align_inversion_predictions</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">ref_pred</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">],</span>
+        <span class="n">alt_pred</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">],</span>
+        <span class="n">var_pos</span><span class="p">:</span> <span class="n">VariantPosition</span><span class="p">,</span>
+        <span class="n">window_start</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">],</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Align predictions for inversions.</span>
+
+<span class="sd">        Strategy:</span>
+<span class="sd">        1. Mask the inverted region in both vectors with NaN</span>
+<span class="sd">        2. This allows comparison of only the flanking (unaffected) regions</span>
+
+<span class="sd">        For strand-aware models, inversions can significantly affect predictions</span>
+<span class="sd">        because regulatory elements now appear on the opposite strand. We mask</span>
+<span class="sd">        the inverted region to focus comparison on unaffected flanking sequences.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            window_start: Start position of sequence window (0-based genomic coord)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">is_torch</span> <span class="o">=</span> <span class="n">TORCH_AVAILABLE</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_tensor</span><span class="p">(</span><span class="n">ref_pred</span><span class="p">)</span>
+
+        <span class="c1"># Convert to numpy for manipulation</span>
+        <span class="k">if</span> <span class="n">is_torch</span><span class="p">:</span>
+            <span class="n">ref_np</span> <span class="o">=</span> <span class="n">ref_pred</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+            <span class="n">alt_np</span> <span class="o">=</span> <span class="n">alt_pred</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ref_np</span> <span class="o">=</span> <span class="n">ref_pred</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">alt_np</span> <span class="o">=</span> <span class="n">alt_pred</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="n">var_start</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">var_end</span> <span class="o">=</span> <span class="n">var_pos</span><span class="o">.</span><span class="n">get_bin_positions</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bin_size</span><span class="p">,</span> <span class="n">window_start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">crop_length</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Mask inverted region in both REF and ALT</span>
+        <span class="n">ref_np</span><span class="p">[</span><span class="n">var_start</span> <span class="p">:</span> <span class="n">var_end</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="n">alt_np</span><span class="p">[</span><span class="n">var_start</span> <span class="p">:</span> <span class="n">var_end</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_size</span><span class="p">(</span><span class="n">ref_np</span><span class="p">,</span> <span class="n">alt_np</span><span class="p">)</span>
+
+        <span class="c1"># Convert back to torch if needed</span>
+        <span class="k">if</span> <span class="n">is_torch</span><span class="p">:</span>
+            <span class="n">ref_np</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">ref_np</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">ref_pred</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">ref_pred</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="n">alt_np</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">alt_np</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">alt_pred</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">alt_pred</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">ref_np</span><span class="p">,</span> <span class="n">alt_np</span>
+
+<div class="viewcode-block" id="PredictionAligner1D.align_bnd_predictions">
+<a class="viewcode-back" href="../../autoapi/supremo_lite/prediction_alignment/index.html#supremo_lite.PredictionAligner1D.align_bnd_predictions">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">align_bnd_predictions</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">left_ref</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">],</span>
+        <span class="n">right_ref</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">],</span>
+        <span class="n">bnd_alt</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">],</span>
+        <span class="n">breakpoint_bin</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">],</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Align predictions for breakends (chromosomal rearrangements).</span>
+
+<span class="sd">        BNDs join two distant loci, so we create a chimeric reference</span>
+<span class="sd">        prediction from the two separate loci for comparison with the fusion ALT.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            left_ref: Prediction from left locus</span>
+<span class="sd">            right_ref: Prediction from right locus</span>
+<span class="sd">            bnd_alt: Prediction from joined (alternate) sequence</span>
+<span class="sd">            breakpoint_bin: Bin position of breakpoint</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple of (chimeric_ref, alt) vectors</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">is_torch</span> <span class="o">=</span> <span class="n">TORCH_AVAILABLE</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_tensor</span><span class="p">(</span><span class="n">left_ref</span><span class="p">)</span>
+
+        <span class="c1"># Convert to numpy for manipulation</span>
+        <span class="k">if</span> <span class="n">is_torch</span><span class="p">:</span>
+            <span class="n">left_np</span> <span class="o">=</span> <span class="n">left_ref</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+            <span class="n">right_np</span> <span class="o">=</span> <span class="n">right_ref</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+            <span class="n">alt_np</span> <span class="o">=</span> <span class="n">bnd_alt</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">left_np</span> <span class="o">=</span> <span class="n">left_ref</span>
+            <span class="n">right_np</span> <span class="o">=</span> <span class="n">right_ref</span>
+            <span class="n">alt_np</span> <span class="o">=</span> <span class="n">bnd_alt</span>
+
+        <span class="c1"># Extract the relevant portions from each reference</span>
+        <span class="n">left_portion</span> <span class="o">=</span> <span class="n">left_np</span><span class="p">[:</span><span class="n">breakpoint_bin</span><span class="p">]</span>
+        <span class="n">right_portion</span> <span class="o">=</span> <span class="n">right_np</span><span class="p">[</span><span class="o">-</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_size</span> <span class="o">-</span> <span class="n">breakpoint_bin</span><span class="p">)</span> <span class="p">:]</span>
+
+        <span class="c1"># Assemble chimeric reference (continuous, no masking)</span>
+        <span class="n">ref_chimeric</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">left_portion</span><span class="p">,</span> <span class="n">right_portion</span><span class="p">])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_size</span><span class="p">(</span><span class="n">ref_chimeric</span><span class="p">,</span> <span class="n">alt_np</span><span class="p">)</span>
+
+        <span class="c1"># Convert back to torch if needed</span>
+        <span class="k">if</span> <span class="n">is_torch</span><span class="p">:</span>
+            <span class="n">ref_chimeric</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">ref_chimeric</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">left_ref</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">left_ref</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">alt_np</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">alt_np</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">bnd_alt</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">bnd_alt</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">ref_chimeric</span><span class="p">,</span> <span class="n">alt_np</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_validate_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref_vector</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">alt_vector</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Validate that vectors are the correct size.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            ref_vector: Reference prediction vector</span>
+<span class="sd">            alt_vector: Alternate prediction vector</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If either vector has incorrect size</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref_vector</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_size</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Reference vector wrong size: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">ref_vector</span><span class="p">)</span><span class="si">}</span><span class="s2"> vs </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">target_size</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">alt_vector</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_size</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Alternate vector wrong size: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">alt_vector</span><span class="p">)</span><span class="si">}</span><span class="s2"> vs </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">target_size</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="PredictionAligner2D">
+<a class="viewcode-back" href="../../autoapi/supremo_lite/prediction_alignment/index.html#supremo_lite.PredictionAligner2D">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PredictionAligner2D</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Aligns reference and alternate prediction matrices for variant comparison.</span>
+
+<span class="sd">    Handles alignment of 2D genomic predictions (e.g., Hi-C contact maps,</span>
+<span class="sd">    Micro-C predictions) between reference and variant sequences that may</span>
+<span class="sd">    differ in length due to structural variants.</span>
+
+<span class="sd">    The aligner uses a masking strategy where matrix rows and columns that</span>
+<span class="sd">    exist in one sequence but not the other are marked with NaN values.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        target_size: Expected matrix dimension (NxN)</span>
+<span class="sd">        bin_size: Number of base pairs per matrix bin (model-specific)</span>
+<span class="sd">        diag_offset: Number of diagonal bins to mask (model-specific)</span>
+<span class="sd">        crop_length: Number of base pairs cropped from each edge by the model</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; aligner = PredictionAligner2D(</span>
+<span class="sd">        ...     target_size=448,</span>
+<span class="sd">        ...     bin_size=2048,</span>
+<span class="sd">        ...     diag_offset=2,</span>
+<span class="sd">        ...     crop_length=0</span>
+<span class="sd">        ... )</span>
+<span class="sd">        &gt;&gt;&gt; ref_aligned, alt_aligned = aligner.align_predictions(</span>
+<span class="sd">        ...     ref_matrix, alt_matrix, &#39;DEL&#39;, variant_position</span>
+<span class="sd">        ... )</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">target_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">bin_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">diag_offset</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">crop_length</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the 2D prediction aligner.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            target_size: Matrix dimension (e.g., 448 for Akita)</span>
+<span class="sd">            bin_size: Base pairs per bin (e.g., 2048 for Akita)</span>
+<span class="sd">            diag_offset: Diagonal masking offset (e.g., 2 for Akita)</span>
+<span class="sd">            crop_length: Number of base pairs cropped from each edge by the model</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">target_size</span> <span class="o">=</span> <span class="n">target_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bin_size</span> <span class="o">=</span> <span class="n">bin_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">diag_offset</span> <span class="o">=</span> <span class="n">diag_offset</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">crop_length</span> <span class="o">=</span> <span class="n">crop_length</span>
+
+<div class="viewcode-block" id="PredictionAligner2D.align_predictions">
+<a class="viewcode-back" href="../../autoapi/supremo_lite/prediction_alignment/index.html#supremo_lite.PredictionAligner2D.align_predictions">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">align_predictions</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">ref_pred</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">],</span>
+        <span class="n">alt_pred</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">],</span>
+        <span class="n">svtype</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">var_pos</span><span class="p">:</span> <span class="n">VariantPosition</span><span class="p">,</span>
+        <span class="n">window_start</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">],</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Main entry point for 2D matrix alignment.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            ref_pred: Reference prediction matrix (NxN)</span>
+<span class="sd">            alt_pred: Alternate prediction matrix (NxN)</span>
+<span class="sd">            svtype: Variant type (&#39;DEL&#39;, &#39;DUP&#39;, &#39;INS&#39;, &#39;INV&#39;, &#39;SNV&#39;)</span>
+<span class="sd">            var_pos: Variant position information</span>
+<span class="sd">            window_start: Start position of sequence window (0-based genomic coord).</span>
+<span class="sd">                         Required for correct bin calculation. Defaults to 0.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple of (aligned_ref, aligned_alt) matrices with NaN masking applied</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: For unsupported variant types or if using BND (use align_bnd_matrices)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">svtype</span> <span class="o">==</span> <span class="s2">&quot;BND&quot;</span> <span class="ow">or</span> <span class="n">svtype</span> <span class="o">==</span> <span class="s2">&quot;SV_BND&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Use align_bnd_matrices() for breakends&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Normalize variant type names</span>
+        <span class="n">svtype_normalized</span> <span class="o">=</span> <span class="n">svtype</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;SV_&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">svtype_normalized</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;DEL&quot;</span><span class="p">,</span> <span class="s2">&quot;DUP&quot;</span><span class="p">,</span> <span class="s2">&quot;INS&quot;</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_align_indel_matrices</span><span class="p">(</span>
+                <span class="n">ref_pred</span><span class="p">,</span> <span class="n">alt_pred</span><span class="p">,</span> <span class="n">svtype_normalized</span><span class="p">,</span> <span class="n">var_pos</span><span class="p">,</span> <span class="n">window_start</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">svtype_normalized</span> <span class="o">==</span> <span class="s2">&quot;INV&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_align_inversion_matrices</span><span class="p">(</span>
+                <span class="n">ref_pred</span><span class="p">,</span> <span class="n">alt_pred</span><span class="p">,</span> <span class="n">var_pos</span><span class="p">,</span> <span class="n">window_start</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">svtype_normalized</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;SNV&quot;</span><span class="p">,</span> <span class="s2">&quot;MNV&quot;</span><span class="p">]:</span>
+            <span class="c1"># SNVs don&#39;t change coordinates, direct alignment</span>
+            <span class="n">is_torch</span> <span class="o">=</span> <span class="n">TORCH_AVAILABLE</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_tensor</span><span class="p">(</span><span class="n">ref_pred</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">is_torch</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">ref_pred</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span> <span class="n">alt_pred</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">ref_pred</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="n">alt_pred</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown variant type: </span><span class="si">{</span><span class="n">svtype</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_align_indel_matrices</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">ref_pred</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">],</span>
+        <span class="n">alt_pred</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">],</span>
+        <span class="n">svtype</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">var_pos</span><span class="p">:</span> <span class="n">VariantPosition</span><span class="p">,</span>
+        <span class="n">window_start</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">],</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Align matrices for insertions, deletions, and duplications.</span>
+
+<span class="sd">        Strategy:</span>
+<span class="sd">        1. For DEL: Swap REF/ALT (deletion removes from REF)</span>
+<span class="sd">        2. Insert NaN bins (rows AND columns) in shorter matrix (centered on variant)</span>
+<span class="sd">        3. Crop edges to maintain target size</span>
+<span class="sd">        4. For DEL: Swap back</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            window_start: Start position of sequence window (0-based genomic coord)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">is_torch</span> <span class="o">=</span> <span class="n">TORCH_AVAILABLE</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_tensor</span><span class="p">(</span><span class="n">ref_pred</span><span class="p">)</span>
+
+        <span class="c1"># Convert to numpy for manipulation</span>
+        <span class="k">if</span> <span class="n">is_torch</span><span class="p">:</span>
+            <span class="n">ref_np</span> <span class="o">=</span> <span class="n">ref_pred</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+            <span class="n">alt_np</span> <span class="o">=</span> <span class="n">alt_pred</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ref_np</span> <span class="o">=</span> <span class="n">ref_pred</span>
+            <span class="n">alt_np</span> <span class="o">=</span> <span class="n">alt_pred</span>
+
+        <span class="c1"># Swap for deletions (treat as insertion in reverse)</span>
+        <span class="k">if</span> <span class="n">svtype</span> <span class="o">==</span> <span class="s2">&quot;DEL&quot;</span><span class="p">:</span>
+            <span class="n">ref_np</span><span class="p">,</span> <span class="n">alt_np</span> <span class="o">=</span> <span class="n">alt_np</span><span class="p">,</span> <span class="n">ref_np</span>
+            <span class="n">var_pos</span> <span class="o">=</span> <span class="n">VariantPosition</span><span class="p">(</span>
+                <span class="n">var_pos</span><span class="o">.</span><span class="n">alt_pos</span><span class="p">,</span> <span class="n">var_pos</span><span class="o">.</span><span class="n">ref_pos</span><span class="p">,</span> <span class="n">var_pos</span><span class="o">.</span><span class="n">svlen</span><span class="p">,</span> <span class="n">svtype</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Get bin positions (window-relative, centered)</span>
+        <span class="n">ref_bin</span><span class="p">,</span> <span class="n">alt_start_bin</span><span class="p">,</span> <span class="n">alt_end_bin</span> <span class="o">=</span> <span class="n">var_pos</span><span class="o">.</span><span class="n">get_bin_positions</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bin_size</span><span class="p">,</span> <span class="n">window_start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">crop_length</span>
+        <span class="p">)</span>
+        <span class="n">bins_to_add</span> <span class="o">=</span> <span class="n">alt_end_bin</span> <span class="o">-</span> <span class="n">alt_start_bin</span>
+
+        <span class="c1"># Insert NaN bins in REF where variant exists in ALT</span>
+        <span class="n">ref_masked</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_insert_nan_bins</span><span class="p">(</span><span class="n">ref_np</span><span class="p">,</span> <span class="n">ref_bin</span><span class="p">,</span> <span class="n">bins_to_add</span><span class="p">)</span>
+
+        <span class="c1"># Crop to maintain target size</span>
+        <span class="n">ref_masked</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_crop_matrix</span><span class="p">(</span><span class="n">ref_masked</span><span class="p">,</span> <span class="n">ref_bin</span><span class="p">,</span> <span class="n">alt_start_bin</span><span class="p">)</span>
+        <span class="n">alt_masked</span> <span class="o">=</span> <span class="n">alt_np</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="c1"># Swap back for deletions</span>
+        <span class="k">if</span> <span class="n">svtype</span> <span class="o">==</span> <span class="s2">&quot;DEL&quot;</span><span class="p">:</span>
+            <span class="n">ref_masked</span><span class="p">,</span> <span class="n">alt_masked</span> <span class="o">=</span> <span class="n">alt_masked</span><span class="p">,</span> <span class="n">ref_masked</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_size</span><span class="p">(</span><span class="n">ref_masked</span><span class="p">,</span> <span class="n">alt_masked</span><span class="p">)</span>
+
+        <span class="c1"># Convert back to torch if needed</span>
+        <span class="k">if</span> <span class="n">is_torch</span><span class="p">:</span>
+            <span class="n">ref_masked</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">ref_masked</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">ref_pred</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">ref_pred</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">alt_masked</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">alt_masked</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">alt_pred</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">alt_pred</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">ref_masked</span><span class="p">,</span> <span class="n">alt_masked</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_insert_nan_bins</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">matrix</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">position</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">num_bins</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Insert NaN bins (rows and columns) at specified position.</span>
+
+<span class="sd">        For 2D matrices, we must insert both rows AND columns to maintain</span>
+<span class="sd">        the square matrix structure and properly mask interactions.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">matrix</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">offset</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_bins</span><span class="p">):</span>
+            <span class="n">insert_pos</span> <span class="o">=</span> <span class="n">position</span> <span class="o">+</span> <span class="n">offset</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">insert_pos</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">insert_pos</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_crop_matrix</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">matrix</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">ref_bin</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">alt_bin</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Crop matrix edges to maintain target size.</span>
+
+<span class="sd">        After inserting NaN bins, the matrix is larger than expected.</span>
+<span class="sd">        This function crops from edges proportionally to center the variant.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">remove_left</span> <span class="o">=</span> <span class="n">ref_bin</span> <span class="o">-</span> <span class="n">alt_bin</span>
+        <span class="n">remove_right</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">matrix</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_size</span> <span class="o">-</span> <span class="n">remove_left</span>
+
+        <span class="c1"># Apply cropping</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">remove_left</span><span class="p">)</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">matrix</span><span class="p">)</span> <span class="o">-</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">remove_right</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">matrix</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">,</span> <span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_align_inversion_matrices</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">ref_pred</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">],</span>
+        <span class="n">alt_pred</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">],</span>
+        <span class="n">var_pos</span><span class="p">:</span> <span class="n">VariantPosition</span><span class="p">,</span>
+        <span class="n">window_start</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">],</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Align matrices for inversions.</span>
+
+<span class="sd">        Strategy: Mask the inverted region in both REF and ALT matrices using</span>
+<span class="sd">        a cross-pattern (mask entire rows AND columns at the inversion position).</span>
+
+<span class="sd">        Why cross-masking?</span>
+<span class="sd">        - Inversions reverse the sequence, creating geometric rotation in contact maps</span>
+<span class="sd">        - Masking rows removes interactions with the inverted region (one dimension)</span>
+<span class="sd">        - Masking columns removes interactions from the inverted region (other dimension)</span>
+<span class="sd">        - This ensures only flanking regions (unaffected by inversion) are compared</span>
+
+<span class="sd">        The same NaN pattern is mirrored to ALT so both matrices have identical</span>
+<span class="sd">        masked regions, enabling fair comparison of the unaffected areas.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            window_start: Start position of sequence window (0-based genomic coord)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">is_torch</span> <span class="o">=</span> <span class="n">TORCH_AVAILABLE</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_tensor</span><span class="p">(</span><span class="n">ref_pred</span><span class="p">)</span>
+
+        <span class="c1"># Convert to numpy for manipulation</span>
+        <span class="k">if</span> <span class="n">is_torch</span><span class="p">:</span>
+            <span class="n">ref_np</span> <span class="o">=</span> <span class="n">ref_pred</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+            <span class="n">alt_np</span> <span class="o">=</span> <span class="n">alt_pred</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ref_np</span> <span class="o">=</span> <span class="n">ref_pred</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">alt_np</span> <span class="o">=</span> <span class="n">alt_pred</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="n">var_start</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">var_end</span> <span class="o">=</span> <span class="n">var_pos</span><span class="o">.</span><span class="n">get_bin_positions</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bin_size</span><span class="p">,</span> <span class="n">window_start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">crop_length</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Mask inverted region in REF (cross-pattern: rows + columns)</span>
+        <span class="n">ref_np</span><span class="p">[</span><span class="n">var_start</span> <span class="p">:</span> <span class="n">var_end</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="n">ref_np</span><span class="p">[:,</span> <span class="n">var_start</span> <span class="p">:</span> <span class="n">var_end</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+        <span class="c1"># Mirror NaN pattern to ALT (correct approach)</span>
+        <span class="n">nan_mask</span> <span class="o">=</span> <span class="n">ref_np</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">nan_mask</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">invert</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">nan_mask</span><span class="p">))]</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># Non-NaN → 0, NaN stays NaN</span>
+        <span class="n">alt_np</span> <span class="o">=</span> <span class="n">alt_np</span> <span class="o">+</span> <span class="n">nan_mask</span>  <span class="c1"># Adding NaN propagates NaN to ALT</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_size</span><span class="p">(</span><span class="n">ref_np</span><span class="p">,</span> <span class="n">alt_np</span><span class="p">)</span>
+
+        <span class="c1"># Convert back to torch if needed</span>
+        <span class="k">if</span> <span class="n">is_torch</span><span class="p">:</span>
+            <span class="n">ref_np</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">ref_np</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">ref_pred</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">ref_pred</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="n">alt_np</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">alt_np</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">alt_pred</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">alt_pred</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">ref_np</span><span class="p">,</span> <span class="n">alt_np</span>
+
+<div class="viewcode-block" id="PredictionAligner2D.align_bnd_matrices">
+<a class="viewcode-back" href="../../autoapi/supremo_lite/prediction_alignment/index.html#supremo_lite.PredictionAligner2D.align_bnd_matrices">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">align_bnd_matrices</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">left_ref</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">],</span>
+        <span class="n">right_ref</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">],</span>
+        <span class="n">bnd_alt</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">],</span>
+        <span class="n">breakpoint_bin</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">],</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Align matrices for breakends (chromosomal rearrangements).</span>
+
+<span class="sd">        BNDs join two distant loci, so we create a chimeric reference</span>
+<span class="sd">        matrix from the two separate loci.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            left_ref: Prediction from left locus</span>
+<span class="sd">            right_ref: Prediction from right locus</span>
+<span class="sd">            bnd_alt: Prediction from joined (alternate) sequence</span>
+<span class="sd">            breakpoint_bin: Bin position of breakpoint</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple of (chimeric_ref, alt) matrices</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">is_torch</span> <span class="o">=</span> <span class="n">TORCH_AVAILABLE</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_tensor</span><span class="p">(</span><span class="n">left_ref</span><span class="p">)</span>
+
+        <span class="c1"># Convert to numpy for manipulation</span>
+        <span class="k">if</span> <span class="n">is_torch</span><span class="p">:</span>
+            <span class="n">left_np</span> <span class="o">=</span> <span class="n">left_ref</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+            <span class="n">right_np</span> <span class="o">=</span> <span class="n">right_ref</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+            <span class="n">alt_np</span> <span class="o">=</span> <span class="n">bnd_alt</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">left_np</span> <span class="o">=</span> <span class="n">left_ref</span>
+            <span class="n">right_np</span> <span class="o">=</span> <span class="n">right_ref</span>
+            <span class="n">alt_np</span> <span class="o">=</span> <span class="n">bnd_alt</span>
+
+        <span class="c1"># Assemble chimeric matrix from two loci</span>
+        <span class="n">ref_chimeric</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_assemble_chimeric_matrix</span><span class="p">(</span><span class="n">left_np</span><span class="p">,</span> <span class="n">right_np</span><span class="p">,</span> <span class="n">breakpoint_bin</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_size</span><span class="p">(</span><span class="n">ref_chimeric</span><span class="p">,</span> <span class="n">alt_np</span><span class="p">)</span>
+
+        <span class="c1"># Convert back to torch if needed</span>
+        <span class="k">if</span> <span class="n">is_torch</span><span class="p">:</span>
+            <span class="n">ref_chimeric</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">ref_chimeric</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">left_ref</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">left_ref</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">alt_np</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">alt_np</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">bnd_alt</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">bnd_alt</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">ref_chimeric</span><span class="p">,</span> <span class="n">alt_np</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_assemble_chimeric_matrix</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">left_matrix</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">right_matrix</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">breakpoint</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Assemble chimeric matrix from two loci.</span>
+
+<span class="sd">        Structure:</span>
+<span class="sd">        - Upper left quadrant: left locus</span>
+<span class="sd">        - Lower right quadrant: right locus</span>
+<span class="sd">        - Upper right/lower left quadrants: NaN (no trans prediction)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">target_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_size</span><span class="p">))</span>
+
+        <span class="c1"># Fill upper left quadrant (left locus)</span>
+        <span class="n">matrix</span><span class="p">[:</span><span class="nb">breakpoint</span><span class="p">,</span> <span class="p">:</span><span class="nb">breakpoint</span><span class="p">]</span> <span class="o">=</span> <span class="n">left_matrix</span><span class="p">[:</span><span class="nb">breakpoint</span><span class="p">,</span> <span class="p">:</span><span class="nb">breakpoint</span><span class="p">]</span>
+
+        <span class="c1"># Fill lower right quadrant (right locus)</span>
+        <span class="n">matrix</span><span class="p">[</span><span class="nb">breakpoint</span><span class="p">:,</span> <span class="nb">breakpoint</span><span class="p">:]</span> <span class="o">=</span> <span class="n">right_matrix</span><span class="p">[</span><span class="nb">breakpoint</span><span class="p">:,</span> <span class="nb">breakpoint</span><span class="p">:]</span>
+
+        <span class="c1"># Fill transition quadrants with NaN</span>
+        <span class="n">matrix</span><span class="p">[:</span><span class="nb">breakpoint</span><span class="p">,</span> <span class="nb">breakpoint</span><span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="n">matrix</span><span class="p">[</span><span class="nb">breakpoint</span><span class="p">:,</span> <span class="p">:</span><span class="nb">breakpoint</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+        <span class="c1"># Mask diagonals as specified by model</span>
+        <span class="k">for</span> <span class="n">offset</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">diag_offset</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">diag_offset</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">offset</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">fill_diagonal</span><span class="p">(</span><span class="n">matrix</span><span class="p">[</span><span class="nb">abs</span><span class="p">(</span><span class="n">offset</span><span class="p">)</span> <span class="p">:,</span> <span class="p">:],</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">fill_diagonal</span><span class="p">(</span><span class="n">matrix</span><span class="p">[:,</span> <span class="n">offset</span><span class="p">:],</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">matrix</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_validate_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref_matrix</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">alt_matrix</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Validate that matrices are the correct size.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            ref_matrix: Reference prediction matrix</span>
+<span class="sd">            alt_matrix: Alternate prediction matrix</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If either matrix has incorrect size</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">ref_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_size</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Reference matrix wrong size: </span><span class="si">{</span><span class="n">ref_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> vs </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">target_size</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">alt_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_size</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Alternate matrix wrong size: </span><span class="si">{</span><span class="n">alt_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> vs </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">target_size</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span></div>
+
+
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Utility Functions for Contact Maps</span>
+<span class="c1"># =============================================================================</span>
+
+
+<div class="viewcode-block" id="vector_to_contact_matrix">
+<a class="viewcode-back" href="../../autoapi/supremo_lite/prediction_alignment/index.html#supremo_lite.vector_to_contact_matrix">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">vector_to_contact_matrix</span><span class="p">(</span>
+    <span class="n">vector</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">],</span> <span class="n">matrix_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">diag_offset</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert flattened upper triangular vector to full contact matrix.</span>
+
+<span class="sd">    This function reconstructs a full symmetric contact matrix from its upper</span>
+<span class="sd">    triangular representation, following the pattern used in genomic contact map models.</span>
+<span class="sd">    Supports diagonal masking where near-diagonal elements are excluded.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        vector: Flattened upper triangular matrix</span>
+<span class="sd">                Expected length depends on diag_offset:</span>
+<span class="sd">                - diag_offset=0: matrix_size * (matrix_size + 1) / 2 (includes diagonal)</span>
+<span class="sd">                - diag_offset=k: (matrix_size - k) * (matrix_size - k + 1) / 2</span>
+<span class="sd">        matrix_size: Dimension of the output square matrix</span>
+<span class="sd">        diag_offset: Diagonal offset for masking (default=0, no masking)</span>
+<span class="sd">                     diag_offset=2 means skip main diagonal and first off-diagonal</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Full symmetric contact matrix of shape (matrix_size, matrix_size)</span>
+<span class="sd">        Elements within diag_offset of the diagonal are set to NaN</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; # Full upper triangle (diag_offset=0, default)</span>
+<span class="sd">        &gt;&gt;&gt; vector = np.array([1, 2, 3, 4, 5, 6])</span>
+<span class="sd">        &gt;&gt;&gt; matrix = vector_to_contact_matrix(vector, 3)</span>
+<span class="sd">        &gt;&gt;&gt; # Result: [[1, 2, 3], [2, 4, 5], [3, 5, 6]]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Handle both PyTorch tensors and NumPy arrays</span>
+    <span class="n">is_torch</span> <span class="o">=</span> <span class="n">TORCH_AVAILABLE</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_tensor</span><span class="p">(</span><span class="n">vector</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">is_torch</span><span class="p">:</span>
+        <span class="c1"># Initialize matrix with NaN</span>
+        <span class="n">matrix</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">matrix_size</span><span class="p">,</span> <span class="n">matrix_size</span><span class="p">),</span>
+            <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;nan&quot;</span><span class="p">),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">vector</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">vector</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># Get upper triangle indices with diagonal offset</span>
+        <span class="n">triu_indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">triu_indices</span><span class="p">(</span><span class="n">matrix_size</span><span class="p">,</span> <span class="n">matrix_size</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="n">diag_offset</span><span class="p">)</span>
+        <span class="n">matrix</span><span class="p">[</span><span class="n">triu_indices</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">triu_indices</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="n">vector</span>
+        <span class="c1"># Make symmetric by copying upper triangle to lower (preserving NaN)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">matrix_size</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="n">diag_offset</span><span class="p">,</span> <span class="n">matrix_size</span><span class="p">):</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">matrix</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]):</span>
+                    <span class="n">matrix</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">matrix</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Initialize matrix with NaN</span>
+        <span class="n">matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">matrix_size</span><span class="p">,</span> <span class="n">matrix_size</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">vector</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="c1"># Get upper triangle indices with diagonal offset</span>
+        <span class="n">triu_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">triu_indices</span><span class="p">(</span><span class="n">matrix_size</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">diag_offset</span><span class="p">)</span>
+        <span class="n">matrix</span><span class="p">[</span><span class="n">triu_indices</span><span class="p">]</span> <span class="o">=</span> <span class="n">vector</span>
+        <span class="c1"># Make symmetric by copying upper triangle to lower (preserving NaN)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">matrix_size</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="n">diag_offset</span><span class="p">,</span> <span class="n">matrix_size</span><span class="p">):</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">matrix</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]):</span>
+                    <span class="n">matrix</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">matrix</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">matrix</span></div>
+
+
+
+<div class="viewcode-block" id="contact_matrix_to_vector">
+<a class="viewcode-back" href="../../autoapi/supremo_lite/prediction_alignment/index.html#supremo_lite.contact_matrix_to_vector">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">contact_matrix_to_vector</span><span class="p">(</span>
+    <span class="n">matrix</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">],</span> <span class="n">diag_offset</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert full contact matrix to flattened upper triangular vector.</span>
+
+<span class="sd">    This function extracts the upper triangular portion of a contact matrix,</span>
+<span class="sd">    which is the standard representation for genomic contact maps. Supports</span>
+<span class="sd">    diagonal masking to exclude near-diagonal elements.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        matrix: Full symmetric contact matrix of shape (N, N)</span>
+<span class="sd">        diag_offset: Diagonal offset for extraction (default=0, includes diagonal)</span>
+<span class="sd">                     diag_offset=2 means skip main diagonal and first off-diagonal</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Flattened upper triangular vector</span>
+<span class="sd">        Length depends on diag_offset:</span>
+<span class="sd">        - diag_offset=0: N * (N + 1) / 2 (includes diagonal)</span>
+<span class="sd">        - diag_offset=k: (N - k) * (N - k + 1) / 2</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; # Full upper triangle (diag_offset=0, default)</span>
+<span class="sd">        &gt;&gt;&gt; matrix = np.array([[1, 2, 3], [2, 4, 5], [3, 5, 6]])</span>
+<span class="sd">        &gt;&gt;&gt; vector = contact_matrix_to_vector(matrix)</span>
+<span class="sd">        &gt;&gt;&gt; # Result: [1, 2, 3, 4, 5, 6]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Handle both PyTorch tensors and NumPy arrays</span>
+    <span class="n">is_torch</span> <span class="o">=</span> <span class="n">TORCH_AVAILABLE</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_tensor</span><span class="p">(</span><span class="n">matrix</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">is_torch</span><span class="p">:</span>
+        <span class="n">triu_indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">triu_indices</span><span class="p">(</span>
+            <span class="n">matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">offset</span><span class="o">=</span><span class="n">diag_offset</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">matrix</span><span class="p">[</span><span class="n">triu_indices</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">triu_indices</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">triu_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">triu_indices</span><span class="p">(</span><span class="n">matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">k</span><span class="o">=</span><span class="n">diag_offset</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">matrix</span><span class="p">[</span><span class="n">triu_indices</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="align_predictions_by_coordinate">
+<a class="viewcode-back" href="../../autoapi/supremo_lite/prediction_alignment/index.html#supremo_lite.align_predictions_by_coordinate">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">align_predictions_by_coordinate</span><span class="p">(</span>
+    <span class="n">ref_preds</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">],</span>
+    <span class="n">alt_preds</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">],</span>
+    <span class="n">metadata_row</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+    <span class="n">bin_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">prediction_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">crop_length</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">matrix_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">diag_offset</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">],</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s2">&quot;torch.Tensor&quot;</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Align reference and alt predictions using coordinate transformation and variant type awareness.</span>
+
+<span class="sd">    This is the main public API for prediction alignment. It handles both 1D prediction</span>
+<span class="sd">    vectors (e.g., chromatin accessibility, TF binding) and 2D matrices (e.g., Hi-C contact maps),</span>
+<span class="sd">    routing to the appropriate alignment strategy based on variant type.</span>
+
+<span class="sd">    IMPORTANT: Model-specific parameters (bin_size, crop_length, matrix_size) must be explicitly</span>
+<span class="sd">    provided by the user. There are no defaults because these vary across different models.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        ref_preds: Reference predictions array (from model with edge cropping)</span>
+<span class="sd">        alt_preds: Alt predictions array (same shape as ref_preds)</span>
+<span class="sd">        metadata_row: Dictionary with variant information containing:</span>
+<span class="sd">            - &#39;variant_type&#39;: Type of variant (SNV, INS, DEL, DUP, INV, BND)</span>
+<span class="sd">            - &#39;window_start&#39;: Start position of window (0-based)</span>
+<span class="sd">            - &#39;variant_pos0&#39;: Variant position (0-based, absolute genomic coordinate)</span>
+<span class="sd">            - &#39;svlen&#39;: Length of structural variant (optional, for symbolic alleles)</span>
+<span class="sd">        bin_size: Number of base pairs per prediction bin (REQUIRED, model-specific)</span>
+<span class="sd">            Examples: 2048 for Akita, 128 for Enformer</span>
+<span class="sd">        prediction_type: Type of predictions (&quot;1D&quot; or &quot;2D&quot;)</span>
+<span class="sd">            - &quot;1D&quot;: Vector predictions (chromatin accessibility, TF binding, etc.)</span>
+<span class="sd">            - &quot;2D&quot;: Matrix predictions (Hi-C contact maps, Micro-C, etc.)</span>
+<span class="sd">        crop_length: Number of base pairs cropped from each edge by the model (REQUIRED)</span>
+<span class="sd">            This accounts for edge bases removed before prediction.</span>
+<span class="sd">            Examples: 0 for models without cropping</span>
+<span class="sd">        matrix_size: Size of contact matrix (REQUIRED for 2D type)</span>
+<span class="sd">            Examples: 448 for Akita</span>
+<span class="sd">        diag_offset: Number of diagonal bins to mask (default: 0 for no masking)</span>
+<span class="sd">            Set to 0 if your model doesn&#39;t mask diagonals, or to model-specific value</span>
+<span class="sd">            Examples: 2 for Akita, 0 for models without diagonal masking</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Tuple of (aligned_ref_preds, aligned_alt_preds) with NaN masking applied</span>
+<span class="sd">        at positions that differ between reference and alternate sequences</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If prediction_type is invalid, required parameters are missing,</span>
+<span class="sd">            or variant type is unsupported</span>
+
+<span class="sd">    Example (1D predictions):</span>
+<span class="sd">        &gt;&gt;&gt; ref_aligned, alt_aligned = align_predictions_by_coordinate(</span>
+<span class="sd">        ...     ref_preds=ref_scores,</span>
+<span class="sd">        ...     alt_preds=alt_scores,</span>
+<span class="sd">        ...     metadata_row={&#39;variant_type&#39;: &#39;INS&#39;, &#39;window_start&#39;: 0,</span>
+<span class="sd">        ...                   &#39;variant_pos0&#39;: 500, &#39;svlen&#39;: 100},</span>
+<span class="sd">        ...     bin_size=128,</span>
+<span class="sd">        ...     prediction_type=&quot;1D&quot;,</span>
+<span class="sd">        ...     crop_length=0</span>
+<span class="sd">        ... )</span>
+
+<span class="sd">    Example (2D contact maps with diagonal masking):</span>
+<span class="sd">        &gt;&gt;&gt; ref_aligned, alt_aligned = align_predictions_by_coordinate(</span>
+<span class="sd">        ...     ref_preds=ref_contact_map,</span>
+<span class="sd">        ...     alt_preds=alt_contact_map,</span>
+<span class="sd">        ...     metadata_row={&#39;variant_type&#39;: &#39;DEL&#39;, &#39;window_start&#39;: 0,</span>
+<span class="sd">        ...                   &#39;variant_pos0&#39;: 50000, &#39;svlen&#39;: -2048},</span>
+<span class="sd">        ...     bin_size=2048,</span>
+<span class="sd">        ...     prediction_type=&quot;2D&quot;,</span>
+<span class="sd">        ...     crop_length=0,</span>
+<span class="sd">        ...     matrix_size=448,</span>
+<span class="sd">        ...     diag_offset=2  # Optional: use 0 if no diagonal masking</span>
+<span class="sd">        ... )</span>
+
+<span class="sd">    Example (2D contact maps without diagonal masking):</span>
+<span class="sd">        &gt;&gt;&gt; ref_aligned, alt_aligned = align_predictions_by_coordinate(</span>
+<span class="sd">        ...     ref_preds=ref_contact_map,</span>
+<span class="sd">        ...     alt_preds=alt_contact_map,</span>
+<span class="sd">        ...     metadata_row={&#39;variant_type&#39;: &#39;INS&#39;, &#39;window_start&#39;: 0,</span>
+<span class="sd">        ...                   &#39;variant_pos0&#39;: 1000, &#39;svlen&#39;: 500},</span>
+<span class="sd">        ...     bin_size=1000,</span>
+<span class="sd">        ...     prediction_type=&quot;2D&quot;,</span>
+<span class="sd">        ...     crop_length=0,</span>
+<span class="sd">        ...     matrix_size=512</span>
+<span class="sd">        ...     # diag_offset defaults to 0 (no masking)</span>
+<span class="sd">        ... )</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Validate prediction type and parameters</span>
+    <span class="k">if</span> <span class="n">prediction_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;1D&quot;</span><span class="p">,</span> <span class="s2">&quot;2D&quot;</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;prediction_type must be &#39;1D&#39; or &#39;2D&#39;, got &#39;</span><span class="si">{</span><span class="n">prediction_type</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">prediction_type</span> <span class="o">==</span> <span class="s2">&quot;2D&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">matrix_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;matrix_size must be provided for 2D prediction type&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Extract variant information from metadata</span>
+    <span class="n">variant_type</span> <span class="o">=</span> <span class="n">metadata_row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;variant_type&quot;</span><span class="p">,</span> <span class="s2">&quot;unknown&quot;</span><span class="p">)</span>
+    <span class="n">window_start</span> <span class="o">=</span> <span class="n">metadata_row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;window_start&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">variant_pos0</span> <span class="o">=</span> <span class="n">metadata_row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;variant_pos0&quot;</span><span class="p">)</span>
+
+    <span class="c1"># For backward compatibility, check for effective_variant_start (deprecated)</span>
+    <span class="k">if</span> <span class="n">variant_pos0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">abs_variant_pos</span> <span class="o">=</span> <span class="n">variant_pos0</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Fall back to old field name if present (for backward compatibility)</span>
+        <span class="n">effective_variant_start</span> <span class="o">=</span> <span class="n">metadata_row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;effective_variant_start&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">abs_variant_pos</span> <span class="o">=</span> <span class="n">window_start</span> <span class="o">+</span> <span class="n">effective_variant_start</span>
+
+    <span class="n">svlen</span> <span class="o">=</span> <span class="n">metadata_row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;svlen&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="c1"># Calculate svlen from alleles if not present (for non-symbolic DEL/INS variants)</span>
+    <span class="c1"># Symbolic variants (SV_DEL, SV_INS, SV_INV, SV_DUP) have svlen in INFO field</span>
+    <span class="c1"># Regular variants (DEL, INS) need svlen calculated from allele lengths</span>
+    <span class="k">if</span> <span class="n">svlen</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">svlen</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">ref_allele</span> <span class="o">=</span> <span class="n">metadata_row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ref&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="n">alt_allele</span> <span class="o">=</span> <span class="n">metadata_row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;alt&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ref_allele</span> <span class="ow">and</span> <span class="n">alt_allele</span><span class="p">:</span>
+            <span class="c1"># svlen = len(alt) - len(ref)</span>
+            <span class="c1"># For DEL: negative (e.g., 1 - 13 = -12)</span>
+            <span class="c1"># For INS: positive (e.g., 7 - 1 = 6)</span>
+            <span class="n">svlen</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">alt_allele</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref_allele</span><span class="p">)</span>
+
+    <span class="c1"># Create VariantPosition object</span>
+    <span class="n">var_pos</span> <span class="o">=</span> <span class="n">VariantPosition</span><span class="p">(</span>
+        <span class="n">ref_pos</span><span class="o">=</span><span class="n">abs_variant_pos</span><span class="p">,</span>
+        <span class="n">alt_pos</span><span class="o">=</span><span class="n">abs_variant_pos</span><span class="p">,</span>
+        <span class="n">svlen</span><span class="o">=</span><span class="n">svlen</span> <span class="k">if</span> <span class="n">svlen</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">variant_type</span><span class="o">=</span><span class="n">variant_type</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Determine target size from predictions</span>
+    <span class="k">if</span> <span class="n">prediction_type</span> <span class="o">==</span> <span class="s2">&quot;1D&quot;</span><span class="p">:</span>
+        <span class="c1"># Check if predictions are multi-dimensional (multiple targets)</span>
+        <span class="n">is_torch</span> <span class="o">=</span> <span class="n">TORCH_AVAILABLE</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_tensor</span><span class="p">(</span><span class="n">ref_preds</span><span class="p">)</span>
+        <span class="n">is_numpy</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ref_preds</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">is_torch</span><span class="p">:</span>
+            <span class="n">ndim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref_preds</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">is_numpy</span><span class="p">:</span>
+            <span class="n">ndim</span> <span class="o">=</span> <span class="n">ref_preds</span><span class="o">.</span><span class="n">ndim</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ndim</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="c1"># Handle multi-target predictions [n_targets, n_bins]</span>
+        <span class="k">if</span> <span class="n">ndim</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">target_size</span> <span class="o">=</span> <span class="n">ref_preds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># Number of bins</span>
+            <span class="n">aligner</span> <span class="o">=</span> <span class="n">PredictionAligner1D</span><span class="p">(</span>
+                <span class="n">target_size</span><span class="o">=</span><span class="n">target_size</span><span class="p">,</span> <span class="n">bin_size</span><span class="o">=</span><span class="n">bin_size</span><span class="p">,</span> <span class="n">crop_length</span><span class="o">=</span><span class="n">crop_length</span>
+            <span class="p">)</span>
+
+            <span class="c1"># Align each target separately</span>
+            <span class="n">n_targets</span> <span class="o">=</span> <span class="n">ref_preds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">ref_aligned_list</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">alt_aligned_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="k">for</span> <span class="n">target_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_targets</span><span class="p">):</span>
+                <span class="n">ref_target</span> <span class="o">=</span> <span class="n">ref_preds</span><span class="p">[</span><span class="n">target_idx</span><span class="p">]</span>
+                <span class="n">alt_target</span> <span class="o">=</span> <span class="n">alt_preds</span><span class="p">[</span><span class="n">target_idx</span><span class="p">]</span>
+                <span class="n">ref_aligned</span><span class="p">,</span> <span class="n">alt_aligned</span> <span class="o">=</span> <span class="n">aligner</span><span class="o">.</span><span class="n">align_predictions</span><span class="p">(</span>
+                    <span class="n">ref_target</span><span class="p">,</span> <span class="n">alt_target</span><span class="p">,</span> <span class="n">variant_type</span><span class="p">,</span> <span class="n">var_pos</span><span class="p">,</span> <span class="n">window_start</span>
+                <span class="p">)</span>
+                <span class="n">ref_aligned_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ref_aligned</span><span class="p">)</span>
+                <span class="n">alt_aligned_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">alt_aligned</span><span class="p">)</span>
+
+            <span class="c1"># Stack results back into multi-target format</span>
+            <span class="k">if</span> <span class="n">is_torch</span><span class="p">:</span>
+                <span class="n">ref_result</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">ref_aligned_list</span><span class="p">)</span>
+                <span class="n">alt_result</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">alt_aligned_list</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ref_result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">ref_aligned_list</span><span class="p">)</span>
+                <span class="n">alt_result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">alt_aligned_list</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">ref_result</span><span class="p">,</span> <span class="n">alt_result</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Single target prediction [n_bins]</span>
+            <span class="n">target_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref_preds</span><span class="p">)</span>
+            <span class="n">aligner</span> <span class="o">=</span> <span class="n">PredictionAligner1D</span><span class="p">(</span>
+                <span class="n">target_size</span><span class="o">=</span><span class="n">target_size</span><span class="p">,</span> <span class="n">bin_size</span><span class="o">=</span><span class="n">bin_size</span><span class="p">,</span> <span class="n">crop_length</span><span class="o">=</span><span class="n">crop_length</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">aligner</span><span class="o">.</span><span class="n">align_predictions</span><span class="p">(</span>
+                <span class="n">ref_preds</span><span class="p">,</span> <span class="n">alt_preds</span><span class="p">,</span> <span class="n">variant_type</span><span class="p">,</span> <span class="n">var_pos</span><span class="p">,</span> <span class="n">window_start</span>
+            <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>  <span class="c1"># 2D</span>
+        <span class="c1"># Check if predictions are 1D (flattened upper triangular) or 2D (full matrix)</span>
+        <span class="n">is_torch</span> <span class="o">=</span> <span class="n">TORCH_AVAILABLE</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_tensor</span><span class="p">(</span><span class="n">ref_preds</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">is_torch</span><span class="p">:</span>
+            <span class="n">ndim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref_preds</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ndim</span> <span class="o">=</span> <span class="n">ref_preds</span><span class="o">.</span><span class="n">ndim</span>
+
+        <span class="c1"># If 1D, convert to 2D matrix</span>
+        <span class="k">if</span> <span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">ref_matrix</span> <span class="o">=</span> <span class="n">vector_to_contact_matrix</span><span class="p">(</span>
+                <span class="n">ref_preds</span><span class="p">,</span> <span class="n">matrix_size</span><span class="p">,</span> <span class="n">diag_offset</span><span class="o">=</span><span class="n">diag_offset</span>
+            <span class="p">)</span>
+            <span class="n">alt_matrix</span> <span class="o">=</span> <span class="n">vector_to_contact_matrix</span><span class="p">(</span>
+                <span class="n">alt_preds</span><span class="p">,</span> <span class="n">matrix_size</span><span class="p">,</span> <span class="n">diag_offset</span><span class="o">=</span><span class="n">diag_offset</span>
+            <span class="p">)</span>
+
+            <span class="c1"># Align matrices</span>
+            <span class="n">aligner</span> <span class="o">=</span> <span class="n">PredictionAligner2D</span><span class="p">(</span>
+                <span class="n">target_size</span><span class="o">=</span><span class="n">matrix_size</span><span class="p">,</span>
+                <span class="n">bin_size</span><span class="o">=</span><span class="n">bin_size</span><span class="p">,</span>
+                <span class="n">diag_offset</span><span class="o">=</span><span class="n">diag_offset</span><span class="p">,</span>
+                <span class="n">crop_length</span><span class="o">=</span><span class="n">crop_length</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">aligned_ref_matrix</span><span class="p">,</span> <span class="n">aligned_alt_matrix</span> <span class="o">=</span> <span class="n">aligner</span><span class="o">.</span><span class="n">align_predictions</span><span class="p">(</span>
+                <span class="n">ref_matrix</span><span class="p">,</span> <span class="n">alt_matrix</span><span class="p">,</span> <span class="n">variant_type</span><span class="p">,</span> <span class="n">var_pos</span><span class="p">,</span> <span class="n">window_start</span>
+            <span class="p">)</span>
+
+            <span class="c1"># Convert back to flattened format</span>
+            <span class="n">aligned_ref_vector</span> <span class="o">=</span> <span class="n">contact_matrix_to_vector</span><span class="p">(</span>
+                <span class="n">aligned_ref_matrix</span><span class="p">,</span> <span class="n">diag_offset</span><span class="o">=</span><span class="n">diag_offset</span>
+            <span class="p">)</span>
+            <span class="n">aligned_alt_vector</span> <span class="o">=</span> <span class="n">contact_matrix_to_vector</span><span class="p">(</span>
+                <span class="n">aligned_alt_matrix</span><span class="p">,</span> <span class="n">diag_offset</span><span class="o">=</span><span class="n">diag_offset</span>
+            <span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">aligned_ref_vector</span><span class="p">,</span> <span class="n">aligned_alt_vector</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Already 2D matrices</span>
+            <span class="n">aligner</span> <span class="o">=</span> <span class="n">PredictionAligner2D</span><span class="p">(</span>
+                <span class="n">target_size</span><span class="o">=</span><span class="n">matrix_size</span><span class="p">,</span>
+                <span class="n">bin_size</span><span class="o">=</span><span class="n">bin_size</span><span class="p">,</span>
+                <span class="n">diag_offset</span><span class="o">=</span><span class="n">diag_offset</span><span class="p">,</span>
+                <span class="n">crop_length</span><span class="o">=</span><span class="n">crop_length</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">aligner</span><span class="o">.</span><span class="n">align_predictions</span><span class="p">(</span>
+                <span class="n">ref_preds</span><span class="p">,</span> <span class="n">alt_preds</span><span class="p">,</span> <span class="n">variant_type</span><span class="p">,</span> <span class="n">var_pos</span><span class="p">,</span> <span class="n">window_start</span>
+            <span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Gladstone Institutes.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

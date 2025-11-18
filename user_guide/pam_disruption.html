@@ -1,0 +1,365 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PAM Disruption Analysis &mdash; supremo_lite  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=fd3f3429" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Prediction Alignment" href="prediction_alignment.html" />
+    <link rel="prev" title="Variant-Centered Sequence Windows" href="variant_centered_sequences.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            supremo_lite
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="personalization.html">Personalized Genome Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="variant_centered_sequences.html">Variant-Centered Sequence Windows</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">PAM Disruption Analysis</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#function">Function</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#get-pam-disrupting-alt-sequences">get_pam_disrupting_alt_sequences()</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#supported-pam-sequences">Supported PAM Sequences</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#parameters">Parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#return-value">Return Value</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#usage-example">Usage Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#performance-considerations">Performance Considerations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#memory-efficiency">Memory Efficiency</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#troubleshooting">Troubleshooting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#unexpected-results-for-indels">Unexpected results for INDELs</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="prediction_alignment.html">Prediction Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="prediction_alignment_examples.html">Prediction Alignment Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="prediction_alignment_examples.html#variant-type-examples">Variant Type Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mutagenesis.html">Saturation Mutagenesis</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Notebooks</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../notebooks/01_getting_started.html">Getting Started with supremo_lite</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebooks/02_personalized_genomes.html">Personalized Genome Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebooks/03_prediction_alignment.html">Prediction Alignment: From Sequences to Aligned Predictions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebooks/04_pam_disruption.html">PAM Disruption Analysis: Identifying CRISPR-Resistant Variants</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../autoapi/index.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../conduct.html">Code of Conduct</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">supremo_lite</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">PAM Disruption Analysis</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/user_guide/pam_disruption.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="pam-disruption-analysis">
+<h1>PAM Disruption Analysis<a class="headerlink" href="#pam-disruption-analysis" title="Link to this heading"></a></h1>
+<p>Detect variants that disrupt Protospacer Adjacent Motif (PAM) sites for CRISPR genome editing analysis.</p>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>PAM (Protospacer Adjacent Motif) sites are short DNA sequences required by CRISPR-Cas systems for target recognition. Different Cas proteins recognize different PAM sequences:</p>
+<ul class="simple">
+<li><p><strong>SpCas9</strong>: NGG</p></li>
+<li><p><strong>SaCas9</strong>: NNGRRT</p></li>
+</ul>
+<p>Variants that disrupt PAM sites can make genomic loci resistant to repeated CRISPR editing at the same site.</p>
+</section>
+<section id="function">
+<h2>Function<a class="headerlink" href="#function" title="Link to this heading"></a></h2>
+<section id="get-pam-disrupting-alt-sequences">
+<h3>get_pam_disrupting_alt_sequences()<a class="headerlink" href="#get-pam-disrupting-alt-sequences" title="Link to this heading"></a></h3>
+<p>Identifies variants that disrupt PAM sites and returns reference/alternate sequences with metadata.</p>
+</section>
+</section>
+<section id="supported-pam-sequences">
+<h2>Supported PAM Sequences<a class="headerlink" href="#supported-pam-sequences" title="Link to this heading"></a></h2>
+<p>The function supports <a class="reference external" href="https://en.wikipedia.org/wiki/Nucleic_acid_notation">IUPAC ambiguity codes</a> in PAM patterns:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>PAM Pattern</p></th>
+<th class="head"><p>CRISPR System</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">NGG</span></code></p></td>
+<td><p>SpCas9</p></td>
+<td><p>Most common; N = any nucleotide</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">NNGRRT</span></code></p></td>
+<td><p>SaCas9</p></td>
+<td><p>Complex pattern with R = purine</p></td>
+</tr>
+</tbody>
+</table>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">supremo_lite</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sl</span>
+
+<span class="c1"># Generator yields (alt_seqs, ref_seqs, metadata) tuples</span>
+<span class="n">results</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">sl</span><span class="o">.</span><span class="n">get_pam_disrupting_alt_sequences</span><span class="p">(</span>
+    <span class="n">reference_fn</span><span class="o">=</span><span class="s1">&#39;genome.fa&#39;</span><span class="p">,</span>
+    <span class="n">variants_fn</span><span class="o">=</span><span class="s1">&#39;variants.vcf&#39;</span><span class="p">,</span>
+    <span class="n">seq_len</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>              <span class="c1"># Sequence window size</span>
+    <span class="n">max_pam_distance</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>       <span class="c1"># Max distance from variant to PAM</span>
+    <span class="n">pam_sequence</span><span class="o">=</span><span class="s2">&quot;NGG&quot;</span><span class="p">,</span>        <span class="c1"># PAM pattern to search for</span>
+    <span class="n">encode</span><span class="o">=</span><span class="kc">True</span>                <span class="c1"># Return one-hot encoded sequences</span>
+<span class="p">))</span>
+
+<span class="c1"># Unpack results (single chunk in this case)</span>
+<span class="n">alt_seqs</span><span class="p">,</span> <span class="n">ref_seqs</span><span class="p">,</span> <span class="n">metadata</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</pre></div>
+</div>
+<section id="parameters">
+<h3>Parameters<a class="headerlink" href="#parameters" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">reference_fn</span></code></p></td>
+<td><p>str/Fasta/dict</p></td>
+<td><p>Required</p></td>
+<td><p>Reference genome</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">variants_fn</span></code></p></td>
+<td><p>str/DataFrame</p></td>
+<td><p>Required</p></td>
+<td><p>Variants to analyze</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">seq_len</span></code></p></td>
+<td><p>int</p></td>
+<td><p>Required</p></td>
+<td><p>Length of sequence windows to extract</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">max_pam_distance</span></code></p></td>
+<td><p>int</p></td>
+<td><p>Required</p></td>
+<td><p>Maximum distance (bp) from variant to PAM site</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pam_sequence</span></code></p></td>
+<td><p>str</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;NGG&quot;</span></code></p></td>
+<td><p>PAM pattern (supports IUPAC ambiguity codes)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">encode</span></code></p></td>
+<td><p>bool</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">True</span></code></p></td>
+<td><p>Return one-hot encoded sequences</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">n_chunks</span></code></p></td>
+<td><p>int</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1</span></code></p></td>
+<td><p>Number of chunks for memory-efficient processing</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">encoder</span></code></p></td>
+<td><p>callable</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
+<td><p>Custom encoder function</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="return-value">
+<h3>Return Value<a class="headerlink" href="#return-value" title="Link to this heading"></a></h3>
+<p>Returns a generator yielding <code class="docutils literal notranslate"><span class="pre">(alt_seqs,</span> <span class="pre">ref_seqs,</span> <span class="pre">metadata)</span></code> tuples:</p>
+<ul class="simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">alt_seqs</span></code></strong>: Encoded alternate sequences with variants applied</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">ref_seqs</span></code></strong>: Encoded reference sequences without variants</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">metadata</span></code></strong>: DataFrame with variant info plus PAM-specific columns:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">pam_site_pos</span></code>: Position of disrupted PAM site</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pam_ref_sequence</span></code>: PAM sequence in reference</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pam_alt_sequence</span></code>: PAM sequence in alternate (disrupted)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pam_distance</span></code>: Distance from variant to PAM site</p></li>
+</ul>
+</li>
+</ul>
+</section>
+</section>
+<section id="usage-example">
+<h2>Usage Example<a class="headerlink" href="#usage-example" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">supremo_lite</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sl</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyfaidx</span><span class="w"> </span><span class="kn">import</span> <span class="n">Fasta</span>
+
+<span class="c1"># Load data</span>
+<span class="n">reference</span> <span class="o">=</span> <span class="n">Fasta</span><span class="p">(</span><span class="s1">&#39;hg38.fa&#39;</span><span class="p">)</span>
+<span class="n">variants</span> <span class="o">=</span> <span class="s1">&#39;patient_variants.vcf&#39;</span>
+
+<span class="c1"># Analyze SpCas9 PAM disruption</span>
+<span class="n">results</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">sl</span><span class="o">.</span><span class="n">get_pam_disrupting_alt_sequences</span><span class="p">(</span>
+    <span class="n">reference_fn</span><span class="o">=</span><span class="n">reference</span><span class="p">,</span>
+    <span class="n">variants_fn</span><span class="o">=</span><span class="n">variants</span><span class="p">,</span>
+    <span class="n">seq_len</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
+    <span class="n">max_pam_distance</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">pam_sequence</span><span class="o">=</span><span class="s2">&quot;NGG&quot;</span><span class="p">,</span>
+    <span class="n">encode</span><span class="o">=</span><span class="kc">False</span>  <span class="c1"># Get raw sequences for inspection</span>
+<span class="p">))</span>
+
+<span class="n">alt_seqs</span><span class="p">,</span> <span class="n">ref_seqs</span><span class="p">,</span> <span class="n">metadata</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Found </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">metadata</span><span class="p">)</span><span class="si">}</span><span class="s2"> PAM-disrupting variants&quot;</span><span class="p">)</span>
+
+<span class="c1"># Inspect first variant</span>
+<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">metadata</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="n">var</span> <span class="o">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Variant: </span><span class="si">{</span><span class="n">var</span><span class="p">[</span><span class="s1">&#39;chrom&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">var</span><span class="p">[</span><span class="s1">&#39;pos1&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">var</span><span class="p">[</span><span class="s1">&#39;ref&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">→</span><span class="si">{</span><span class="n">var</span><span class="p">[</span><span class="s1">&#39;alt&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;PAM disrupted at position: </span><span class="si">{</span><span class="n">var</span><span class="p">[</span><span class="s1">&#39;pam_site_pos&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Reference PAM: </span><span class="si">{</span><span class="n">var</span><span class="p">[</span><span class="s1">&#39;pam_ref_sequence&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> → Alternate: </span><span class="si">{</span><span class="n">var</span><span class="p">[</span><span class="s1">&#39;pam_alt_sequence&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="performance-considerations">
+<h2>Performance Considerations<a class="headerlink" href="#performance-considerations" title="Link to this heading"></a></h2>
+<section id="memory-efficiency">
+<h3>Memory Efficiency<a class="headerlink" href="#memory-efficiency" title="Link to this heading"></a></h3>
+<p>For large variant sets, use chunking:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">gen</span> <span class="o">=</span> <span class="n">sl</span><span class="o">.</span><span class="n">get_pam_disrupting_alt_sequences</span><span class="p">(</span>
+    <span class="n">reference_fn</span><span class="o">=</span><span class="n">reference</span><span class="p">,</span>
+    <span class="n">variants_fn</span><span class="o">=</span><span class="s1">&#39;large_variants.vcf&#39;</span><span class="p">,</span>
+    <span class="n">seq_len</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+    <span class="n">max_pam_distance</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">pam_sequence</span><span class="o">=</span><span class="s2">&quot;NGG&quot;</span><span class="p">,</span>
+    <span class="n">n_chunks</span><span class="o">=</span><span class="mi">10</span>  <span class="c1"># Process in 10 chunks</span>
+<span class="p">)</span>
+
+<span class="c1"># Process each chunk</span>
+<span class="k">for</span> <span class="n">alt_seqs</span><span class="p">,</span> <span class="n">ref_seqs</span><span class="p">,</span> <span class="n">metadata</span> <span class="ow">in</span> <span class="n">gen</span><span class="p">:</span>
+    <span class="c1"># Process chunk</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Processing </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">metadata</span><span class="p">)</span><span class="si">}</span><span class="s2"> variants&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="troubleshooting">
+<h2>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Link to this heading"></a></h2>
+<section id="unexpected-results-for-indels">
+<h3>Unexpected results for INDELs<a class="headerlink" href="#unexpected-results-for-indels" title="Link to this heading"></a></h3>
+<p><strong>Remember</strong>: INDELs that create or shift PAMs are NOT scored as disrupting.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Manually inspect INDEL effects</span>
+<span class="n">var</span> <span class="o">=</span> <span class="n">variants</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># An INDEL</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Variant: </span><span class="si">{</span><span class="n">var</span><span class="p">[</span><span class="s1">&#39;ref&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> → </span><span class="si">{</span><span class="n">var</span><span class="p">[</span><span class="s1">&#39;alt&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="n">results</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">sl</span><span class="o">.</span><span class="n">get_pam_disrupting_alt_sequences</span><span class="p">(</span>
+    <span class="n">reference_fn</span><span class="o">=</span><span class="n">reference</span><span class="p">,</span>
+    <span class="n">variants_fn</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([</span><span class="n">var</span><span class="p">]),</span>
+    <span class="n">seq_len</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">max_pam_distance</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">encode</span><span class="o">=</span><span class="kc">False</span>
+<span class="p">))</span>
+
+<span class="n">alt_seqs</span><span class="p">,</span> <span class="n">ref_seqs</span><span class="p">,</span> <span class="n">metadata</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">metadata</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Disrupts PAM&quot;</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Does NOT disrupt PAM (may create new PAM)&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="see-also">
+<h2>See Also<a class="headerlink" href="#see-also" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="variant_centered_sequences.html"><span class="std std-doc">Variant-Centered Sequences</span></a> - Generate sequence windows around variants</p></li>
+<li><p><a class="reference internal" href="prediction_alignment.html"><span class="std std-doc">Prediction Alignment</span></a> - Align model predictions across reference and alternate sequences</p></li>
+<li><p><a class="reference internal" href="../notebooks/01_getting_started.html"><span class="std std-doc">Getting Started Notebook</span></a> - Basic usage examples including PAM disruption</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="variant_centered_sequences.html" class="btn btn-neutral float-left" title="Variant-Centered Sequence Windows" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="prediction_alignment.html" class="btn btn-neutral float-right" title="Prediction Alignment" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Gladstone Institutes.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

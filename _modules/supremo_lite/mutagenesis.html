@@ -1,0 +1,551 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>supremo_lite.mutagenesis &mdash; supremo_lite  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=fd3f3429" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            supremo_lite
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../user_guide/personalization.html">Personalized Genome Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../user_guide/variant_centered_sequences.html">Variant-Centered Sequence Windows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../user_guide/pam_disruption.html">PAM Disruption Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../user_guide/prediction_alignment.html">Prediction Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../user_guide/prediction_alignment_examples.html">Prediction Alignment Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../user_guide/prediction_alignment_examples.html#variant-type-examples">Variant Type Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../user_guide/mutagenesis.html">Saturation Mutagenesis</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Notebooks</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../notebooks/01_getting_started.html">Getting Started with supremo_lite</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../notebooks/02_personalized_genomes.html">Personalized Genome Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../notebooks/03_prediction_alignment.html">Prediction Alignment: From Sequences to Aligned Predictions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../notebooks/04_pam_disruption.html">PAM Disruption Analysis: Identifying CRISPR-Resistant Variants</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../autoapi/index.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../conduct.html">Code of Conduct</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">supremo_lite</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">supremo_lite.mutagenesis</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for supremo_lite.mutagenesis</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">In-silico saturation mutagenesis functionality for supremo_lite.</span>
+
+<span class="sd">This module provides functions for generating saturation mutagenesis sequences,</span>
+<span class="sd">where each position in a sequence is systematically mutated.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">nt_to_1h</span><span class="p">,</span> <span class="n">TORCH_AVAILABLE</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.sequence_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">encode_seq</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.chromosome_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">match_chromosomes_with_report</span><span class="p">,</span> <span class="n">apply_chromosome_mapping</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="k">pass</span>  <span class="c1"># Already handled in core</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_read_bed_file</span><span class="p">(</span><span class="n">bed_regions</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Read BED file or validate BED DataFrame format.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        bed_regions: Path to BED file or DataFrame with BED format</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        DataFrame with columns: chrom, start, end</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If file format is invalid</span>
+<span class="sd">        FileNotFoundError: If file path doesn&#39;t exist</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bed_regions</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="c1"># Read BED file</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">bed_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span>
+                <span class="n">bed_regions</span><span class="p">,</span>
+                <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="n">header</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">comment</span><span class="o">=</span><span class="s2">&quot;#&quot;</span><span class="p">,</span>
+                <span class="n">usecols</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>  <span class="c1"># Only read first 3 columns</span>
+                <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;chrom&quot;</span><span class="p">,</span> <span class="s2">&quot;start&quot;</span><span class="p">,</span> <span class="s2">&quot;end&quot;</span><span class="p">],</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error reading BED file &#39;</span><span class="si">{</span><span class="n">bed_regions</span><span class="si">}</span><span class="s2">&#39;: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bed_regions</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+        <span class="n">bed_df</span> <span class="o">=</span> <span class="n">bed_regions</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="c1"># Validate required columns exist</span>
+        <span class="n">required_cols</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;chrom&quot;</span><span class="p">,</span> <span class="s2">&quot;start&quot;</span><span class="p">,</span> <span class="s2">&quot;end&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">col</span> <span class="ow">in</span> <span class="n">bed_df</span><span class="o">.</span><span class="n">columns</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">required_cols</span><span class="p">):</span>
+            <span class="n">available_cols</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">bed_df</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;BED DataFrame must contain columns </span><span class="si">{</span><span class="n">required_cols</span><span class="si">}</span><span class="s2">. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Found columns: </span><span class="si">{</span><span class="n">available_cols</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Select only required columns</span>
+        <span class="n">bed_df</span> <span class="o">=</span> <span class="n">bed_df</span><span class="p">[</span><span class="n">required_cols</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;bed_regions must be a file path (str) or DataFrame, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">bed_regions</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Validate data types and values</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">bed_df</span><span class="p">[</span><span class="s2">&quot;start&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">bed_df</span><span class="p">[</span><span class="s2">&quot;start&quot;</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;coerce&quot;</span><span class="p">)</span>
+        <span class="n">bed_df</span><span class="p">[</span><span class="s2">&quot;end&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">bed_df</span><span class="p">[</span><span class="s2">&quot;end&quot;</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;coerce&quot;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid BED coordinates: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Check for invalid coordinates</span>
+    <span class="n">invalid_coords</span> <span class="o">=</span> <span class="n">bed_df</span><span class="p">[</span><span class="s2">&quot;start&quot;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">bed_df</span><span class="p">[</span><span class="s2">&quot;end&quot;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">invalid_coords</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+        <span class="n">n_invalid</span> <span class="o">=</span> <span class="n">invalid_coords</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Found </span><span class="si">{</span><span class="n">n_invalid</span><span class="si">}</span><span class="s2"> BED regions with invalid coordinates (start &gt;= end). These will be removed.&quot;</span>
+        <span class="p">)</span>
+        <span class="n">bed_df</span> <span class="o">=</span> <span class="n">bed_df</span><span class="p">[</span><span class="o">~</span><span class="n">invalid_coords</span><span class="p">]</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># Check for negative coordinates</span>
+    <span class="n">negative_coords</span> <span class="o">=</span> <span class="p">(</span><span class="n">bed_df</span><span class="p">[</span><span class="s2">&quot;start&quot;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">bed_df</span><span class="p">[</span><span class="s2">&quot;end&quot;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">negative_coords</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+        <span class="n">n_negative</span> <span class="o">=</span> <span class="n">negative_coords</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Found </span><span class="si">{</span><span class="n">n_negative</span><span class="si">}</span><span class="s2"> BED regions with negative coordinates. These will be removed.&quot;</span>
+        <span class="p">)</span>
+        <span class="n">bed_df</span> <span class="o">=</span> <span class="n">bed_df</span><span class="p">[</span><span class="o">~</span><span class="n">negative_coords</span><span class="p">]</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bed_df</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No valid BED regions found after filtering&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">bed_df</span>
+
+
+<div class="viewcode-block" id="get_sm_sequences">
+<a class="viewcode-back" href="../../autoapi/supremo_lite/mutagenesis/index.html#supremo_lite.get_sm_sequences">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_sm_sequences</span><span class="p">(</span><span class="n">chrom</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">reference_fasta</span><span class="p">,</span> <span class="n">encoder</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generate sequences with all alternate nucleotides at every position (saturation mutagenesis).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        chrom: Chromosome name</span>
+<span class="sd">        start: Start position (0-based)</span>
+<span class="sd">        end: End position (0-based, exclusive)</span>
+<span class="sd">        reference_fasta: Reference genome object</span>
+<span class="sd">        encoder: Optional custom encoding function. If provided, should accept a single</span>
+<span class="sd">                sequence string and return encoded array with shape (4, L). Default: None</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Tuple of (reference one-hot, alt one-hot tensor, metadata DataFrame)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Get the reference sequence</span>
+    <span class="n">ref_seq</span> <span class="o">=</span> <span class="n">reference_fasta</span><span class="p">[</span><span class="n">chrom</span><span class="p">][</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">ref_seq</span><span class="p">,</span> <span class="s2">&quot;seq&quot;</span><span class="p">):</span>  <span class="c1"># Handle pyfaidx-like objects</span>
+        <span class="n">ref_seq</span> <span class="o">=</span> <span class="n">ref_seq</span><span class="o">.</span><span class="n">seq</span>
+
+    <span class="n">ref_1h</span> <span class="o">=</span> <span class="n">encode_seq</span><span class="p">(</span><span class="n">ref_seq</span><span class="p">,</span> <span class="n">encoder</span><span class="p">)</span>
+
+    <span class="n">alt_seqs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">metadata</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># For each position, substitute with each alternate base</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ref_seq</span><span class="p">)):</span>
+        <span class="n">ref_nt</span> <span class="o">=</span> <span class="n">ref_seq</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">alt</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">({</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="s2">&quot;G&quot;</span><span class="p">,</span> <span class="s2">&quot;T&quot;</span><span class="p">}</span> <span class="o">-</span> <span class="p">{</span><span class="n">ref_nt</span><span class="o">.</span><span class="n">upper</span><span class="p">()}):</span>
+            <span class="c1"># Create a clone and substitute the base</span>
+            <span class="k">if</span> <span class="n">TORCH_AVAILABLE</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ref_1h</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+                <span class="n">alt_1h</span> <span class="o">=</span> <span class="n">ref_1h</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+                <span class="n">alt_1h</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">nt_to_1h</span><span class="p">[</span><span class="n">alt</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">alt_1h</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">alt_1h</span> <span class="o">=</span> <span class="n">ref_1h</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">alt_1h</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">nt_to_1h</span><span class="p">[</span><span class="n">alt</span><span class="p">]</span>
+
+            <span class="n">alt_seqs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">alt_1h</span><span class="p">)</span>
+            <span class="n">metadata</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">chrom</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">ref_nt</span><span class="p">,</span> <span class="n">alt</span><span class="p">])</span>
+
+    <span class="c1"># Stack the alternate sequences</span>
+    <span class="k">if</span> <span class="n">TORCH_AVAILABLE</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ref_1h</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+        <span class="n">alt_seqs_stacked</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">alt_seqs</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">alt_seqs_stacked</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">alt_seqs</span><span class="p">)</span>
+
+    <span class="c1"># Create a DataFrame for the metadata</span>
+    <span class="n">metadata_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+        <span class="n">metadata</span><span class="p">,</span>
+        <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;chrom&quot;</span><span class="p">,</span> <span class="s2">&quot;window_start&quot;</span><span class="p">,</span> <span class="s2">&quot;window_end&quot;</span><span class="p">,</span> <span class="s2">&quot;variant_pos0&quot;</span><span class="p">,</span> <span class="s2">&quot;ref&quot;</span><span class="p">,</span> <span class="s2">&quot;alt&quot;</span><span class="p">],</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ref_1h</span><span class="p">,</span> <span class="n">alt_seqs_stacked</span><span class="p">,</span> <span class="n">metadata_df</span></div>
+
+
+
+<div class="viewcode-block" id="get_sm_subsequences">
+<a class="viewcode-back" href="../../autoapi/supremo_lite/mutagenesis/index.html#supremo_lite.get_sm_subsequences">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_sm_subsequences</span><span class="p">(</span>
+    <span class="n">chrom</span><span class="p">,</span>
+    <span class="n">seq_len</span><span class="p">,</span>
+    <span class="n">reference_fasta</span><span class="p">,</span>
+    <span class="n">anchor</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">anchor_radius</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">bed_regions</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">encoder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">auto_map_chromosomes</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generate sequences with all alternate nucleotides at positions in specified regions</span>
+<span class="sd">    (saturation mutagenesis).</span>
+
+<span class="sd">    Supports two mutually exclusive approaches for defining mutation intervals:</span>
+<span class="sd">    1. Anchor-based: Use anchor + anchor_radius to define a single centered region</span>
+<span class="sd">    2. BED-based: Use bed_regions to define one or more arbitrary genomic regions</span>
+
+<span class="sd">    In both cases, sequences of length seq_len are generated, centered on the mutation interval(s).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        chrom: Chromosome name</span>
+<span class="sd">        seq_len: Total sequence length for each window</span>
+<span class="sd">        reference_fasta: Reference genome object</span>
+<span class="sd">        anchor: Anchor position (0-based). Required when using anchor_radius.</span>
+<span class="sd">               Must be provided together with anchor_radius.</span>
+<span class="sd">               Mutually exclusive with bed_regions.</span>
+<span class="sd">        anchor_radius: Number of bases to include on either side of the anchor for mutations.</span>
+<span class="sd">                      Required when using anchor. Must be provided together with anchor.</span>
+<span class="sd">                      Mutually exclusive with bed_regions.</span>
+<span class="sd">        bed_regions: BED file path or DataFrame defining mutation intervals.</span>
+<span class="sd">                    BED format: chrom, start, end (0-based, half-open intervals).</span>
+<span class="sd">                    Each BED region defines positions to mutate, centered in a seq_len window.</span>
+<span class="sd">                    Mutually exclusive with anchor + anchor_radius.</span>
+<span class="sd">        encoder: Optional custom encoding function. If provided, should accept a single</span>
+<span class="sd">                sequence string and return encoded array with shape (4, L). Default: None</span>
+<span class="sd">        auto_map_chromosomes: Automatically map chromosome names between reference and BED file</span>
+<span class="sd">                             when they don&#39;t match exactly (e.g., &#39;chr1&#39; &lt;-&gt; &#39;1&#39;, &#39;chrM&#39; &lt;-&gt; &#39;MT&#39;).</span>
+<span class="sd">                             Only applies when bed_regions is provided. Default: False.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Tuple of (reference one-hot, alt one-hot tensor, metadata DataFrame)</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If invalid parameter combinations are provided</span>
+<span class="sd">        ChromosomeMismatchError: If auto_map_chromosomes=False and chromosome names in BED file</span>
+<span class="sd">                                and reference don&#39;t match exactly (only when bed_regions is provided)</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        # Approach 1: Anchor-based (single region)</span>
+<span class="sd">        ref, alts, meta = get_sm_subsequences(</span>
+<span class="sd">            chrom=&#39;chr1&#39;,</span>
+<span class="sd">            seq_len=200,</span>
+<span class="sd">            reference_fasta=ref,</span>
+<span class="sd">            anchor=1050,</span>
+<span class="sd">            anchor_radius=10  # Mutate positions 1040-1060 in a 200bp window</span>
+<span class="sd">        )</span>
+
+<span class="sd">        # Approach 2: BED-based (multiple regions)</span>
+<span class="sd">        ref, alts, meta = get_sm_subsequences(</span>
+<span class="sd">            chrom=&#39;chr1&#39;,</span>
+<span class="sd">            seq_len=200,</span>
+<span class="sd">            reference_fasta=ref,</span>
+<span class="sd">            bed_regions=&#39;regions.bed&#39;  # Each region centered in 200bp window</span>
+<span class="sd">        )</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Validate parameter combinations</span>
+    <span class="n">has_anchor</span> <span class="o">=</span> <span class="n">anchor</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="n">has_anchor_radius</span> <span class="o">=</span> <span class="n">anchor_radius</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="n">has_bed</span> <span class="o">=</span> <span class="n">bed_regions</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+    <span class="c1"># Check for invalid combinations</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">has_anchor</span> <span class="ow">or</span> <span class="n">has_anchor_radius</span><span class="p">)</span> <span class="ow">and</span> <span class="n">has_bed</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Cannot use both (anchor + anchor_radius) and bed_regions. &quot;</span>
+            <span class="s2">&quot;These are mutually exclusive approaches.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Validate anchor approach</span>
+    <span class="k">if</span> <span class="n">has_anchor</span> <span class="ow">or</span> <span class="n">has_anchor_radius</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">has_anchor</span> <span class="ow">and</span> <span class="n">has_anchor_radius</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;anchor and anchor_radius must be provided together. &quot;</span>
+                <span class="s2">&quot;Both are required when using the anchor-based approach.&quot;</span>
+            <span class="p">)</span>
+    <span class="k">elif</span> <span class="ow">not</span> <span class="n">has_bed</span><span class="p">:</span>
+        <span class="c1"># Neither approach was specified</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Must provide either (anchor + anchor_radius) or bed_regions.&quot;</span><span class="p">)</span>
+
+    <span class="n">alt_seqs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">metadata</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># Handle the two approaches differently</span>
+    <span class="k">if</span> <span class="n">has_anchor</span><span class="p">:</span>
+        <span class="c1"># APPROACH 1: Anchor-based (single region)</span>
+        <span class="c1"># Calculate sequence boundaries centered on anchor</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">anchor</span> <span class="o">-</span> <span class="n">seq_len</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="n">start</span> <span class="o">+</span> <span class="n">seq_len</span>
+
+        <span class="c1"># Get the reference sequence</span>
+        <span class="n">ref_seq</span> <span class="o">=</span> <span class="n">reference_fasta</span><span class="p">[</span><span class="n">chrom</span><span class="p">][</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">ref_seq</span><span class="p">,</span> <span class="s2">&quot;seq&quot;</span><span class="p">):</span>  <span class="c1"># Handle pyfaidx-like objects</span>
+            <span class="n">ref_seq</span> <span class="o">=</span> <span class="n">ref_seq</span><span class="o">.</span><span class="n">seq</span>
+
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="nb">len</span><span class="p">(</span><span class="n">ref_seq</span><span class="p">)</span> <span class="o">==</span> <span class="n">seq_len</span>
+        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Expected sequence length </span><span class="si">{</span><span class="n">seq_len</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">ref_seq</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="n">ref_1h</span> <span class="o">=</span> <span class="n">encode_seq</span><span class="p">(</span><span class="n">ref_seq</span><span class="p">,</span> <span class="n">encoder</span><span class="p">)</span>
+
+        <span class="c1"># Calculate the range to mutate</span>
+        <span class="n">anchor_offset</span> <span class="o">=</span> <span class="n">anchor</span> <span class="o">-</span> <span class="n">start</span>
+        <span class="c1"># Validate anchor_radius</span>
+        <span class="k">assert</span> <span class="n">anchor_radius</span> <span class="o">&lt;=</span> <span class="n">anchor_offset</span><span class="p">,</span> <span class="s2">&quot;Anchor radius exceeds start of sequence&quot;</span>
+
+        <span class="c1"># Create set of positions to mutate (within anchor_radius of anchor)</span>
+        <span class="n">mut_start</span> <span class="o">=</span> <span class="n">anchor_offset</span> <span class="o">-</span> <span class="n">anchor_radius</span>
+        <span class="n">mut_end</span> <span class="o">=</span> <span class="n">anchor_offset</span> <span class="o">+</span> <span class="n">anchor_radius</span>
+        <span class="n">valid_positions</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">mut_start</span><span class="p">,</span> <span class="n">mut_end</span><span class="p">))</span>
+
+        <span class="c1"># Mutate positions</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">valid_positions</span><span class="p">):</span>
+            <span class="n">ref_nt</span> <span class="o">=</span> <span class="n">ref_seq</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">alt</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">({</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="s2">&quot;G&quot;</span><span class="p">,</span> <span class="s2">&quot;T&quot;</span><span class="p">}</span> <span class="o">-</span> <span class="p">{</span><span class="n">ref_nt</span><span class="o">.</span><span class="n">upper</span><span class="p">()}):</span>
+                <span class="c1"># Create a clone and substitute the base</span>
+                <span class="k">if</span> <span class="n">TORCH_AVAILABLE</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ref_1h</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+                    <span class="n">alt_1h</span> <span class="o">=</span> <span class="n">ref_1h</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+                    <span class="n">alt_1h</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">nt_to_1h</span><span class="p">[</span><span class="n">alt</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">alt_1h</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">alt_1h</span> <span class="o">=</span> <span class="n">ref_1h</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                    <span class="n">alt_1h</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">nt_to_1h</span><span class="p">[</span><span class="n">alt</span><span class="p">]</span>
+
+                <span class="n">alt_seqs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">alt_1h</span><span class="p">)</span>
+                <span class="n">metadata</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">chrom</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">ref_nt</span><span class="p">,</span> <span class="n">alt</span><span class="p">])</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># APPROACH 2: BED-based (multiple regions)</span>
+        <span class="c1"># Each BED region gets its own seq_len window centered on it</span>
+        <span class="n">ref_1h</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># Will be set for first region</span>
+
+        <span class="c1"># Parse BED file/DataFrame</span>
+        <span class="n">bed_df</span> <span class="o">=</span> <span class="n">_read_bed_file</span><span class="p">(</span><span class="n">bed_regions</span><span class="p">)</span>
+
+        <span class="c1"># Apply chromosome name matching</span>
+        <span class="n">ref_chroms</span> <span class="o">=</span> <span class="p">{</span><span class="n">chrom</span><span class="p">}</span>
+        <span class="n">bed_chroms</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">bed_df</span><span class="p">[</span><span class="s2">&quot;chrom&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span>
+
+        <span class="n">mapping</span><span class="p">,</span> <span class="n">unmatched</span> <span class="o">=</span> <span class="n">match_chromosomes_with_report</span><span class="p">(</span>
+            <span class="n">ref_chroms</span><span class="p">,</span>
+            <span class="n">bed_chroms</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">auto_map_chromosomes</span><span class="o">=</span><span class="n">auto_map_chromosomes</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">mapping</span><span class="p">:</span>
+            <span class="n">bed_df</span> <span class="o">=</span> <span class="n">apply_chromosome_mapping</span><span class="p">(</span><span class="n">bed_df</span><span class="p">,</span> <span class="n">mapping</span><span class="p">)</span>
+
+        <span class="c1"># Filter to current chromosome</span>
+        <span class="n">chrom_bed_regions</span> <span class="o">=</span> <span class="n">bed_df</span><span class="p">[</span><span class="n">bed_df</span><span class="p">[</span><span class="s2">&quot;chrom&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">chrom</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">chrom_bed_regions</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;No BED regions found for chromosome </span><span class="si">{</span><span class="n">chrom</span><span class="si">}</span><span class="s2">. No mutagenesis will be performed.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Process each BED region</span>
+            <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">bed_region</span> <span class="ow">in</span> <span class="n">chrom_bed_regions</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+                <span class="n">region_start</span> <span class="o">=</span> <span class="n">bed_region</span><span class="p">[</span><span class="s2">&quot;start&quot;</span><span class="p">]</span>
+                <span class="n">region_end</span> <span class="o">=</span> <span class="n">bed_region</span><span class="p">[</span><span class="s2">&quot;end&quot;</span><span class="p">]</span>
+                <span class="n">region_center</span> <span class="o">=</span> <span class="p">(</span><span class="n">region_start</span> <span class="o">+</span> <span class="n">region_end</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+
+                <span class="c1"># Calculate sequence window centered on this BED region</span>
+                <span class="n">window_start</span> <span class="o">=</span> <span class="n">region_center</span> <span class="o">-</span> <span class="n">seq_len</span> <span class="o">//</span> <span class="mi">2</span>
+                <span class="n">window_end</span> <span class="o">=</span> <span class="n">window_start</span> <span class="o">+</span> <span class="n">seq_len</span>
+
+                <span class="c1"># Adjust window to stay within chromosome bounds</span>
+                <span class="n">chrom_obj</span> <span class="o">=</span> <span class="n">reference_fasta</span><span class="p">[</span><span class="n">chrom</span><span class="p">]</span>
+                <span class="n">chrom_len</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="nb">len</span><span class="p">(</span><span class="n">chrom_obj</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">chrom_obj</span><span class="p">,</span> <span class="s2">&quot;__len__&quot;</span><span class="p">)</span>
+                    <span class="k">else</span> <span class="nb">len</span><span class="p">(</span><span class="n">chrom_obj</span><span class="o">.</span><span class="n">seq</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="n">window_start</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">window_start</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="n">window_end</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">seq_len</span><span class="p">,</span> <span class="n">chrom_len</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">window_end</span> <span class="o">&gt;</span> <span class="n">chrom_len</span><span class="p">:</span>
+                    <span class="n">window_end</span> <span class="o">=</span> <span class="n">chrom_len</span>
+                    <span class="n">window_start</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">chrom_len</span> <span class="o">-</span> <span class="n">seq_len</span><span class="p">)</span>
+
+                <span class="c1"># Get the reference sequence for this window</span>
+                <span class="n">region_seq</span> <span class="o">=</span> <span class="n">reference_fasta</span><span class="p">[</span><span class="n">chrom</span><span class="p">][</span><span class="n">window_start</span><span class="p">:</span><span class="n">window_end</span><span class="p">]</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">region_seq</span><span class="p">,</span> <span class="s2">&quot;seq&quot;</span><span class="p">):</span>
+                    <span class="n">region_seq</span> <span class="o">=</span> <span class="n">region_seq</span><span class="o">.</span><span class="n">seq</span>
+
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">region_seq</span><span class="p">)</span> <span class="o">!=</span> <span class="n">seq_len</span><span class="p">:</span>
+                    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Region </span><span class="si">{</span><span class="n">chrom</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">region_start</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">region_end</span><span class="si">}</span><span class="s2"> produces sequence of length &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">region_seq</span><span class="p">)</span><span class="si">}</span><span class="s2"> instead of </span><span class="si">{</span><span class="n">seq_len</span><span class="si">}</span><span class="s2"> (chromosome length: </span><span class="si">{</span><span class="n">chrom_len</span><span class="si">}</span><span class="s2">). &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;Skipping this region.&quot;</span>
+                    <span class="p">)</span>
+                    <span class="k">continue</span>
+
+                <span class="n">region_1h</span> <span class="o">=</span> <span class="n">encode_seq</span><span class="p">(</span><span class="n">region_seq</span><span class="p">,</span> <span class="n">encoder</span><span class="p">)</span>
+
+                <span class="c1"># Set ref_1h for the first valid region (for return value)</span>
+                <span class="k">if</span> <span class="n">ref_1h</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">ref_1h</span> <span class="o">=</span> <span class="n">region_1h</span>
+
+                <span class="c1"># Calculate which positions to mutate (BED region relative to window)</span>
+                <span class="n">mut_start_rel</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">region_start</span> <span class="o">-</span> <span class="n">window_start</span><span class="p">)</span>
+                <span class="n">mut_end_rel</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">seq_len</span><span class="p">,</span> <span class="n">region_end</span> <span class="o">-</span> <span class="n">window_start</span><span class="p">)</span>
+
+                <span class="c1"># Check if BED region overlaps with the extracted window</span>
+                <span class="k">if</span> <span class="n">mut_start_rel</span> <span class="o">&gt;=</span> <span class="n">mut_end_rel</span><span class="p">:</span>
+                    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;BED region </span><span class="si">{</span><span class="n">chrom</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">region_start</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">region_end</span><span class="si">}</span><span class="s2"> is outside chromosome bounds &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;(length: </span><span class="si">{</span><span class="n">chrom_len</span><span class="si">}</span><span class="s2">). Skipping this region.&quot;</span>
+                    <span class="p">)</span>
+                    <span class="k">continue</span>
+
+                <span class="c1"># Mutate positions within this BED region</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mut_start_rel</span><span class="p">,</span> <span class="n">mut_end_rel</span><span class="p">):</span>
+                    <span class="n">ref_nt</span> <span class="o">=</span> <span class="n">region_seq</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                    <span class="k">for</span> <span class="n">alt</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">({</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="s2">&quot;G&quot;</span><span class="p">,</span> <span class="s2">&quot;T&quot;</span><span class="p">}</span> <span class="o">-</span> <span class="p">{</span><span class="n">ref_nt</span><span class="o">.</span><span class="n">upper</span><span class="p">()}):</span>
+                        <span class="c1"># Create a clone and substitute the base</span>
+                        <span class="k">if</span> <span class="n">TORCH_AVAILABLE</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">region_1h</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+                            <span class="n">alt_1h</span> <span class="o">=</span> <span class="n">region_1h</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+                            <span class="n">alt_1h</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                                <span class="n">nt_to_1h</span><span class="p">[</span><span class="n">alt</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">alt_1h</span><span class="o">.</span><span class="n">dtype</span>
+                            <span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">alt_1h</span> <span class="o">=</span> <span class="n">region_1h</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                            <span class="n">alt_1h</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">nt_to_1h</span><span class="p">[</span><span class="n">alt</span><span class="p">]</span>
+
+                        <span class="n">alt_seqs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">alt_1h</span><span class="p">)</span>
+                        <span class="n">metadata</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                            <span class="p">[</span><span class="n">chrom</span><span class="p">,</span> <span class="n">window_start</span><span class="p">,</span> <span class="n">window_end</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">ref_nt</span><span class="p">,</span> <span class="n">alt</span><span class="p">]</span>
+                        <span class="p">)</span>
+
+        <span class="c1"># If no regions were processed, create empty ref_1h</span>
+        <span class="k">if</span> <span class="n">ref_1h</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Create a dummy empty sequence</span>
+            <span class="k">if</span> <span class="n">TORCH_AVAILABLE</span><span class="p">:</span>
+                <span class="n">ref_1h</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">4</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ref_1h</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">4</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+    <span class="c1"># Stack the alternate sequences</span>
+    <span class="k">if</span> <span class="n">alt_seqs</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">TORCH_AVAILABLE</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ref_1h</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+            <span class="n">alt_seqs_stacked</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">alt_seqs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">alt_seqs_stacked</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">alt_seqs</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># No mutations generated (e.g., due to BED filtering)</span>
+        <span class="k">if</span> <span class="n">TORCH_AVAILABLE</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ref_1h</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+            <span class="n">alt_seqs_stacked</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">ref_1h</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">alt_seqs_stacked</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">ref_1h</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+    <span class="c1"># Create a DataFrame for the metadata</span>
+    <span class="n">metadata_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+        <span class="n">metadata</span><span class="p">,</span>
+        <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;chrom&quot;</span><span class="p">,</span> <span class="s2">&quot;window_start&quot;</span><span class="p">,</span> <span class="s2">&quot;window_end&quot;</span><span class="p">,</span> <span class="s2">&quot;variant_pos0&quot;</span><span class="p">,</span> <span class="s2">&quot;ref&quot;</span><span class="p">,</span> <span class="s2">&quot;alt&quot;</span><span class="p">],</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ref_1h</span><span class="p">,</span> <span class="n">alt_seqs_stacked</span><span class="p">,</span> <span class="n">metadata_df</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Gladstone Institutes.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

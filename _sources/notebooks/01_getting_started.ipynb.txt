@@ -1,0 +1,500 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "id": "0",
+   "metadata": {},
+   "source": [
+    "# Getting Started with supremo_lite\n",
+    "\n",
+    "Introduction to core functionality for generating personalized genome sequences and variant-centered windows.\n",
+    "\n",
+    "## What is supremo_lite?\n",
+    "\n",
+    "supremo_lite is a lightweight Python package for:\n",
+    "- Generating personalized genome sequences from reference genomes and variant files\n",
+    "- Creating variant-centered sequence windows for model predictions\n",
+    "- Performing in-silico saturation mutagenesis\n",
+    "- Aligning predictions across reference and variant sequences\n",
+    "\n",
+    "Designed to be memory-efficient and model-agnostic, supporting both PyTorch tensors and NumPy arrays."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "1",
+   "metadata": {},
+   "source": [
+    "## Installation\n",
+    "\n",
+    "If you haven't already installed supremo_lite:\n",
+    "\n",
+    "```bash\n",
+    "pip install supremo-lite\n",
+    "```"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "2",
+   "metadata": {},
+   "source": [
+    "## Basic Imports"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "id": "3",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "supremo_lite version: 0.5.4\n",
+      "PyTorch available: True\n",
+      "brisket available: True\n"
+     ]
+    }
+   ],
+   "source": [
+    "import supremo_lite as sl\n",
+    "import numpy as np\n",
+    "import matplotlib.pyplot as plt\n",
+    "from pyfaidx import Fasta\n",
+    "import pandas as pd\n",
+    "\n",
+    "print(f\"supremo_lite version: {sl.__version__}\")\n",
+    "\n",
+    "## Optional packages:\n",
+    "\n",
+    "# Check PyTorch availability\n",
+    "print(f\"PyTorch available: {sl.TORCH_AVAILABLE}\")\n",
+    "\n",
+    "# Check brisket availability (faster 1h encoding)\n",
+    "print(f\"brisket available: {sl.BRISKET_AVAILABLE}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "culpmw1jc0u",
+   "metadata": {},
+   "source": [
+    "## DNA Sequence Encoding\n",
+    "\n",
+    "supremo_lite uses one-hot encoding: A=[1,0,0,0], C=[0,1,0,0], G=[0,0,1,0], T=[0,0,0,1]. \n",
+    "\n",
+    "Functions automatically return PyTorch tensors when available, otherwise NumPy arrays."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "6",
+   "metadata": {},
+   "source": [
+    "## Loading Test Data\n",
+    "\n",
+    "For this tutorial, we'll use small test data included with the package. This allows for quick demonstrations without requiring large genomic datasets."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "7",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Reference genome chromosomes:\n",
+      "  chr1: 80 bp\n",
+      "  chr2: 80 bp\n",
+      "  chr3: 80 bp\n",
+      "  chr4: 80 bp\n",
+      "  chr5: 80 bp\n",
+      "\n",
+      "chr1 sequence (first 80 bp):\n",
+      "ATGAATATAATATTTTCGAGAATTACTCCTTTTGGAAATGGAACATTATGCGTTTTAAGAGTTTCTGGTAACAATATATT\n"
+     ]
+    }
+   ],
+   "source": [
+    "import os\n",
+    "\n",
+    "# Find the test data directory\n",
+    "# Assuming we're in the package directory structure\n",
+    "test_data_dir = \"../../tests/data\"\n",
+    "\n",
+    "# Load reference genome\n",
+    "reference_path = os.path.join(test_data_dir, \"test_genome.fa\")\n",
+    "reference = Fasta(reference_path)\n",
+    "\n",
+    "print(\"Reference genome chromosomes:\")\n",
+    "for chrom in reference.keys():\n",
+    "    seq_len = len(reference[chrom])\n",
+    "    print(f\"  {chrom}: {seq_len} bp\")\n",
+    "\n",
+    "# Show first 80 bp of chr1\n",
+    "print(f\"\\nchr1 sequence (first 80 bp):\")\n",
+    "print(reference[\"chr1\"][:80].seq)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "8",
+   "metadata": {},
+   "source": [
+    "## Reading VCF Files\n",
+    "\n",
+    "supremo_lite provides utilities to read VCF (Variant Call Format) files:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "id": "9",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "SNP variants:\n",
+      "  chrom  pos1 id ref alt    info  vcf_line variant_type\n",
+      "0  chr1     2  .   T   G  DP=100         8          SNV\n",
+      "1  chr1    31  .   T   A  DP=100         9          SNV\n",
+      "2  chr2    19  .   A   G  DP=100        10          SNV\n",
+      "3  chr2    57  .   C   G  DP=100        11          SNV\n",
+      "\n",
+      "Loaded 4 SNP variant(s)\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Load SNP variants\n",
+    "snp_vcf_path = os.path.join(test_data_dir, \"snp\", \"snp.vcf\")\n",
+    "snp_variants = sl.read_vcf(snp_vcf_path)\n",
+    "\n",
+    "print(\"SNP variants:\")\n",
+    "print(snp_variants)\n",
+    "print(f\"\\nLoaded {len(snp_variants)} SNP variant(s)\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "10",
+   "metadata": {},
+   "source": [
+    "## Basic Usage: Creating a Personalized Genome\n",
+    "\n",
+    "The most fundamental operation is applying variants to a reference genome to create a personalized genome:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "11",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Create personalized genome (returns encoded sequences by default)\n",
+    "personal_genome = sl.get_personal_genome(\n",
+    "    reference_fn=reference,\n",
+    "    variants_fn=snp_variants,\n",
+    "    encode=True,\n",
+    "    verbose=True,  # Show progress\n",
+    ")\n",
+    "\n",
+    "# Check the result\n",
+    "print(f\"\\nPersonalized genome chromosomes: {list(personal_genome.keys())}\")\n",
+    "print(f\"chr1 encoded shape: {personal_genome['chr1'].shape}\")\n",
+    "print(f\"Data type: {type(personal_genome['chr1'])}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "12",
+   "metadata": {},
+   "source": [
+    "## Getting Raw Sequence Strings\n",
+    "\n",
+    "You can also get the sequences as strings instead of encoded arrays:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "13",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Reference chr1 (first 80 bp):\n",
+      "ATGAATATAATATTTTCGAGAATTACTCCTTTTGGAAATGGAACATTATGCGTTTTAAGAGTTTCTGGTAACAATATATT\n",
+      "\n",
+      "Personalized chr1 (first 80 bp):\n",
+      "AGGAATATAATATTTTCGAGAATTACTCCTATTGGAAATGGAACATTATGCGTTTTAAGAGTTTCTGGTAACAATATATT\n",
+      "\n",
+      "Differences (position: ref → alt):\n",
+      "  Position 1: T → G\n",
+      "  Position 30: T → A\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Get raw sequences\n",
+    "personal_genome_raw = sl.get_personal_genome(\n",
+    "    reference_fn=reference, variants_fn=snp_variants, encode=False\n",
+    ")\n",
+    "\n",
+    "# Compare reference and personalized sequences\n",
+    "ref_seq = reference[\"chr1\"][:80].seq\n",
+    "pers_seq = personal_genome_raw[\"chr1\"][:80]\n",
+    "\n",
+    "print(\"Reference chr1 (first 80 bp):\")\n",
+    "print(ref_seq)\n",
+    "print(\"\\nPersonalized chr1 (first 80 bp):\")\n",
+    "print(pers_seq)\n",
+    "\n",
+    "# Highlight the difference\n",
+    "print(\"\\nDifferences (position: ref → alt):\")\n",
+    "for i, (r, p) in enumerate(zip(ref_seq, pers_seq)):\n",
+    "    if r != p:\n",
+    "        print(f\"  Position {i}: {r} → {p}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "14",
+   "metadata": {},
+   "source": [
+    "## Generating Variant-Centered Windows\n",
+    "\n",
+    "Often you want to extract sequence windows centered on each variant, which is useful for model predictions:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "15",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Generated 4 sequence pair(s)\n",
+      "\n",
+      "Metadata:\n",
+      "  chrom  window_start  window_end  variant_pos0  variant_pos1 ref alt  \\\n",
+      "0  chr1             0          40             1             2   T   G   \n",
+      "1  chr1            10          50            30            31   T   A   \n",
+      "2  chr2             0          40            18            19   A   G   \n",
+      "3  chr2            36          76            56            57   C   G   \n",
+      "\n",
+      "  variant_type  \n",
+      "0          SNV  \n",
+      "1          SNV  \n",
+      "2          SNV  \n",
+      "3          SNV  \n",
+      "\n",
+      "Reference sequence (2nd variant):\n",
+      "('chr1', np.int64(10), np.int64(50), 'TATTTTCGAGAATTACTCCTTTTGGAAATGGAACATTATG')\n",
+      "\n",
+      "Alternate sequence (2nd variant):\n",
+      "('chr1', np.int64(10), np.int64(50), 'TATTTTCGAGAATTACTCCTATTGGAAATGGAACATTATG')\n",
+      "\n",
+      "Variant is centered at position 20 in the window\n",
+      "Reference allele: T\n",
+      "Alternate allele: A\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Generate windows around variants\n",
+    "# Note: get_alt_ref_sequences is a generator that yields chunks\n",
+    "results = list(\n",
+    "    sl.get_alt_ref_sequences(\n",
+    "        reference_fn=reference,\n",
+    "        variants_fn=snp_variants,\n",
+    "        seq_len=40,  # 40 bp windows\n",
+    "        encode=False,  # Get strings for visualization\n",
+    "    )\n",
+    ")\n",
+    "\n",
+    "# Unpack from the first chunk\n",
+    "alt_seqs, ref_seqs, metadata = results[0]\n",
+    "\n",
+    "print(f\"Generated {len(metadata)} sequence pair(s)\")\n",
+    "print(\"\\nMetadata:\")\n",
+    "print(metadata.head())  # Show first few variants\n",
+    "\n",
+    "print(\"\\nReference sequence (2nd variant):\")\n",
+    "print(ref_seqs[1])\n",
+    "print(\"\\nAlternate sequence (2nd variant):\")\n",
+    "print(alt_seqs[1])\n",
+    "\n",
+    "# Find the variant position in the window\n",
+    "variant_offset = len(ref_seqs[1][3]) // 2\n",
+    "print(f\"\\nVariant is centered at position {variant_offset} in the window\")\n",
+    "print(f\"Reference allele: {ref_seqs[1][3][variant_offset]}\")\n",
+    "print(f\"Alternate allele: {alt_seqs[1][3][variant_offset]}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "18",
+   "metadata": {},
+   "source": [
+    "## Sequence Utilities\n",
+    "\n",
+    "supremo_lite provides useful utilities for working with DNA sequences:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "id": "19",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Original:          ATCGATCG\n",
+      "Reverse complement: CGATCGAT\n",
+      "\n",
+      "Decoded matches original: True\n",
+      "RC from encoded:   CGATCGAT\n",
+      "RC from string:    CGATCGAT\n",
+      "Match: True\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Reverse complement\n",
+    "sequence = \"ATCGATCG\"\n",
+    "rc_sequence = sl.rc_str(sequence)\n",
+    "\n",
+    "print(f\"Original:          {sequence}\")\n",
+    "print(f\"Reverse complement: {rc_sequence}\")\n",
+    "\n",
+    "# Encode and decode\n",
+    "encoded = sl.encode_seq(sequence)  # Automatically uses brisket if installed\n",
+    "decoded = sl.decode_seq(encoded)\n",
+    "\n",
+    "print(f\"\\nDecoded matches original: {decoded == sequence}\")\n",
+    "\n",
+    "# Reverse complement of encoded sequence\n",
+    "rc_encoded = sl.rc(encoded)\n",
+    "rc_decoded = sl.decode_seq(rc_encoded)\n",
+    "\n",
+    "print(f\"RC from encoded:   {rc_decoded}\")\n",
+    "print(f\"RC from string:    {rc_sequence}\")\n",
+    "print(f\"Match: {rc_decoded == rc_sequence}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "20",
+   "metadata": {},
+   "source": [
+    "## Working with Encoded Sequences\n",
+    "\n",
+    "Let's see how to work with encoded sequences for downstream analysis:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "21",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Generate encoded windows\n",
+    "results = list(\n",
+    "    sl.get_alt_ref_sequences(\n",
+    "        reference_fn=reference,\n",
+    "        variants_fn=snp_variants,\n",
+    "        seq_len=40,\n",
+    "        encode=True,  # Get encoded arrays/tensors\n",
+    "    )\n",
+    ")\n",
+    "\n",
+    "# Unpack from the first chunk\n",
+    "alt_seqs_enc, ref_seqs_enc, metadata = results[0]\n",
+    "\n",
+    "print(f\"Reference sequences shape: {ref_seqs_enc.shape}\")\n",
+    "print(f\"Alternate sequences shape: {alt_seqs_enc.shape}\")\n",
+    "print(f\"Data type: {type(ref_seqs_enc)}\")\n",
+    "\n",
+    "# Visualize the first sequence pair\n",
+    "fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 6))\n",
+    "\n",
+    "# Convert to numpy if needed for visualization\n",
+    "ref_viz = (\n",
+    "    ref_seqs_enc[2].numpy() if hasattr(ref_seqs_enc[2], \"numpy\") else ref_seqs_enc[2]\n",
+    ")\n",
+    "alt_viz = (\n",
+    "    alt_seqs_enc[2].numpy() if hasattr(alt_seqs_enc[2], \"numpy\") else alt_seqs_enc[2]\n",
+    ")\n",
+    "\n",
+    "# Reference sequence - data is already in (4, L) format\n",
+    "im1 = ax1.imshow(ref_viz, cmap=\"Blues\", aspect=\"auto\")\n",
+    "ax1.set_yticks([0, 1, 2, 3])\n",
+    "ax1.set_yticklabels([\"A\", \"C\", \"G\", \"T\"])\n",
+    "ax1.set_title(\"Reference Sequence (Encoded) - Shape: (4, 40)\")\n",
+    "ax1.set_ylabel(\"Nucleotide Channel\")\n",
+    "ax1.axvline(x=20, color=\"red\", linestyle=\"--\", alpha=0.5, label=\"Variant position\")\n",
+    "ax1.legend()\n",
+    "\n",
+    "# Alternate sequence - data is already in (4, L) format\n",
+    "im2 = ax2.imshow(alt_viz, cmap=\"Oranges\", aspect=\"auto\")\n",
+    "ax2.set_yticks([0, 1, 2, 3])\n",
+    "ax2.set_yticklabels([\"A\", \"C\", \"G\", \"T\"])\n",
+    "ax2.set_title(\"Alternate Sequence (Encoded) - Shape: (4, 40)\")\n",
+    "ax2.set_xlabel(\"Position in window\")\n",
+    "ax2.set_ylabel(\"Nucleotide Channel\")\n",
+    "ax2.axvline(x=20, color=\"red\", linestyle=\"--\", alpha=0.5, label=\"Variant position\")\n",
+    "ax2.legend()\n",
+    "\n",
+    "plt.tight_layout()\n",
+    "plt.show()\n",
+    "\n",
+    "print(\"\\nThe variant at position 20 shows different encoding between ref and alt\")\n",
+    "print(\n",
+    "    \"Note: Sequences are encoded in channel-first format (4, L) for compatibility with PyTorch models\"\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "22",
+   "metadata": {},
+   "source": [
+    "\n",
+    "## Next Steps\n",
+    "\n",
+    "Continue with the other notebooks:\n",
+    "- **[02_personalized_genomes.ipynb](02_personalized_genomes.ipynb)** - Genome personalization workflows\n",
+    "- **[03_prediction_alignment.ipynb](03_prediction_alignment.ipynb)** - Model predictions and alignment"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3 (ipykernel)",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "name": "python"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}

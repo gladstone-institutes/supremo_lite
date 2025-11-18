@@ -1,0 +1,370 @@
+supremo_lite.prediction_alignment
+=================================
+
+.. py:module:: supremo_lite.prediction_alignment
+
+.. autoapi-nested-parse::
+
+   Utilities for aligning model predictions between reference and variant sequences.
+
+   This module provides functions to handle the alignment of ML model predictions
+   when reference and variant sequences have position offsets due to structural variants.
+
+   The alignment logic properly handles:
+   - 1D predictions (chromatin accessibility, TF binding, etc.)
+   - 2D contact maps (Hi-C, Micro-C predictions)
+   - All variant types: SNV, INS, DEL, DUP, INV, BND
+
+   Key principle: Users must specify all model-specific parameters (bin_size, diag_offset)
+   as these vary across different prediction models.
+
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   supremo_lite.prediction_alignment.TORCH_AVAILABLE
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   supremo_lite.prediction_alignment.VariantPosition
+   supremo_lite.prediction_alignment.PredictionAligner1D
+   supremo_lite.prediction_alignment.PredictionAligner2D
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   supremo_lite.prediction_alignment.vector_to_contact_matrix
+   supremo_lite.prediction_alignment.contact_matrix_to_vector
+   supremo_lite.prediction_alignment.align_predictions_by_coordinate
+
+
+Module Contents
+---------------
+
+.. py:data:: TORCH_AVAILABLE
+   :value: True
+
+
+.. py:class:: VariantPosition
+
+   Container for variant position information in both REF and ALT sequences.
+
+   This class encapsulates the essential positional information needed to align
+   predictions across reference and alternate sequences that may differ in length.
+
+
+   .. py:attribute:: ref_pos
+      :type:  int
+
+
+   .. py:attribute:: alt_pos
+      :type:  int
+
+
+   .. py:attribute:: svlen
+      :type:  int
+
+
+   .. py:attribute:: variant_type
+      :type:  str
+
+
+   .. py:method:: get_bin_positions(bin_size: int, window_start: int, crop_length: int) -> Tuple[int, int, int]
+
+      Convert base pair positions to bin indices relative to window.
+
+      :param bin_size: Number of base pairs per prediction bin
+      :param window_start: Start position of the sequence window (0-based genomic coord).
+      :param crop_length: Number of base pairs cropped from each edge by the model.
+                          This accounts for edge bases removed before prediction.
+
+      :returns: Tuple of (ref_bin, alt_start_bin, alt_end_bin) as bin indices
+                relative to the prediction vector. For centered masking, these
+                represent the center and extent of the masked region.
+
+      .. rubric:: Notes
+
+      - Positions are calculated relative to window_start, not absolute genomic coords
+      - crop_length accounts for edge bases removed before prediction
+      - Masked bins are centered on the variant position
+
+
+
+.. py:class:: PredictionAligner1D(target_size: int, bin_size: int, crop_length: int)
+
+   Aligns reference and alternate 1D prediction vectors for variant comparison.
+
+   Handles alignment of 1D genomic predictions (e.g., chromatin accessibility,
+   transcription factor binding, epigenetic marks) between reference and variant
+   sequences that may differ in length due to structural variants.
+
+   The aligner uses a masking strategy where positions that exist in one sequence
+   but not the other are marked with NaN values, enabling direct comparison of
+   corresponding genomic positions.
+
+   :param target_size: Expected number of bins in the prediction output
+   :param bin_size: Number of base pairs per prediction bin (model-specific)
+   :param crop_length: Number of base pairs cropped from each edge by the model
+
+   .. rubric:: Example
+
+   >>> aligner = PredictionAligner1D(target_size=896, bin_size=128, crop_length=0)
+   >>> ref_aligned, alt_aligned = aligner.align_predictions(
+   ...     ref_pred, alt_pred, 'INS', variant_position
+   ... )
+
+
+   .. py:attribute:: target_size
+
+
+   .. py:attribute:: bin_size
+
+
+   .. py:attribute:: crop_length
+
+
+   .. py:method:: align_predictions(ref_pred: Union[numpy.ndarray, torch.Tensor], alt_pred: Union[numpy.ndarray, torch.Tensor], svtype: str, var_pos: VariantPosition, window_start: int = 0) -> Tuple[Union[numpy.ndarray, torch.Tensor], Union[numpy.ndarray, torch.Tensor]]
+
+      Main entry point for 1D prediction alignment.
+
+      :param ref_pred: Reference prediction vector (length N)
+      :param alt_pred: Alternate prediction vector (length N)
+      :param svtype: Variant type ('DEL', 'DUP', 'INS', 'INV', 'SNV')
+      :param var_pos: Variant position information
+      :param window_start: Start position of sequence window (0-based genomic coord).
+                           Required for correct bin calculation. Defaults to 0.
+
+      :returns: Tuple of (aligned_ref, aligned_alt) vectors with NaN masking applied
+
+      :raises ValueError: For unsupported variant types or if using BND (use align_bnd_predictions)
+
+
+
+   .. py:method:: align_bnd_predictions(left_ref: Union[numpy.ndarray, torch.Tensor], right_ref: Union[numpy.ndarray, torch.Tensor], bnd_alt: Union[numpy.ndarray, torch.Tensor], breakpoint_bin: int) -> Tuple[Union[numpy.ndarray, torch.Tensor], Union[numpy.ndarray, torch.Tensor]]
+
+      Align predictions for breakends (chromosomal rearrangements).
+
+      BNDs join two distant loci, so we create a chimeric reference
+      prediction from the two separate loci for comparison with the fusion ALT.
+
+      :param left_ref: Prediction from left locus
+      :param right_ref: Prediction from right locus
+      :param bnd_alt: Prediction from joined (alternate) sequence
+      :param breakpoint_bin: Bin position of breakpoint
+
+      :returns: Tuple of (chimeric_ref, alt) vectors
+
+
+
+.. py:class:: PredictionAligner2D(target_size: int, bin_size: int, diag_offset: int, crop_length: int)
+
+   Aligns reference and alternate prediction matrices for variant comparison.
+
+   Handles alignment of 2D genomic predictions (e.g., Hi-C contact maps,
+   Micro-C predictions) between reference and variant sequences that may
+   differ in length due to structural variants.
+
+   The aligner uses a masking strategy where matrix rows and columns that
+   exist in one sequence but not the other are marked with NaN values.
+
+   :param target_size: Expected matrix dimension (NxN)
+   :param bin_size: Number of base pairs per matrix bin (model-specific)
+   :param diag_offset: Number of diagonal bins to mask (model-specific)
+   :param crop_length: Number of base pairs cropped from each edge by the model
+
+   .. rubric:: Example
+
+   >>> aligner = PredictionAligner2D(
+   ...     target_size=448,
+   ...     bin_size=2048,
+   ...     diag_offset=2,
+   ...     crop_length=0
+   ... )
+   >>> ref_aligned, alt_aligned = aligner.align_predictions(
+   ...     ref_matrix, alt_matrix, 'DEL', variant_position
+   ... )
+
+
+   .. py:attribute:: target_size
+
+
+   .. py:attribute:: bin_size
+
+
+   .. py:attribute:: diag_offset
+
+
+   .. py:attribute:: crop_length
+
+
+   .. py:method:: align_predictions(ref_pred: Union[numpy.ndarray, torch.Tensor], alt_pred: Union[numpy.ndarray, torch.Tensor], svtype: str, var_pos: VariantPosition, window_start: int = 0) -> Tuple[Union[numpy.ndarray, torch.Tensor], Union[numpy.ndarray, torch.Tensor]]
+
+      Main entry point for 2D matrix alignment.
+
+      :param ref_pred: Reference prediction matrix (NxN)
+      :param alt_pred: Alternate prediction matrix (NxN)
+      :param svtype: Variant type ('DEL', 'DUP', 'INS', 'INV', 'SNV')
+      :param var_pos: Variant position information
+      :param window_start: Start position of sequence window (0-based genomic coord).
+                           Required for correct bin calculation. Defaults to 0.
+
+      :returns: Tuple of (aligned_ref, aligned_alt) matrices with NaN masking applied
+
+      :raises ValueError: For unsupported variant types or if using BND (use align_bnd_matrices)
+
+
+
+   .. py:method:: align_bnd_matrices(left_ref: Union[numpy.ndarray, torch.Tensor], right_ref: Union[numpy.ndarray, torch.Tensor], bnd_alt: Union[numpy.ndarray, torch.Tensor], breakpoint_bin: int) -> Tuple[Union[numpy.ndarray, torch.Tensor], Union[numpy.ndarray, torch.Tensor]]
+
+      Align matrices for breakends (chromosomal rearrangements).
+
+      BNDs join two distant loci, so we create a chimeric reference
+      matrix from the two separate loci.
+
+      :param left_ref: Prediction from left locus
+      :param right_ref: Prediction from right locus
+      :param bnd_alt: Prediction from joined (alternate) sequence
+      :param breakpoint_bin: Bin position of breakpoint
+
+      :returns: Tuple of (chimeric_ref, alt) matrices
+
+
+
+.. py:function:: vector_to_contact_matrix(vector: Union[numpy.ndarray, torch.Tensor], matrix_size: int, diag_offset: int = 0) -> Union[numpy.ndarray, torch.Tensor]
+
+   Convert flattened upper triangular vector to full contact matrix.
+
+   This function reconstructs a full symmetric contact matrix from its upper
+   triangular representation, following the pattern used in genomic contact map models.
+   Supports diagonal masking where near-diagonal elements are excluded.
+
+   :param vector: Flattened upper triangular matrix
+                  Expected length depends on diag_offset:
+                  - diag_offset=0: matrix_size * (matrix_size + 1) / 2 (includes diagonal)
+                  - diag_offset=k: (matrix_size - k) * (matrix_size - k + 1) / 2
+   :param matrix_size: Dimension of the output square matrix
+   :param diag_offset: Diagonal offset for masking (default=0, no masking)
+                       diag_offset=2 means skip main diagonal and first off-diagonal
+
+   :returns: Full symmetric contact matrix of shape (matrix_size, matrix_size)
+             Elements within diag_offset of the diagonal are set to NaN
+
+   .. rubric:: Example
+
+   >>> # Full upper triangle (diag_offset=0, default)
+   >>> vector = np.array([1, 2, 3, 4, 5, 6])
+   >>> matrix = vector_to_contact_matrix(vector, 3)
+   >>> # Result: [[1, 2, 3], [2, 4, 5], [3, 5, 6]]
+
+
+.. py:function:: contact_matrix_to_vector(matrix: Union[numpy.ndarray, torch.Tensor], diag_offset: int = 0) -> Union[numpy.ndarray, torch.Tensor]
+
+   Convert full contact matrix to flattened upper triangular vector.
+
+   This function extracts the upper triangular portion of a contact matrix,
+   which is the standard representation for genomic contact maps. Supports
+   diagonal masking to exclude near-diagonal elements.
+
+   :param matrix: Full symmetric contact matrix of shape (N, N)
+   :param diag_offset: Diagonal offset for extraction (default=0, includes diagonal)
+                       diag_offset=2 means skip main diagonal and first off-diagonal
+
+   :returns: Flattened upper triangular vector
+             Length depends on diag_offset:
+             - diag_offset=0: N * (N + 1) / 2 (includes diagonal)
+             - diag_offset=k: (N - k) * (N - k + 1) / 2
+
+   .. rubric:: Example
+
+   >>> # Full upper triangle (diag_offset=0, default)
+   >>> matrix = np.array([[1, 2, 3], [2, 4, 5], [3, 5, 6]])
+   >>> vector = contact_matrix_to_vector(matrix)
+   >>> # Result: [1, 2, 3, 4, 5, 6]
+
+
+.. py:function:: align_predictions_by_coordinate(ref_preds: Union[numpy.ndarray, torch.Tensor], alt_preds: Union[numpy.ndarray, torch.Tensor], metadata_row: dict, bin_size: int, prediction_type: str, crop_length: int, matrix_size: Optional[int] = None, diag_offset: int = 0) -> Tuple[Union[numpy.ndarray, torch.Tensor], Union[numpy.ndarray, torch.Tensor]]
+
+   Align reference and alt predictions using coordinate transformation and variant type awareness.
+
+   This is the main public API for prediction alignment. It handles both 1D prediction
+   vectors (e.g., chromatin accessibility, TF binding) and 2D matrices (e.g., Hi-C contact maps),
+   routing to the appropriate alignment strategy based on variant type.
+
+   IMPORTANT: Model-specific parameters (bin_size, crop_length, matrix_size) must be explicitly
+   provided by the user. There are no defaults because these vary across different models.
+
+   :param ref_preds: Reference predictions array (from model with edge cropping)
+   :param alt_preds: Alt predictions array (same shape as ref_preds)
+   :param metadata_row: Dictionary with variant information containing:
+                        - 'variant_type': Type of variant (SNV, INS, DEL, DUP, INV, BND)
+                        - 'window_start': Start position of window (0-based)
+                        - 'variant_pos0': Variant position (0-based, absolute genomic coordinate)
+                        - 'svlen': Length of structural variant (optional, for symbolic alleles)
+   :param bin_size: Number of base pairs per prediction bin (REQUIRED, model-specific)
+                    Examples: 2048 for Akita, 128 for Enformer
+   :param prediction_type: Type of predictions ("1D" or "2D")
+                           - "1D": Vector predictions (chromatin accessibility, TF binding, etc.)
+                           - "2D": Matrix predictions (Hi-C contact maps, Micro-C, etc.)
+   :param crop_length: Number of base pairs cropped from each edge by the model (REQUIRED)
+                       This accounts for edge bases removed before prediction.
+                       Examples: 0 for models without cropping
+   :param matrix_size: Size of contact matrix (REQUIRED for 2D type)
+                       Examples: 448 for Akita
+   :param diag_offset: Number of diagonal bins to mask (default: 0 for no masking)
+                       Set to 0 if your model doesn't mask diagonals, or to model-specific value
+                       Examples: 2 for Akita, 0 for models without diagonal masking
+
+   :returns: Tuple of (aligned_ref_preds, aligned_alt_preds) with NaN masking applied
+             at positions that differ between reference and alternate sequences
+
+   :raises ValueError: If prediction_type is invalid, required parameters are missing,
+       or variant type is unsupported
+
+   Example (1D predictions):
+       >>> ref_aligned, alt_aligned = align_predictions_by_coordinate(
+       ...     ref_preds=ref_scores,
+       ...     alt_preds=alt_scores,
+       ...     metadata_row={'variant_type': 'INS', 'window_start': 0,
+       ...                   'variant_pos0': 500, 'svlen': 100},
+       ...     bin_size=128,
+       ...     prediction_type="1D",
+       ...     crop_length=0
+       ... )
+
+   Example (2D contact maps with diagonal masking):
+       >>> ref_aligned, alt_aligned = align_predictions_by_coordinate(
+       ...     ref_preds=ref_contact_map,
+       ...     alt_preds=alt_contact_map,
+       ...     metadata_row={'variant_type': 'DEL', 'window_start': 0,
+       ...                   'variant_pos0': 50000, 'svlen': -2048},
+       ...     bin_size=2048,
+       ...     prediction_type="2D",
+       ...     crop_length=0,
+       ...     matrix_size=448,
+       ...     diag_offset=2  # Optional: use 0 if no diagonal masking
+       ... )
+
+   Example (2D contact maps without diagonal masking):
+       >>> ref_aligned, alt_aligned = align_predictions_by_coordinate(
+       ...     ref_preds=ref_contact_map,
+       ...     alt_preds=alt_contact_map,
+       ...     metadata_row={'variant_type': 'INS', 'window_start': 0,
+       ...                   'variant_pos0': 1000, 'svlen': 500},
+       ...     bin_size=1000,
+       ...     prediction_type="2D",
+       ...     crop_length=0,
+       ...     matrix_size=512
+       ...     # diag_offset defaults to 0 (no masking)
+       ... )
+
+

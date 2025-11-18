@@ -1,0 +1,724 @@
+supremo_lite
+============
+
+.. py:module:: supremo_lite
+
+.. autoapi-nested-parse::
+
+   supremo_lite: A module for generating personalized genome sequences from a reference
+   fasta and a variants file, or sequences for in-silico mutagenesis.
+
+   This package provides functionality for:
+   - Sequence encoding and transformation
+   - Variant reading and application
+   - In-silico mutagenesis
+
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/supremo_lite/chromosome_utils/index
+   /autoapi/supremo_lite/core/index
+   /autoapi/supremo_lite/mock_models/index
+   /autoapi/supremo_lite/mutagenesis/index
+   /autoapi/supremo_lite/personalize/index
+   /autoapi/supremo_lite/prediction_alignment/index
+   /autoapi/supremo_lite/sequence_utils/index
+   /autoapi/supremo_lite/variant_utils/index
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   supremo_lite.TORCH_AVAILABLE
+   supremo_lite.BRISKET_AVAILABLE
+   supremo_lite.nt_to_1h
+   supremo_lite.nts
+
+
+Exceptions
+----------
+
+.. autoapisummary::
+
+   supremo_lite.ChromosomeMismatchError
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   supremo_lite.encode_seq
+   supremo_lite.decode_seq
+   supremo_lite.rc
+   supremo_lite.rc_str
+   supremo_lite.read_vcf
+   supremo_lite.read_vcf_chunked
+   supremo_lite.get_vcf_chromosomes
+   supremo_lite.read_vcf_chromosome
+   supremo_lite.classify_variant_type
+   supremo_lite.parse_vcf_info
+   supremo_lite.normalize_chromosome_name
+   supremo_lite.create_chromosome_mapping
+   supremo_lite.match_chromosomes_with_report
+   supremo_lite.get_personal_genome
+   supremo_lite.get_alt_sequences
+   supremo_lite.get_ref_sequences
+   supremo_lite.get_pam_disrupting_alt_sequences
+   supremo_lite.get_alt_ref_sequences
+   supremo_lite.get_sm_sequences
+   supremo_lite.get_sm_subsequences
+   supremo_lite.align_predictions_by_coordinate
+
+
+Package Contents
+----------------
+
+.. py:data:: TORCH_AVAILABLE
+   :value: True
+
+
+.. py:data:: BRISKET_AVAILABLE
+   :value: True
+
+
+.. py:data:: nt_to_1h
+
+.. py:data:: nts
+
+.. py:function:: encode_seq(seq, encoder=None)
+
+   Convert a nucleotide string to a one-hot encoded tensor/array.
+
+   :param seq: A string of nucleotides or a list of such strings
+   :param encoder: Optional custom encoding function. If provided, should accept a single
+                   sequence string and return encoded array with shape (4, L).
+
+   :returns: A tensor/array with shape (4, L) for a single sequence or (N, 4, L) for a list,
+             where L is the sequence length and N is the number of sequences.
+
+   Encoding scheme (default):
+       'A' = [1, 0, 0, 0] (first channel)
+       'C' = [0, 1, 0, 0] (second channel)
+       'G' = [0, 0, 1, 0] (third channel)
+       'T' = [0, 0, 0, 1] (fourth channel)
+       'N' = [0, 0, 0, 0] (all channels zero)
+
+
+.. py:function:: decode_seq(seq_1h)
+
+   Convert a one-hot encoded tensor/array back to a nucleotide string.
+
+   :param seq_1h: A tensor/array with shape (4, L) or (N, 4, L)
+
+   :returns: A string or list of strings of nucleotides
+
+
+.. py:function:: rc(seq_1h)
+
+   Reverse complement a one-hot encoded tensor/array.
+
+   :param seq_1h: A tensor/array with shape (4, L) or (N, 4, L)
+
+   :returns: The reverse complement with the same shape
+
+
+.. py:function:: rc_str(seq)
+
+   Reverse complement a nucleotide string.
+
+   :param seq: A string of nucleotides
+
+   :returns: The reverse complement string
+
+
+.. py:function:: read_vcf(path, include_info=True, classify_variants=True)
+
+   Read VCF file into pandas DataFrame with enhanced variant classification.
+
+   :param path: Path to VCF file
+   :param include_info: Whether to include INFO field (default: True)
+   :param classify_variants: Whether to classify variant types (default: True)
+
+   :returns: chrom, pos1, id, ref, alt, [info], [variant_type]
+   :rtype: DataFrame with columns
+
+   .. rubric:: Notes
+
+   - INFO field parsing enables structural variant classification
+   - variant_type column uses VCF 4.2 compliant classification
+   - Compatible with existing code expecting basic 5-column format
+
+
+.. py:function:: read_vcf_chunked(path, n_chunks=1, include_info=True, classify_variants=True)
+
+   Read VCF file in chunks using generator with enhanced variant classification.
+
+   :param path: Path to VCF file
+   :param n_chunks: Number of chunks to split variants into (default: 1)
+   :param include_info: Whether to include INFO field (default: True)
+   :param classify_variants: Whether to classify variant types (default: True)
+
+   :Yields: *DataFrame chunks with columns* -- chrom, pos1, id, ref, alt, [info], [variant_type]
+
+
+.. py:function:: get_vcf_chromosomes(path)
+
+   Get list of chromosomes in VCF file without loading all variants.
+
+   :param path: Path to VCF file
+
+   :returns: Set of chromosome names found in the VCF file
+
+
+.. py:function:: read_vcf_chromosome(path, target_chromosome, include_info=True, classify_variants=True)
+
+   Read VCF file for a specific chromosome only with enhanced variant classification.
+
+   :param path: Path to VCF file
+   :param target_chromosome: Chromosome name to filter for
+   :param include_info: Whether to include INFO field (default: True)
+   :param classify_variants: Whether to classify variant types (default: True)
+
+   :returns: DataFrame with variants only from specified chromosome
+             (columns: chrom, pos1, id, ref, alt, [info], [variant_type])
+
+
+.. py:function:: classify_variant_type(ref_allele: str, alt_allele: str, info_dict: Optional[Dict] = None) -> str
+
+   Classify variant type according to VCF 4.2 specification using comprehensive heuristics.
+
+   Note: This function only correctly classifies variants that are represented in a single
+   VCF record, this means that an additional classification step is needed for BNDs that
+   actually represent INV or DUP variants as those can be represented as 4 or 2 VCF records
+   respectively.
+
+   This function implements the complete VCF 4.2 variant classification rules with proper
+   handling of structural variants, standard sequence variants, and edge cases.
+
+   :param ref_allele: Reference allele sequence (REF field)
+   :param alt_allele: Alternate allele sequence (ALT field)
+   :param info_dict: Parsed INFO field dictionary (optional, for structural variants)
+
+   :returns: Variant type classification
+   :rtype: str
+
+   VCF 4.2 Variant Types (in classification priority order):
+
+       - 'complex': Complex/multiallelic variants (ALT contains comma)
+       - 'missing': Missing/upstream deletion allele (ALT = '*')
+       - 'SV_INV': Inversion structural variant
+       - 'SV_DUP': Duplication structural variant
+       - 'SV_DEL': Deletion structural variant
+       - 'SV_INS': Insertion structural variant
+       - 'SV_CNV': Copy number variant
+       - 'SV_BND': Breakend/translocation
+       - 'SV_BND_INS': Breakend/translocation with inserted sequence
+       - 'SNV': Single nucleotide variant
+       - 'MNV': Milti-nucleotide variant (alt len = ref len but no prefix)
+       - 'INS': Sequence insertion
+       - 'DEL': Sequence deletion
+       - 'complex': Complex/multi-nucleotide variant (same length substitution)
+       - 'unknown': Unclassifiable variant
+
+   Note: MNV is not part of the official VCF 4.2 spec, they are treated the same as SNVs
+   for all functions in supremo_lite.
+
+   .. rubric:: Examples
+
+   # Multiallelic variants
+   >>> classify_variant_type('A', 'G,T')
+   'multiallelic'
+   >>> classify_variant_type('T', 'TGGG,C')
+   'multiallelic'
+
+   # Standard variants
+   >>> classify_variant_type('A', 'G')
+   'SNV'
+   >>> classify_variant_type('AGG', 'TCG')
+   'MNV'
+   >>> classify_variant_type('T', 'TGGG')
+   'INS'
+   >>> classify_variant_type('CGAGAA', 'C')
+   'DEL'
+
+   # Structural variants
+   >>> classify_variant_type('N', '<INV>')
+   'SV_INV'
+   >>> classify_variant_type('G', 'G]17:198982]')
+   'SV_BND'
+   >>> classify_variant_type('T', ']chr2:20]ATCGT')
+   'SV_BND_INS'
+
+   # Special cases
+   >>> classify_variant_type('T', '*')
+   'missing'
+
+   VCF 4.2 Reference: https://samtools.github.io/hts-specs/VCFv4.2.pdf
+
+
+.. py:function:: parse_vcf_info(info_string: str) -> Dict
+
+   Parse VCF INFO field to extract variant information according to VCF 4.2 specification.
+
+   :param info_string: VCF INFO field string (e.g., "SVTYPE=INV;END=1234;SVLEN=100")
+
+   :returns: Parsed INFO field values with appropriate type conversion
+   :rtype: dict
+
+   VCF 4.2 INFO field specification:
+
+       - Key=Value pairs separated by semicolons
+       - Boolean flags have no value (key presence = True)
+       - Numeric values auto-converted to int/float
+       - Reserved keys: AA, AC, AF, AN, BQ, CIGAR, DB, DP, END, H2, H3, MQ, MQ0, NS, SB, etc.
+
+   .. rubric:: Examples
+
+   >>> parse_vcf_info("SVTYPE=INV;END=1234;SVLEN=100")
+   {'SVTYPE': 'INV', 'END': 1234, 'SVLEN': 100}
+
+   >>> parse_vcf_info("DB;H2;AF=0.5")
+   {'DB': True, 'H2': True, 'AF': 0.5}
+
+
+.. py:function:: normalize_chromosome_name(chrom_name: str) -> str
+
+   Normalize chromosome name to a standard format.
+
+   :param chrom_name: Raw chromosome name from VCF or FASTA
+
+   :returns: Normalized chromosome name (without 'chr' prefix, uppercase)
+
+   .. rubric:: Examples
+
+   'chr1' -> '1'
+   'CHR1' -> '1'
+   'chrX' -> 'X'
+   'chrMT' -> 'MT'
+   'M' -> 'MT'  # Mitochondrial normalization
+
+
+.. py:function:: create_chromosome_mapping(reference_chroms: Set[str], vcf_chroms: Set[str]) -> Dict[str, str]
+
+   Create a mapping from VCF chromosome names to reference chromosome names.
+
+   This function uses heuristics to match chromosome names between VCF and FASTA:
+   1. Exact match (case sensitive)
+   2. Exact match (case insensitive)
+   3. Normalized match (with/without 'chr' prefix)
+   4. Special cases for mitochondrial chromosomes
+
+   :param reference_chroms: Set of chromosome names from reference FASTA
+   :param vcf_chroms: Set of chromosome names from VCF file
+
+   :returns: Tuple of (mapping dict, unmatched set)
+
+   .. rubric:: Example
+
+   reference_chroms = {'1', '2', 'X', 'Y', 'MT'}
+   vcf_chroms = {'chr1', 'chr2', 'chrX', 'chrY', 'chrM'}
+   Returns: {'chr1': '1', 'chr2': '2', 'chrX': 'X', 'chrY': 'Y', 'chrM': 'MT'}
+
+
+.. py:function:: match_chromosomes_with_report(reference_chroms: Set[str], vcf_chroms: Set[str], verbose: bool = True, auto_map_chromosomes: bool = False) -> Tuple[Dict[str, str], Set[str]]
+
+   Match chromosomes and optionally print a detailed report.
+
+   :param reference_chroms: Set of reference chromosome names
+   :param vcf_chroms: Set of VCF chromosome names
+   :param verbose: Whether to print matching report
+   :param auto_map_chromosomes: Whether to automatically map chromosome names when they don't
+                                match exactly (default: False). When False, raises
+                                ChromosomeMismatchError if names don't match.
+
+   :returns: Tuple of (mapping dict, unmatched set)
+
+   :raises ChromosomeMismatchError: If auto_map_chromosomes=False and chromosome names don't
+       match exactly between VCF and reference
+
+
+.. py:exception:: ChromosomeMismatchError
+
+   Bases: :py:obj:`Exception`
+
+
+   Raised when chromosome names in VCF and reference do not match.
+
+   This error is raised by default when chromosome names don't match exactly
+   and automatic chromosome mapping is not enabled.
+
+
+.. py:function:: get_personal_genome(reference_fn, variants_fn, encode=True, n_chunks=1, verbose=False, encoder=None, auto_map_chromosomes=False)
+
+   Create a personalized genome by applying variants to a reference genome.
+
+   This function implements multi-phase variant processing with proper frozen region tracking:
+
+   Phase 1: Standard variants + Early structural variants (in VCF order):
+       - SNV, MNV, INS, DEL, SV_DUP, SV_INV
+
+   Phase 2: BND semantic classification and application:
+       - Classify BNDs to identify SV_BND_DUP and SV_BND_INV patterns
+       - Apply SV_BND_DUP and SV_BND_INV first
+       - Apply remaining true BND translocations
+
+   Frozen region enforcement:
+       - Each variant freezes its genomic region after application
+       - Later variants overlapping frozen regions are skipped with warnings
+       - BND breakpoints in frozen regions cause entire BND to be skipped
+
+   Output chromosome ordering:
+       - Chromosomes are returned in the same order as the reference genome
+       - BND-generated fusion sequences appear after all original chromosomes
+       - Leftover sequences (from consumed chromosomes) follow fusion sequences
+
+   :param reference_fn: Path to reference genome file or dictionary-like object
+   :param variants_fn: Path to variants file or DataFrame. Supports VCF 4.2 format
+                       including BND (breakend) variants with bracket notation.
+   :param encode: Return sequences as one-hot encoded arrays (default: True)
+   :param n_chunks: Number of chunks to split variants into for processing (default: 1)
+   :param verbose: Print progress information (default: False)
+   :param encoder: Optional custom encoding function. If provided, should accept a single
+                   sequence string and return encoded array with shape (L, 4). Default: None
+   :param auto_map_chromosomes: Automatically map chromosome names between VCF and reference
+                                when they don't match exactly (e.g., 'chr1' <-> '1', 'chrM' <-> 'MT').
+                                Default: False. When False, raises ChromosomeMismatchError if names
+                                don't match. (default: False)
+
+   :returns: A dictionary mapping chromosome names to encoded tensors/arrays
+             If encode=False: A dictionary mapping chromosome names to sequence strings
+
+             The dictionary preserves reference genome chromosome order, with any fusion
+             or leftover sequences appended at the end.
+   :rtype: If encode=True
+
+   :raises ChromosomeMismatchError: If auto_map_chromosomes=False and chromosome names in VCF
+       and reference don't match exactly
+
+   .. rubric:: Examples
+
+   # Apply variants with proper ordering and conflict resolution
+   personal_genome = get_personal_genome('reference.fa', 'variants.vcf')
+
+   # Get raw sequences without encoding
+   personal_genome = get_personal_genome('reference.fa', 'variants.vcf', encode=False)
+
+   # Enable automatic chromosome mapping if VCF uses 'chr1' and reference uses '1'
+   personal_genome = get_personal_genome('reference.fa', 'variants.vcf', auto_map_chromosomes=True)
+
+   # Verify chromosome order is preserved
+   ref_chroms = list(pyfaidx.Fasta('reference.fa').keys())
+   personal_chroms = list(personal_genome.keys())
+   assert personal_chroms[:len(ref_chroms)] == ref_chroms  # Original order preserved
+
+
+.. py:function:: get_alt_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=1, encoder=None, auto_map_chromosomes=False)
+
+   Create sequence windows centered on each variant position with variants applied.
+   Now supports both standard variants and BND variants.
+
+   :param reference_fn: Path to reference genome file or dictionary-like object
+   :param variants_fn: Path to VCF file (string) or DataFrame with variant data.
+                       For DataFrames, position column can be 'pos', 'pos1', or assumes second column is position.
+   :param seq_len: Length of the sequence window
+   :param encode: Return sequences as one-hot encoded numpy arrays (default: True)
+   :param n_chunks: Number of chunks to split variants into (default: 1)
+   :param encoder: Optional custom encoding function
+   :param auto_map_chromosomes: Automatically map chromosome names between VCF and reference
+                                when they don't match exactly. Default: False. (default: False)
+
+   :Yields: *Tuple containing (sequences, metadata_df) where* --     If encode=True: sequences is a tensor/array of shape (chunk_size, seq_len, 4) for each chunk
+                If encode=False: sequences is a list of tuples containing (chrom, start, end, sequence_string) for each chunk
+                metadata_df is a DataFrame with variant information including position offsets
+                For BND variants: sequences contain fusion sequences
+
+   :raises ChromosomeMismatchError: If auto_map_chromosomes=False and chromosome names don't match
+
+
+.. py:function:: get_ref_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=1, encoder=None, auto_map_chromosomes=False)
+
+   Create reference sequence windows centered on each variant position (no variants applied).
+
+   :param reference_fn: Path to reference genome file or dictionary-like object
+   :param variants_fn: Path to VCF file (string) or DataFrame with variant data.
+                       For DataFrames, position column can be 'pos', 'pos1', or assumes second column is position.
+   :param seq_len: Length of the sequence window
+   :param encode: Return sequences as one-hot encoded numpy arrays (default: True)
+   :param n_chunks: Number of chunks to split variants into (default: 1)
+   :param encoder: Optional custom encoding function
+   :param auto_map_chromosomes: Automatically map chromosome names between VCF and reference
+                                when they don't match exactly. Default: False. (default: False)
+
+   :Yields: *Tuple containing (sequences, metadata_df) where* --     If encode=True: sequences is a tensor/array of shape (chunk_size, seq_len, 4) for each chunk
+                If encode=False: sequences is a list of tuples containing (chrom, start, end, sequence_string) for each chunk
+                metadata_df is a DataFrame with variant information including position offsets
+                For BND variants: sequences contain dual reference sequences (left + right)
+
+   :raises ChromosomeMismatchError: If auto_map_chromosomes=False and chromosome names don't match
+
+
+.. py:function:: get_pam_disrupting_alt_sequences(reference_fn, variants_fn, seq_len, max_pam_distance, pam_sequence='NGG', encode=True, n_chunks=1, encoder=None, auto_map_chromosomes=False)
+
+   Generate sequences for variants that disrupt PAM sites.
+
+   This function identifies variants that disrupt existing PAM sites in the reference
+   genome and generates sequence pairs for each disrupting variant. Works like
+   get_alt_ref_sequences() but filtered to only PAM-disrupting variants.
+
+   :param reference_fn: Path to reference genome file or dictionary-like object
+   :param variants_fn: Path to variants file or DataFrame
+   :param seq_len: Length of sequence windows
+   :param max_pam_distance: Maximum distance from variant to PAM site
+   :param pam_sequence: PAM sequence pattern (default: 'NGG' for SpCas9).
+                        Supports all IUPAC degenerate nucleotide codes:
+                        N (any), R (A/G), Y (C/T), W (A/T), S (C/G), M (A/C),
+                        K (G/T), B (C/G/T), D (A/G/T), H (A/C/T), V (A/C/G)
+   :param encode: Return sequences as one-hot encoded numpy arrays (default: True)
+   :param n_chunks: Number of chunks to split variants for processing (default: 1)
+   :param encoder: Optional custom encoding function
+   :param auto_map_chromosomes: Automatically map chromosome names between VCF and reference
+                                when they don't match exactly. Default: False. (default: False)
+
+   :Yields: *Tuple containing (alt_sequences, ref_sequences, metadata_df)* --     - alt_sequences: Variant sequences with mutations applied
+                - ref_sequences: Reference sequences without mutations
+                - metadata_df: Variant metadata (pandas DataFrame) with PAM-specific columns
+
+   Metadata DataFrame columns:
+       Standard fields:
+           - chrom: Chromosome name (str)
+           - window_start: Window start position, 0-based (int)
+           - window_end: Window end position, 0-based exclusive (int)
+           - variant_pos0: Variant position, 0-based (int)
+           - variant_pos1: Variant position, 1-based VCF standard (int)
+           - ref: Reference allele (str)
+           - alt: Alternate allele (str)
+           - variant_type: Variant classification (str)
+
+       PAM-specific fields:
+           - pam_site_pos: 0-based start position of PAM site in window (int)
+           - pam_ref_sequence: PAM sequence in reference (str)
+           - pam_alt_sequence: PAM sequence after variant (str)
+           - pam_distance: Distance from variant to PAM start (int)
+
+   :raises ChromosomeMismatchError: If auto_map_chromosomes=False and chromosome names don't match
+
+   .. rubric:: Example
+
+   >>> # Process all PAM-disrupting variants at once
+   >>> gen = get_pam_disrupting_alt_sequences(ref, vcf, seq_len=50,
+   ...                                         max_pam_distance=10, n_chunks=1)
+   >>> alt_seqs, ref_seqs, metadata = next(gen)
+   >>>
+   >>> # Or iterate through chunks
+   >>> for alt_seqs, ref_seqs, metadata in get_pam_disrupting_alt_sequences(
+   ...     ref, vcf, seq_len=50, max_pam_distance=10, n_chunks=5):
+   ...     predictions = model.predict(alt_seqs, ref_seqs)
+
+
+.. py:function:: get_alt_ref_sequences(reference_fn, variants_fn, seq_len, encode=True, n_chunks=1, encoder=None, auto_map_chromosomes=False)
+
+   Create both reference and variant sequence windows for alt/ref ratio calculations.
+   Maintains backward compatibility while supporting BND variants with dual references.
+
+   This wrapper function calls both get_ref_sequences and get_alt_sequences to return
+   matching pairs of reference and variant sequences for computing ratios.
+
+   :param reference_fn: Path to reference genome file or dictionary-like object
+   :param variants_fn: Path to VCF file (string) or DataFrame with variant data.
+                       For DataFrames, position column can be 'pos', 'pos1', or assumes second column is position.
+   :param seq_len: Length of the sequence window
+   :param encode: Return sequences as one-hot encoded numpy arrays (default: True)
+   :param n_chunks: Number of chunks to split variants into (default: 1)
+   :param encoder: Optional custom encoder function
+   :param auto_map_chromosomes: Automatically map chromosome names between VCF and reference
+                                when they don't match exactly. Default: False. (default: False)
+
+   :Yields: *Tuple containing (alt_sequences, ref_sequences, metadata_df)* --     For standard variants:
+                - alt_sequences: Variant sequences with mutations applied
+                - ref_sequences: Reference sequences without mutations
+                - metadata_df: Variant metadata (pandas DataFrame)
+
+                For BND variants:
+                - alt_sequences: Fusion sequences from breakend pairs
+                - ref_sequences: Tuple of (left_ref_sequences, right_ref_sequences)
+                - metadata_df: BND metadata with orientation and mate information
+
+   Metadata DataFrame columns:
+       Standard fields (all variants):
+           - chrom: Chromosome name (str)
+           - window_start: Window start position, 0-based (int)
+           - window_end: Window end position, 0-based exclusive (int)
+           - variant_pos0: Variant position, 0-based (int)
+           - variant_pos1: Variant position, 1-based VCF standard (int)
+           - ref: Reference allele (str)
+           - alt: Alternate allele (str)
+           - variant_type: Variant classification (str)
+               Examples: 'SNV', 'INS', 'DEL', 'MNV', 'SV_INV', 'SV_DUP', 'SV_BND'
+
+       Additional field for symbolic alleles (<INV>, <DUP>, etc.):
+           - sym_variant_end: END position from INFO field, 1-based (int, optional)
+
+       BND-specific fields:
+           - mate_chrom: Mate breakend chromosome (str)
+           - mate_pos: Mate breakend position, 1-based (int)
+           - orientation_1: First breakend orientation (str)
+           - orientation_2: Second breakend orientation (str)
+           - fusion_name: Fusion sequence identifier (str, optional)
+
+   :raises ChromosomeMismatchError: If auto_map_chromosomes=False and chromosome names don't match
+
+
+.. py:function:: get_sm_sequences(chrom, start, end, reference_fasta, encoder=None)
+
+   Generate sequences with all alternate nucleotides at every position (saturation mutagenesis).
+
+   :param chrom: Chromosome name
+   :param start: Start position (0-based)
+   :param end: End position (0-based, exclusive)
+   :param reference_fasta: Reference genome object
+   :param encoder: Optional custom encoding function. If provided, should accept a single
+                   sequence string and return encoded array with shape (4, L). Default: None
+
+   :returns: Tuple of (reference one-hot, alt one-hot tensor, metadata DataFrame)
+
+
+.. py:function:: get_sm_subsequences(chrom, seq_len, reference_fasta, anchor=None, anchor_radius=None, bed_regions=None, encoder=None, auto_map_chromosomes=False)
+
+   Generate sequences with all alternate nucleotides at positions in specified regions
+   (saturation mutagenesis).
+
+   Supports two mutually exclusive approaches for defining mutation intervals:
+   1. Anchor-based: Use anchor + anchor_radius to define a single centered region
+   2. BED-based: Use bed_regions to define one or more arbitrary genomic regions
+
+   In both cases, sequences of length seq_len are generated, centered on the mutation interval(s).
+
+   :param chrom: Chromosome name
+   :param seq_len: Total sequence length for each window
+   :param reference_fasta: Reference genome object
+   :param anchor: Anchor position (0-based). Required when using anchor_radius.
+                  Must be provided together with anchor_radius.
+                  Mutually exclusive with bed_regions.
+   :param anchor_radius: Number of bases to include on either side of the anchor for mutations.
+                         Required when using anchor. Must be provided together with anchor.
+                         Mutually exclusive with bed_regions.
+   :param bed_regions: BED file path or DataFrame defining mutation intervals.
+                       BED format: chrom, start, end (0-based, half-open intervals).
+                       Each BED region defines positions to mutate, centered in a seq_len window.
+                       Mutually exclusive with anchor + anchor_radius.
+   :param encoder: Optional custom encoding function. If provided, should accept a single
+                   sequence string and return encoded array with shape (4, L). Default: None
+   :param auto_map_chromosomes: Automatically map chromosome names between reference and BED file
+                                when they don't match exactly (e.g., 'chr1' <-> '1', 'chrM' <-> 'MT').
+                                Only applies when bed_regions is provided. Default: False.
+
+   :returns: Tuple of (reference one-hot, alt one-hot tensor, metadata DataFrame)
+
+   :raises ValueError: If invalid parameter combinations are provided
+   :raises ChromosomeMismatchError: If auto_map_chromosomes=False and chromosome names in BED file
+       and reference don't match exactly (only when bed_regions is provided)
+
+   .. rubric:: Examples
+
+   # Approach 1: Anchor-based (single region)
+   ref, alts, meta = get_sm_subsequences(
+       chrom='chr1',
+       seq_len=200,
+       reference_fasta=ref,
+       anchor=1050,
+       anchor_radius=10  # Mutate positions 1040-1060 in a 200bp window
+   )
+
+   # Approach 2: BED-based (multiple regions)
+   ref, alts, meta = get_sm_subsequences(
+       chrom='chr1',
+       seq_len=200,
+       reference_fasta=ref,
+       bed_regions='regions.bed'  # Each region centered in 200bp window
+   )
+
+
+.. py:function:: align_predictions_by_coordinate(ref_preds: Union[numpy.ndarray, torch.Tensor], alt_preds: Union[numpy.ndarray, torch.Tensor], metadata_row: dict, bin_size: int, prediction_type: str, crop_length: int, matrix_size: Optional[int] = None, diag_offset: int = 0) -> Tuple[Union[numpy.ndarray, torch.Tensor], Union[numpy.ndarray, torch.Tensor]]
+
+   Align reference and alt predictions using coordinate transformation and variant type awareness.
+
+   This is the main public API for prediction alignment. It handles both 1D prediction
+   vectors (e.g., chromatin accessibility, TF binding) and 2D matrices (e.g., Hi-C contact maps),
+   routing to the appropriate alignment strategy based on variant type.
+
+   IMPORTANT: Model-specific parameters (bin_size, crop_length, matrix_size) must be explicitly
+   provided by the user. There are no defaults because these vary across different models.
+
+   :param ref_preds: Reference predictions array (from model with edge cropping)
+   :param alt_preds: Alt predictions array (same shape as ref_preds)
+   :param metadata_row: Dictionary with variant information containing:
+                        - 'variant_type': Type of variant (SNV, INS, DEL, DUP, INV, BND)
+                        - 'window_start': Start position of window (0-based)
+                        - 'variant_pos0': Variant position (0-based, absolute genomic coordinate)
+                        - 'svlen': Length of structural variant (optional, for symbolic alleles)
+   :param bin_size: Number of base pairs per prediction bin (REQUIRED, model-specific)
+                    Examples: 2048 for Akita, 128 for Enformer
+   :param prediction_type: Type of predictions ("1D" or "2D")
+                           - "1D": Vector predictions (chromatin accessibility, TF binding, etc.)
+                           - "2D": Matrix predictions (Hi-C contact maps, Micro-C, etc.)
+   :param crop_length: Number of base pairs cropped from each edge by the model (REQUIRED)
+                       This accounts for edge bases removed before prediction.
+                       Examples: 0 for models without cropping
+   :param matrix_size: Size of contact matrix (REQUIRED for 2D type)
+                       Examples: 448 for Akita
+   :param diag_offset: Number of diagonal bins to mask (default: 0 for no masking)
+                       Set to 0 if your model doesn't mask diagonals, or to model-specific value
+                       Examples: 2 for Akita, 0 for models without diagonal masking
+
+   :returns: Tuple of (aligned_ref_preds, aligned_alt_preds) with NaN masking applied
+             at positions that differ between reference and alternate sequences
+
+   :raises ValueError: If prediction_type is invalid, required parameters are missing,
+       or variant type is unsupported
+
+   Example (1D predictions):
+       >>> ref_aligned, alt_aligned = align_predictions_by_coordinate(
+       ...     ref_preds=ref_scores,
+       ...     alt_preds=alt_scores,
+       ...     metadata_row={'variant_type': 'INS', 'window_start': 0,
+       ...                   'variant_pos0': 500, 'svlen': 100},
+       ...     bin_size=128,
+       ...     prediction_type="1D",
+       ...     crop_length=0
+       ... )
+
+   Example (2D contact maps with diagonal masking):
+       >>> ref_aligned, alt_aligned = align_predictions_by_coordinate(
+       ...     ref_preds=ref_contact_map,
+       ...     alt_preds=alt_contact_map,
+       ...     metadata_row={'variant_type': 'DEL', 'window_start': 0,
+       ...                   'variant_pos0': 50000, 'svlen': -2048},
+       ...     bin_size=2048,
+       ...     prediction_type="2D",
+       ...     crop_length=0,
+       ...     matrix_size=448,
+       ...     diag_offset=2  # Optional: use 0 if no diagonal masking
+       ... )
+
+   Example (2D contact maps without diagonal masking):
+       >>> ref_aligned, alt_aligned = align_predictions_by_coordinate(
+       ...     ref_preds=ref_contact_map,
+       ...     alt_preds=alt_contact_map,
+       ...     metadata_row={'variant_type': 'INS', 'window_start': 0,
+       ...                   'variant_pos0': 1000, 'svlen': 500},
+       ...     bin_size=1000,
+       ...     prediction_type="2D",
+       ...     crop_length=0,
+       ...     matrix_size=512
+       ...     # diag_offset defaults to 0 (no masking)
+       ... )
+
+

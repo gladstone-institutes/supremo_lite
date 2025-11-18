@@ -1,0 +1,790 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>supremo_lite.personalize &mdash; supremo_lite  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=fd3f3429" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="supremo_lite.prediction_alignment" href="../prediction_alignment/index.html" />
+    <link rel="prev" title="supremo_lite.mutagenesis" href="../mutagenesis/index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            supremo_lite
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/personalization.html">Personalized Genome Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/variant_centered_sequences.html">Variant-Centered Sequence Windows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/pam_disruption.html">PAM Disruption Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/prediction_alignment.html">Prediction Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/prediction_alignment_examples.html">Prediction Alignment Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/prediction_alignment_examples.html#variant-type-examples">Variant Type Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/mutagenesis.html">Saturation Mutagenesis</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Notebooks</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks/01_getting_started.html">Getting Started with supremo_lite</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks/02_personalized_genomes.html">Personalized Genome Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks/03_prediction_alignment.html">Prediction Alignment: From Sequences to Aligned Predictions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks/04_pam_disruption.html">PAM Disruption Analysis: Identifying CRISPR-Resistant Variants</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">supremo_lite</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="../index.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="../chromosome_utils/index.html">supremo_lite.chromosome_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../core/index.html">supremo_lite.core</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../mock_models/index.html">supremo_lite.mock_models</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../mutagenesis/index.html">supremo_lite.mutagenesis</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">supremo_lite.personalize</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../prediction_alignment/index.html">supremo_lite.prediction_alignment</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sequence_utils/index.html">supremo_lite.sequence_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../variant_utils/index.html">supremo_lite.variant_utils</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#attributes">Attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#exceptions">Exceptions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#functions">Functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#package-contents">Package Contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../conduct.html">Code of Conduct</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">supremo_lite</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">supremo_lite</a></li>
+      <li class="breadcrumb-item active">supremo_lite.personalize</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/autoapi/supremo_lite/personalize/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-supremo_lite.personalize">
+<span id="supremo-lite-personalize"></span><h1>supremo_lite.personalize<a class="headerlink" href="#module-supremo_lite.personalize" title="Link to this heading"></a></h1>
+<p>Personalized sequence generation for supremo_lite.</p>
+<p>This module provides functions for creating personalized genomes by applying
+variants to a reference genome and generating sequence windows around variants.</p>
+<section id="attributes">
+<h2>Attributes<a class="headerlink" href="#attributes" title="Link to this heading"></a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#supremo_lite.personalize.IUPAC_CODES" title="supremo_lite.personalize.IUPAC_CODES"><code class="xref py py-obj docutils literal notranslate"><span class="pre">IUPAC_CODES</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading"></a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#supremo_lite.personalize.ChromosomeOffsetTracker" title="supremo_lite.personalize.ChromosomeOffsetTracker"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ChromosomeOffsetTracker</span></code></a></p></td>
+<td><p>Tracks cumulative coordinate offsets per chromosome from applied variants.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#supremo_lite.personalize.SequenceSegment" title="supremo_lite.personalize.SequenceSegment"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SequenceSegment</span></code></a></p></td>
+<td><p>Represents a segment within a sequence with its source and position.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#supremo_lite.personalize.FrozenRegionTracker" title="supremo_lite.personalize.FrozenRegionTracker"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FrozenRegionTracker</span></code></a></p></td>
+<td><p>Efficiently tracks genomic regions that are 'frozen' due to applied variants.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#supremo_lite.personalize.ChromosomeSegmentTracker" title="supremo_lite.personalize.ChromosomeSegmentTracker"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ChromosomeSegmentTracker</span></code></a></p></td>
+<td><p>Track which segments of each chromosome are used by fusions.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#supremo_lite.personalize.VariantApplicator" title="supremo_lite.personalize.VariantApplicator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">VariantApplicator</span></code></a></p></td>
+<td><p>Applies VCF variants to a reference sequence in memory.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#supremo_lite.personalize.ChimericSequenceBuilder" title="supremo_lite.personalize.ChimericSequenceBuilder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ChimericSequenceBuilder</span></code></a></p></td>
+<td><p>Builds chimeric sequences from BND rearrangements.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#supremo_lite.personalize.get_personal_genome" title="supremo_lite.personalize.get_personal_genome"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_personal_genome</span></code></a>(reference_fn, variants_fn[, ...])</p></td>
+<td><p>Create a personalized genome by applying variants to a reference genome.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#supremo_lite.personalize.get_alt_sequences" title="supremo_lite.personalize.get_alt_sequences"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_alt_sequences</span></code></a>(reference_fn, variants_fn, seq_len)</p></td>
+<td><p>Create sequence windows centered on each variant position with variants applied.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#supremo_lite.personalize.get_ref_sequences" title="supremo_lite.personalize.get_ref_sequences"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_ref_sequences</span></code></a>(reference_fn, variants_fn, seq_len)</p></td>
+<td><p>Create reference sequence windows centered on each variant position (no variants applied).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#supremo_lite.personalize.get_alt_ref_sequences" title="supremo_lite.personalize.get_alt_ref_sequences"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_alt_ref_sequences</span></code></a>(reference_fn, variants_fn, seq_len)</p></td>
+<td><p>Create both reference and variant sequence windows for alt/ref ratio calculations.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#supremo_lite.personalize.get_pam_disrupting_alt_sequences" title="supremo_lite.personalize.get_pam_disrupting_alt_sequences"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_pam_disrupting_alt_sequences</span></code></a>(reference_fn, ...[, ...])</p></td>
+<td><p>Generate sequences for variants that disrupt PAM sites.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading"></a></h2>
+<dl class="py data">
+<dt class="sig sig-object py" id="supremo_lite.personalize.IUPAC_CODES">
+<span class="sig-prename descclassname"><span class="pre">supremo_lite.personalize.</span></span><span class="sig-name descname"><span class="pre">IUPAC_CODES</span></span><a class="headerlink" href="#supremo_lite.personalize.IUPAC_CODES" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="supremo_lite.personalize.ChromosomeOffsetTracker">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">supremo_lite.personalize.</span></span><span class="sig-name descname"><span class="pre">ChromosomeOffsetTracker</span></span><a class="reference internal" href="../../../_modules/supremo_lite/personalize.html#ChromosomeOffsetTracker"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#supremo_lite.personalize.ChromosomeOffsetTracker" title="Link to this definition"></a></dt>
+<dd><p>Tracks cumulative coordinate offsets per chromosome from applied variants.</p>
+<p>When standard variants (INS/DEL) change chromosome lengths, the original VCF
+coordinates for later BND variants become invalid. This class tracks the
+cumulative offset at each position to enable coordinate transformation.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="supremo_lite.personalize.ChromosomeOffsetTracker.chromosome_offsets">
+<span class="sig-name descname"><span class="pre">chromosome_offsets</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#supremo_lite.personalize.ChromosomeOffsetTracker.chromosome_offsets" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="supremo_lite.personalize.ChromosomeOffsetTracker.add_offset">
+<span class="sig-name descname"><span class="pre">add_offset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">chrom</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../../../_modules/supremo_lite/personalize.html#ChromosomeOffsetTracker.add_offset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#supremo_lite.personalize.ChromosomeOffsetTracker.add_offset" title="Link to this definition"></a></dt>
+<dd><p>Add an offset at a specific position on a chromosome.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>chrom</strong> – Chromosome name</p></li>
+<li><p><strong>pos</strong> – Genomic position (0-based) where offset occurs</p></li>
+<li><p><strong>offset</strong> – Length change (+/- bases) from the variant</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="supremo_lite.personalize.ChromosomeOffsetTracker.get_offset_at_position">
+<span class="sig-name descname"><span class="pre">get_offset_at_position</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">chrom</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="../../../_modules/supremo_lite/personalize.html#ChromosomeOffsetTracker.get_offset_at_position"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#supremo_lite.personalize.ChromosomeOffsetTracker.get_offset_at_position" title="Link to this definition"></a></dt>
+<dd><p>Get the cumulative offset at a specific position.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>chrom</strong> – Chromosome name</p></li>
+<li><p><strong>pos</strong> – Genomic position (0-based) to query</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Cumulative offset at this position</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="supremo_lite.personalize.ChromosomeOffsetTracker.transform_coordinate">
+<span class="sig-name descname"><span class="pre">transform_coordinate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">chrom</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="../../../_modules/supremo_lite/personalize.html#ChromosomeOffsetTracker.transform_coordinate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#supremo_lite.personalize.ChromosomeOffsetTracker.transform_coordinate" title="Link to this definition"></a></dt>
+<dd><p>Transform a VCF coordinate to account for applied variants.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>chrom</strong> – Chromosome name</p></li>
+<li><p><strong>pos</strong> – Original VCF position (1-based)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Transformed position (1-based) in the modified sequence</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="supremo_lite.personalize.SequenceSegment">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">supremo_lite.personalize.</span></span><span class="sig-name descname"><span class="pre">SequenceSegment</span></span><a class="reference internal" href="../../../_modules/supremo_lite/personalize.html#SequenceSegment"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#supremo_lite.personalize.SequenceSegment" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">NamedTuple</span></code></p>
+<p>Represents a segment within a sequence with its source and position.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="supremo_lite.personalize.SequenceSegment.source_type">
+<span class="sig-name descname"><span class="pre">source_type</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#supremo_lite.personalize.SequenceSegment.source_type" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="supremo_lite.personalize.SequenceSegment.source_chrom">
+<span class="sig-name descname"><span class="pre">source_chrom</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#supremo_lite.personalize.SequenceSegment.source_chrom" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="supremo_lite.personalize.SequenceSegment.start_pos">
+<span class="sig-name descname"><span class="pre">start_pos</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#supremo_lite.personalize.SequenceSegment.start_pos" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="supremo_lite.personalize.SequenceSegment.end_pos">
+<span class="sig-name descname"><span class="pre">end_pos</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#supremo_lite.personalize.SequenceSegment.end_pos" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="supremo_lite.personalize.SequenceSegment.length">
+<span class="sig-name descname"><span class="pre">length</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#supremo_lite.personalize.SequenceSegment.length" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="supremo_lite.personalize.SequenceSegment.orientation">
+<span class="sig-name descname"><span class="pre">orientation</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#supremo_lite.personalize.SequenceSegment.orientation" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="supremo_lite.personalize.FrozenRegionTracker">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">supremo_lite.personalize.</span></span><span class="sig-name descname"><span class="pre">FrozenRegionTracker</span></span><a class="reference internal" href="../../../_modules/supremo_lite/personalize.html#FrozenRegionTracker"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#supremo_lite.personalize.FrozenRegionTracker" title="Link to this definition"></a></dt>
+<dd><p>Efficiently tracks genomic regions that are ‘frozen’ due to applied variants.</p>
+<p>Frozen regions prevent overlapping variants from being applied to the same
+genomic coordinates. Uses a sorted list of non-overlapping intervals with
+binary search for lookup.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="supremo_lite.personalize.FrozenRegionTracker.intervals">
+<span class="sig-name descname"><span class="pre">intervals</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="headerlink" href="#supremo_lite.personalize.FrozenRegionTracker.intervals" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="supremo_lite.personalize.FrozenRegionTracker.is_frozen">
+<span class="sig-name descname"><span class="pre">is_frozen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="../../../_modules/supremo_lite/personalize.html#FrozenRegionTracker.is_frozen"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#supremo_lite.personalize.FrozenRegionTracker.is_frozen" title="Link to this definition"></a></dt>
+<dd><p>Check if a genomic position is within any frozen region.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pos</strong> – Genomic position (0-based)</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if position is frozen, False otherwise</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="supremo_lite.personalize.FrozenRegionTracker.add_range">
+<span class="sig-name descname"><span class="pre">add_range</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../../../_modules/supremo_lite/personalize.html#FrozenRegionTracker.add_range"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#supremo_lite.personalize.FrozenRegionTracker.add_range" title="Link to this definition"></a></dt>
+<dd><p>Add a new frozen region, merging with existing overlapping intervals.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>start</strong> – Start position of region (0-based, inclusive)</p></li>
+<li><p><strong>end</strong> – End position of region (0-based, inclusive)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="supremo_lite.personalize.ChromosomeSegmentTracker">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">supremo_lite.personalize.</span></span><span class="sig-name descname"><span class="pre">ChromosomeSegmentTracker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ref_sequences</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/supremo_lite/personalize.html#ChromosomeSegmentTracker"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#supremo_lite.personalize.ChromosomeSegmentTracker" title="Link to this definition"></a></dt>
+<dd><p>Track which segments of each chromosome are used by fusions.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="supremo_lite.personalize.ChromosomeSegmentTracker.ref_sequences">
+<span class="sig-name descname"><span class="pre">ref_sequences</span></span><a class="headerlink" href="#supremo_lite.personalize.ChromosomeSegmentTracker.ref_sequences" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="supremo_lite.personalize.ChromosomeSegmentTracker.used_segments">
+<span class="sig-name descname"><span class="pre">used_segments</span></span><a class="headerlink" href="#supremo_lite.personalize.ChromosomeSegmentTracker.used_segments" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="supremo_lite.personalize.ChromosomeSegmentTracker.add_used_segment">
+<span class="sig-name descname"><span class="pre">add_used_segment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">chrom</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/supremo_lite/personalize.html#ChromosomeSegmentTracker.add_used_segment"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#supremo_lite.personalize.ChromosomeSegmentTracker.add_used_segment" title="Link to this definition"></a></dt>
+<dd><p>Add a used segment (0-based coordinates).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="supremo_lite.personalize.ChromosomeSegmentTracker.get_leftover_sequences">
+<span class="sig-name descname"><span class="pre">get_leftover_sequences</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../../_modules/supremo_lite/personalize.html#ChromosomeSegmentTracker.get_leftover_sequences"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#supremo_lite.personalize.ChromosomeSegmentTracker.get_leftover_sequences" title="Link to this definition"></a></dt>
+<dd><p>Calculate leftover sequences not used by any fusion.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="supremo_lite.personalize.VariantApplicator">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">supremo_lite.personalize.</span></span><span class="sig-name descname"><span class="pre">VariantApplicator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sequence_str</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variants_df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frozen_tracker</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#supremo_lite.personalize.FrozenRegionTracker" title="supremo_lite.personalize.FrozenRegionTracker"><span class="pre">FrozenRegionTracker</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offset_tracker</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#supremo_lite.personalize.ChromosomeOffsetTracker" title="supremo_lite.personalize.ChromosomeOffsetTracker"><span class="pre">ChromosomeOffsetTracker</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chrom</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/supremo_lite/personalize.html#VariantApplicator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#supremo_lite.personalize.VariantApplicator" title="Link to this definition"></a></dt>
+<dd><p>Applies VCF variants to a reference sequence in memory.</p>
+<p>Handles coordinate system transformations, frozen region tracking,
+and sequence modifications for SNVs, insertions, and deletions.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="supremo_lite.personalize.VariantApplicator.sequence">
+<span class="sig-name descname"><span class="pre">sequence</span></span><a class="headerlink" href="#supremo_lite.personalize.VariantApplicator.sequence" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="supremo_lite.personalize.VariantApplicator.variants">
+<span class="sig-name descname"><span class="pre">variants</span></span><a class="headerlink" href="#supremo_lite.personalize.VariantApplicator.variants" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="supremo_lite.personalize.VariantApplicator.frozen_tracker">
+<span class="sig-name descname"><span class="pre">frozen_tracker</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#supremo_lite.personalize.VariantApplicator.frozen_tracker" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="supremo_lite.personalize.VariantApplicator.offset_tracker">
+<span class="sig-name descname"><span class="pre">offset_tracker</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#supremo_lite.personalize.VariantApplicator.offset_tracker" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="supremo_lite.personalize.VariantApplicator.chrom">
+<span class="sig-name descname"><span class="pre">chrom</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#supremo_lite.personalize.VariantApplicator.chrom" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="supremo_lite.personalize.VariantApplicator.cumulative_offset">
+<span class="sig-name descname"><span class="pre">cumulative_offset</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#supremo_lite.personalize.VariantApplicator.cumulative_offset" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="supremo_lite.personalize.VariantApplicator.applied_count">
+<span class="sig-name descname"><span class="pre">applied_count</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#supremo_lite.personalize.VariantApplicator.applied_count" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="supremo_lite.personalize.VariantApplicator.skipped_count">
+<span class="sig-name descname"><span class="pre">skipped_count</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#supremo_lite.personalize.VariantApplicator.skipped_count" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="supremo_lite.personalize.VariantApplicator.skipped_variants">
+<span class="sig-name descname"><span class="pre">skipped_variants</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="headerlink" href="#supremo_lite.personalize.VariantApplicator.skipped_variants" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="supremo_lite.personalize.VariantApplicator.apply_variants">
+<span class="sig-name descname"><span class="pre">apply_variants</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../../_modules/supremo_lite/personalize.html#VariantApplicator.apply_variants"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#supremo_lite.personalize.VariantApplicator.apply_variants" title="Link to this definition"></a></dt>
+<dd><p>Apply all variants to the sequence.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple of (modified_sequence, statistics_dict)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="supremo_lite.personalize.VariantApplicator.apply_single_variant_to_window">
+<span class="sig-name descname"><span class="pre">apply_single_variant_to_window</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variant</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.Series</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">window_start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">window_end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../../../_modules/supremo_lite/personalize.html#VariantApplicator.apply_single_variant_to_window"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#supremo_lite.personalize.VariantApplicator.apply_single_variant_to_window" title="Link to this definition"></a></dt>
+<dd><p>Apply a single variant to a sequence window.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>variant</strong> – Series containing variant information (pos, ref, alt)</p></li>
+<li><p><strong>window_start</strong> – Start position of window (0-based)</p></li>
+<li><p><strong>window_end</strong> – End position of window (0-based, exclusive)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Modified sequence string</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="supremo_lite.personalize.ChimericSequenceBuilder">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">supremo_lite.personalize.</span></span><span class="sig-name descname"><span class="pre">ChimericSequenceBuilder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reference_sequences</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/supremo_lite/personalize.html#ChimericSequenceBuilder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#supremo_lite.personalize.ChimericSequenceBuilder" title="Link to this definition"></a></dt>
+<dd><p>Builds chimeric sequences from BND rearrangements.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="supremo_lite.personalize.ChimericSequenceBuilder.reference_sequences">
+<span class="sig-name descname"><span class="pre">reference_sequences</span></span><a class="headerlink" href="#supremo_lite.personalize.ChimericSequenceBuilder.reference_sequences" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="supremo_lite.personalize.ChimericSequenceBuilder.chimeric_sequences">
+<span class="sig-name descname"><span class="pre">chimeric_sequences</span></span><a class="headerlink" href="#supremo_lite.personalize.ChimericSequenceBuilder.chimeric_sequences" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="supremo_lite.personalize.ChimericSequenceBuilder.sequence_segments">
+<span class="sig-name descname"><span class="pre">sequence_segments</span></span><a class="headerlink" href="#supremo_lite.personalize.ChimericSequenceBuilder.sequence_segments" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="supremo_lite.personalize.ChimericSequenceBuilder.create_fusion_from_pair">
+<span class="sig-name descname"><span class="pre">create_fusion_from_pair</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">breakend_pair</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../../_modules/supremo_lite/personalize.html#ChimericSequenceBuilder.create_fusion_from_pair"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#supremo_lite.personalize.ChimericSequenceBuilder.create_fusion_from_pair" title="Link to this definition"></a></dt>
+<dd><p>Create fusion sequence from a pair of breakends.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple of (fusion_name, fusion_sequence)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="supremo_lite.personalize.ChimericSequenceBuilder.get_sequence_segments">
+<span class="sig-name descname"><span class="pre">get_sequence_segments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sequence_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#supremo_lite.personalize.SequenceSegment" title="supremo_lite.personalize.SequenceSegment"><span class="pre">SequenceSegment</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../../_modules/supremo_lite/personalize.html#ChimericSequenceBuilder.get_sequence_segments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#supremo_lite.personalize.ChimericSequenceBuilder.get_sequence_segments" title="Link to this definition"></a></dt>
+<dd><p>Get segment metadata for a sequence.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="supremo_lite.personalize.get_personal_genome">
+<span class="sig-prename descclassname"><span class="pre">supremo_lite.personalize.</span></span><span class="sig-name descname"><span class="pre">get_personal_genome</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reference_fn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variants_fn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_chunks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">auto_map_chromosomes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/supremo_lite/personalize.html#get_personal_genome"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#supremo_lite.personalize.get_personal_genome" title="Link to this definition"></a></dt>
+<dd><p>Create a personalized genome by applying variants to a reference genome.</p>
+<p>This function implements multi-phase variant processing with proper frozen region tracking:</p>
+<dl class="simple">
+<dt>Phase 1: Standard variants + Early structural variants (in VCF order):</dt><dd><ul class="simple">
+<li><p>SNV, MNV, INS, DEL, SV_DUP, SV_INV</p></li>
+</ul>
+</dd>
+<dt>Phase 2: BND semantic classification and application:</dt><dd><ul class="simple">
+<li><p>Classify BNDs to identify SV_BND_DUP and SV_BND_INV patterns</p></li>
+<li><p>Apply SV_BND_DUP and SV_BND_INV first</p></li>
+<li><p>Apply remaining true BND translocations</p></li>
+</ul>
+</dd>
+<dt>Frozen region enforcement:</dt><dd><ul class="simple">
+<li><p>Each variant freezes its genomic region after application</p></li>
+<li><p>Later variants overlapping frozen regions are skipped with warnings</p></li>
+<li><p>BND breakpoints in frozen regions cause entire BND to be skipped</p></li>
+</ul>
+</dd>
+<dt>Output chromosome ordering:</dt><dd><ul class="simple">
+<li><p>Chromosomes are returned in the same order as the reference genome</p></li>
+<li><p>BND-generated fusion sequences appear after all original chromosomes</p></li>
+<li><p>Leftover sequences (from consumed chromosomes) follow fusion sequences</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>reference_fn</strong> – Path to reference genome file or dictionary-like object</p></li>
+<li><p><strong>variants_fn</strong> – Path to variants file or DataFrame. Supports VCF 4.2 format
+including BND (breakend) variants with bracket notation.</p></li>
+<li><p><strong>encode</strong> – Return sequences as one-hot encoded arrays (default: True)</p></li>
+<li><p><strong>n_chunks</strong> – Number of chunks to split variants into for processing (default: 1)</p></li>
+<li><p><strong>verbose</strong> – Print progress information (default: False)</p></li>
+<li><p><strong>encoder</strong> – Optional custom encoding function. If provided, should accept a single
+sequence string and return encoded array with shape (L, 4). Default: None</p></li>
+<li><p><strong>auto_map_chromosomes</strong> – Automatically map chromosome names between VCF and reference
+when they don’t match exactly (e.g., ‘chr1’ &lt;-&gt; ‘1’, ‘chrM’ &lt;-&gt; ‘MT’).
+Default: False. When False, raises ChromosomeMismatchError if names
+don’t match. (default: False)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>A dictionary mapping chromosome names to encoded tensors/arrays
+If encode=False: A dictionary mapping chromosome names to sequence strings</p>
+<p>The dictionary preserves reference genome chromosome order, with any fusion
+or leftover sequences appended at the end.</p>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>If encode=True</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="../chromosome_utils/index.html#supremo_lite.chromosome_utils.ChromosomeMismatchError" title="supremo_lite.chromosome_utils.ChromosomeMismatchError"><strong>ChromosomeMismatchError</strong></a> – If auto_map_chromosomes=False and chromosome names in VCF
+and reference don’t match exactly</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p># Apply variants with proper ordering and conflict resolution
+personal_genome = get_personal_genome(‘reference.fa’, ‘variants.vcf’)</p>
+<p># Get raw sequences without encoding
+personal_genome = get_personal_genome(‘reference.fa’, ‘variants.vcf’, encode=False)</p>
+<p># Enable automatic chromosome mapping if VCF uses ‘chr1’ and reference uses ‘1’
+personal_genome = get_personal_genome(‘reference.fa’, ‘variants.vcf’, auto_map_chromosomes=True)</p>
+<p># Verify chromosome order is preserved
+ref_chroms = list(pyfaidx.Fasta(‘reference.fa’).keys())
+personal_chroms = list(personal_genome.keys())
+assert personal_chroms[:len(ref_chroms)] == ref_chroms  # Original order preserved</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="supremo_lite.personalize.get_alt_sequences">
+<span class="sig-prename descclassname"><span class="pre">supremo_lite.personalize.</span></span><span class="sig-name descname"><span class="pre">get_alt_sequences</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reference_fn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variants_fn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seq_len</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_chunks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">auto_map_chromosomes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/supremo_lite/personalize.html#get_alt_sequences"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#supremo_lite.personalize.get_alt_sequences" title="Link to this definition"></a></dt>
+<dd><p>Create sequence windows centered on each variant position with variants applied.
+Now supports both standard variants and BND variants.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>reference_fn</strong> – Path to reference genome file or dictionary-like object</p></li>
+<li><p><strong>variants_fn</strong> – Path to VCF file (string) or DataFrame with variant data.
+For DataFrames, position column can be ‘pos’, ‘pos1’, or assumes second column is position.</p></li>
+<li><p><strong>seq_len</strong> – Length of the sequence window</p></li>
+<li><p><strong>encode</strong> – Return sequences as one-hot encoded numpy arrays (default: True)</p></li>
+<li><p><strong>n_chunks</strong> – Number of chunks to split variants into (default: 1)</p></li>
+<li><p><strong>encoder</strong> – Optional custom encoding function</p></li>
+<li><p><strong>auto_map_chromosomes</strong> – Automatically map chromosome names between VCF and reference
+when they don’t match exactly. Default: False. (default: False)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Yields<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>Tuple containing (sequences, metadata_df) where</em> –     If encode=True: sequences is a tensor/array of shape (chunk_size, seq_len, 4) for each chunk
+If encode=False: sequences is a list of tuples containing (chrom, start, end, sequence_string) for each chunk
+metadata_df is a DataFrame with variant information including position offsets
+For BND variants: sequences contain fusion sequences</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="../chromosome_utils/index.html#supremo_lite.chromosome_utils.ChromosomeMismatchError" title="supremo_lite.chromosome_utils.ChromosomeMismatchError"><strong>ChromosomeMismatchError</strong></a> – If auto_map_chromosomes=False and chromosome names don’t match</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="supremo_lite.personalize.get_ref_sequences">
+<span class="sig-prename descclassname"><span class="pre">supremo_lite.personalize.</span></span><span class="sig-name descname"><span class="pre">get_ref_sequences</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reference_fn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variants_fn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seq_len</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_chunks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">auto_map_chromosomes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/supremo_lite/personalize.html#get_ref_sequences"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#supremo_lite.personalize.get_ref_sequences" title="Link to this definition"></a></dt>
+<dd><p>Create reference sequence windows centered on each variant position (no variants applied).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>reference_fn</strong> – Path to reference genome file or dictionary-like object</p></li>
+<li><p><strong>variants_fn</strong> – Path to VCF file (string) or DataFrame with variant data.
+For DataFrames, position column can be ‘pos’, ‘pos1’, or assumes second column is position.</p></li>
+<li><p><strong>seq_len</strong> – Length of the sequence window</p></li>
+<li><p><strong>encode</strong> – Return sequences as one-hot encoded numpy arrays (default: True)</p></li>
+<li><p><strong>n_chunks</strong> – Number of chunks to split variants into (default: 1)</p></li>
+<li><p><strong>encoder</strong> – Optional custom encoding function</p></li>
+<li><p><strong>auto_map_chromosomes</strong> – Automatically map chromosome names between VCF and reference
+when they don’t match exactly. Default: False. (default: False)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Yields<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>Tuple containing (sequences, metadata_df) where</em> –     If encode=True: sequences is a tensor/array of shape (chunk_size, seq_len, 4) for each chunk
+If encode=False: sequences is a list of tuples containing (chrom, start, end, sequence_string) for each chunk
+metadata_df is a DataFrame with variant information including position offsets
+For BND variants: sequences contain dual reference sequences (left + right)</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="../chromosome_utils/index.html#supremo_lite.chromosome_utils.ChromosomeMismatchError" title="supremo_lite.chromosome_utils.ChromosomeMismatchError"><strong>ChromosomeMismatchError</strong></a> – If auto_map_chromosomes=False and chromosome names don’t match</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="supremo_lite.personalize.get_alt_ref_sequences">
+<span class="sig-prename descclassname"><span class="pre">supremo_lite.personalize.</span></span><span class="sig-name descname"><span class="pre">get_alt_ref_sequences</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reference_fn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variants_fn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seq_len</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_chunks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">auto_map_chromosomes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/supremo_lite/personalize.html#get_alt_ref_sequences"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#supremo_lite.personalize.get_alt_ref_sequences" title="Link to this definition"></a></dt>
+<dd><p>Create both reference and variant sequence windows for alt/ref ratio calculations.
+Maintains backward compatibility while supporting BND variants with dual references.</p>
+<p>This wrapper function calls both get_ref_sequences and get_alt_sequences to return
+matching pairs of reference and variant sequences for computing ratios.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>reference_fn</strong> – Path to reference genome file or dictionary-like object</p></li>
+<li><p><strong>variants_fn</strong> – Path to VCF file (string) or DataFrame with variant data.
+For DataFrames, position column can be ‘pos’, ‘pos1’, or assumes second column is position.</p></li>
+<li><p><strong>seq_len</strong> – Length of the sequence window</p></li>
+<li><p><strong>encode</strong> – Return sequences as one-hot encoded numpy arrays (default: True)</p></li>
+<li><p><strong>n_chunks</strong> – Number of chunks to split variants into (default: 1)</p></li>
+<li><p><strong>encoder</strong> – Optional custom encoder function</p></li>
+<li><p><strong>auto_map_chromosomes</strong> – Automatically map chromosome names between VCF and reference
+when they don’t match exactly. Default: False. (default: False)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Yields<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>Tuple containing (alt_sequences, ref_sequences, metadata_df)</em> –     For standard variants:
+- alt_sequences: Variant sequences with mutations applied
+- ref_sequences: Reference sequences without mutations
+- metadata_df: Variant metadata (pandas DataFrame)</p>
+<p>For BND variants:
+- alt_sequences: Fusion sequences from breakend pairs
+- ref_sequences: Tuple of (left_ref_sequences, right_ref_sequences)
+- metadata_df: BND metadata with orientation and mate information</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>Metadata DataFrame columns:</dt><dd><dl class="simple">
+<dt>Standard fields (all variants):</dt><dd><ul class="simple">
+<li><p>chrom: Chromosome name (str)</p></li>
+<li><p>window_start: Window start position, 0-based (int)</p></li>
+<li><p>window_end: Window end position, 0-based exclusive (int)</p></li>
+<li><p>variant_pos0: Variant position, 0-based (int)</p></li>
+<li><p>variant_pos1: Variant position, 1-based VCF standard (int)</p></li>
+<li><p>ref: Reference allele (str)</p></li>
+<li><p>alt: Alternate allele (str)</p></li>
+<li><dl class="simple">
+<dt>variant_type: Variant classification (str)</dt><dd><p>Examples: ‘SNV’, ‘INS’, ‘DEL’, ‘MNV’, ‘SV_INV’, ‘SV_DUP’, ‘SV_BND’</p>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Additional field for symbolic alleles (&lt;INV&gt;, &lt;DUP&gt;, etc.):</dt><dd><ul class="simple">
+<li><p>sym_variant_end: END position from INFO field, 1-based (int, optional)</p></li>
+</ul>
+</dd>
+<dt>BND-specific fields:</dt><dd><ul class="simple">
+<li><p>mate_chrom: Mate breakend chromosome (str)</p></li>
+<li><p>mate_pos: Mate breakend position, 1-based (int)</p></li>
+<li><p>orientation_1: First breakend orientation (str)</p></li>
+<li><p>orientation_2: Second breakend orientation (str)</p></li>
+<li><p>fusion_name: Fusion sequence identifier (str, optional)</p></li>
+</ul>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="../chromosome_utils/index.html#supremo_lite.chromosome_utils.ChromosomeMismatchError" title="supremo_lite.chromosome_utils.ChromosomeMismatchError"><strong>ChromosomeMismatchError</strong></a> – If auto_map_chromosomes=False and chromosome names don’t match</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="supremo_lite.personalize.get_pam_disrupting_alt_sequences">
+<span class="sig-prename descclassname"><span class="pre">supremo_lite.personalize.</span></span><span class="sig-name descname"><span class="pre">get_pam_disrupting_alt_sequences</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reference_fn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variants_fn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seq_len</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_pam_distance</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pam_sequence</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'NGG'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_chunks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">auto_map_chromosomes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/supremo_lite/personalize.html#get_pam_disrupting_alt_sequences"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#supremo_lite.personalize.get_pam_disrupting_alt_sequences" title="Link to this definition"></a></dt>
+<dd><p>Generate sequences for variants that disrupt PAM sites.</p>
+<p>This function identifies variants that disrupt existing PAM sites in the reference
+genome and generates sequence pairs for each disrupting variant. Works like
+get_alt_ref_sequences() but filtered to only PAM-disrupting variants.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>reference_fn</strong> – Path to reference genome file or dictionary-like object</p></li>
+<li><p><strong>variants_fn</strong> – Path to variants file or DataFrame</p></li>
+<li><p><strong>seq_len</strong> – Length of sequence windows</p></li>
+<li><p><strong>max_pam_distance</strong> – Maximum distance from variant to PAM site</p></li>
+<li><p><strong>pam_sequence</strong> – PAM sequence pattern (default: ‘NGG’ for SpCas9).
+Supports all IUPAC degenerate nucleotide codes:
+N (any), R (A/G), Y (C/T), W (A/T), S (C/G), M (A/C),
+K (G/T), B (C/G/T), D (A/G/T), H (A/C/T), V (A/C/G)</p></li>
+<li><p><strong>encode</strong> – Return sequences as one-hot encoded numpy arrays (default: True)</p></li>
+<li><p><strong>n_chunks</strong> – Number of chunks to split variants for processing (default: 1)</p></li>
+<li><p><strong>encoder</strong> – Optional custom encoding function</p></li>
+<li><p><strong>auto_map_chromosomes</strong> – Automatically map chromosome names between VCF and reference
+when they don’t match exactly. Default: False. (default: False)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Yields<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>Tuple containing (alt_sequences, ref_sequences, metadata_df)</em> –     - alt_sequences: Variant sequences with mutations applied
+- ref_sequences: Reference sequences without mutations
+- metadata_df: Variant metadata (pandas DataFrame) with PAM-specific columns</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>Metadata DataFrame columns:</dt><dd><dl class="simple">
+<dt>Standard fields:</dt><dd><ul class="simple">
+<li><p>chrom: Chromosome name (str)</p></li>
+<li><p>window_start: Window start position, 0-based (int)</p></li>
+<li><p>window_end: Window end position, 0-based exclusive (int)</p></li>
+<li><p>variant_pos0: Variant position, 0-based (int)</p></li>
+<li><p>variant_pos1: Variant position, 1-based VCF standard (int)</p></li>
+<li><p>ref: Reference allele (str)</p></li>
+<li><p>alt: Alternate allele (str)</p></li>
+<li><p>variant_type: Variant classification (str)</p></li>
+</ul>
+</dd>
+<dt>PAM-specific fields:</dt><dd><ul class="simple">
+<li><p>pam_site_pos: 0-based start position of PAM site in window (int)</p></li>
+<li><p>pam_ref_sequence: PAM sequence in reference (str)</p></li>
+<li><p>pam_alt_sequence: PAM sequence after variant (str)</p></li>
+<li><p>pam_distance: Distance from variant to PAM start (int)</p></li>
+</ul>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="../chromosome_utils/index.html#supremo_lite.chromosome_utils.ChromosomeMismatchError" title="supremo_lite.chromosome_utils.ChromosomeMismatchError"><strong>ChromosomeMismatchError</strong></a> – If auto_map_chromosomes=False and chromosome names don’t match</p>
+</dd>
+</dl>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Process all PAM-disrupting variants at once</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">gen</span> <span class="o">=</span> <span class="n">get_pam_disrupting_alt_sequences</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="n">vcf</span><span class="p">,</span> <span class="n">seq_len</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+<span class="gp">... </span>                                        <span class="n">max_pam_distance</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">n_chunks</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">alt_seqs</span><span class="p">,</span> <span class="n">ref_seqs</span><span class="p">,</span> <span class="n">metadata</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">gen</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Or iterate through chunks</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">alt_seqs</span><span class="p">,</span> <span class="n">ref_seqs</span><span class="p">,</span> <span class="n">metadata</span> <span class="ow">in</span> <span class="n">get_pam_disrupting_alt_sequences</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">ref</span><span class="p">,</span> <span class="n">vcf</span><span class="p">,</span> <span class="n">seq_len</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">max_pam_distance</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">n_chunks</span><span class="o">=</span><span class="mi">5</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="n">predictions</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">alt_seqs</span><span class="p">,</span> <span class="n">ref_seqs</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../mutagenesis/index.html" class="btn btn-neutral float-left" title="supremo_lite.mutagenesis" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../prediction_alignment/index.html" class="btn btn-neutral float-right" title="supremo_lite.prediction_alignment" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Gladstone Institutes.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

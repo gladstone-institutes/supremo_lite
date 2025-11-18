@@ -1,0 +1,96 @@
+supremo_lite.mutagenesis
+========================
+
+.. py:module:: supremo_lite.mutagenesis
+
+.. autoapi-nested-parse::
+
+   In-silico saturation mutagenesis functionality for supremo_lite.
+
+   This module provides functions for generating saturation mutagenesis sequences,
+   where each position in a sequence is systematically mutated.
+
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   supremo_lite.mutagenesis.get_sm_sequences
+   supremo_lite.mutagenesis.get_sm_subsequences
+
+
+Module Contents
+---------------
+
+.. py:function:: get_sm_sequences(chrom, start, end, reference_fasta, encoder=None)
+
+   Generate sequences with all alternate nucleotides at every position (saturation mutagenesis).
+
+   :param chrom: Chromosome name
+   :param start: Start position (0-based)
+   :param end: End position (0-based, exclusive)
+   :param reference_fasta: Reference genome object
+   :param encoder: Optional custom encoding function. If provided, should accept a single
+                   sequence string and return encoded array with shape (4, L). Default: None
+
+   :returns: Tuple of (reference one-hot, alt one-hot tensor, metadata DataFrame)
+
+
+.. py:function:: get_sm_subsequences(chrom, seq_len, reference_fasta, anchor=None, anchor_radius=None, bed_regions=None, encoder=None, auto_map_chromosomes=False)
+
+   Generate sequences with all alternate nucleotides at positions in specified regions
+   (saturation mutagenesis).
+
+   Supports two mutually exclusive approaches for defining mutation intervals:
+   1. Anchor-based: Use anchor + anchor_radius to define a single centered region
+   2. BED-based: Use bed_regions to define one or more arbitrary genomic regions
+
+   In both cases, sequences of length seq_len are generated, centered on the mutation interval(s).
+
+   :param chrom: Chromosome name
+   :param seq_len: Total sequence length for each window
+   :param reference_fasta: Reference genome object
+   :param anchor: Anchor position (0-based). Required when using anchor_radius.
+                  Must be provided together with anchor_radius.
+                  Mutually exclusive with bed_regions.
+   :param anchor_radius: Number of bases to include on either side of the anchor for mutations.
+                         Required when using anchor. Must be provided together with anchor.
+                         Mutually exclusive with bed_regions.
+   :param bed_regions: BED file path or DataFrame defining mutation intervals.
+                       BED format: chrom, start, end (0-based, half-open intervals).
+                       Each BED region defines positions to mutate, centered in a seq_len window.
+                       Mutually exclusive with anchor + anchor_radius.
+   :param encoder: Optional custom encoding function. If provided, should accept a single
+                   sequence string and return encoded array with shape (4, L). Default: None
+   :param auto_map_chromosomes: Automatically map chromosome names between reference and BED file
+                                when they don't match exactly (e.g., 'chr1' <-> '1', 'chrM' <-> 'MT').
+                                Only applies when bed_regions is provided. Default: False.
+
+   :returns: Tuple of (reference one-hot, alt one-hot tensor, metadata DataFrame)
+
+   :raises ValueError: If invalid parameter combinations are provided
+   :raises ChromosomeMismatchError: If auto_map_chromosomes=False and chromosome names in BED file
+       and reference don't match exactly (only when bed_regions is provided)
+
+   .. rubric:: Examples
+
+   # Approach 1: Anchor-based (single region)
+   ref, alts, meta = get_sm_subsequences(
+       chrom='chr1',
+       seq_len=200,
+       reference_fasta=ref,
+       anchor=1050,
+       anchor_radius=10  # Mutate positions 1040-1060 in a 200bp window
+   )
+
+   # Approach 2: BED-based (multiple regions)
+   ref, alts, meta = get_sm_subsequences(
+       chrom='chr1',
+       seq_len=200,
+       reference_fasta=ref,
+       bed_regions='regions.bed'  # Each region centered in 200bp window
+   )
+
+

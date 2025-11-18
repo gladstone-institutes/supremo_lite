@@ -1,0 +1,377 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>supremo_lite &mdash; supremo_lite  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=fd3f3429" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Personalized Genome Generation" href="user_guide/personalization.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="#" class="icon icon-home">
+            supremo_lite
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/personalization.html">Personalized Genome Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/variant_centered_sequences.html">Variant-Centered Sequence Windows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/pam_disruption.html">PAM Disruption Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/prediction_alignment.html">Prediction Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/prediction_alignment_examples.html">Prediction Alignment Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/prediction_alignment_examples.html#variant-type-examples">Variant Type Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/mutagenesis.html">Saturation Mutagenesis</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Notebooks</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="notebooks/01_getting_started.html">Getting Started with supremo_lite</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebooks/02_personalized_genomes.html">Personalized Genome Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebooks/03_prediction_alignment.html">Prediction Alignment: From Sequences to Aligned Predictions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebooks/04_pam_disruption.html">PAM Disruption Analysis: Identifying CRISPR-Resistant Variants</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="autoapi/index.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="conduct.html">Code of Conduct</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">supremo_lite</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">supremo_lite</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/index.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="supremo-lite">
+<h1>supremo_lite<a class="headerlink" href="#supremo-lite" title="Link to this heading"></a></h1>
+<p>A lightweight memory-first, model-agnostic version of <a class="reference external" href="https://github.com/ketringjoni/SuPreMo">SuPreMo</a>.</p>
+<section id="key-features">
+<h2>Key Features<a class="headerlink" href="#key-features" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>🧬 <strong>Personalized Genome Generation</strong>: Apply variants from VCF files to reference genomes</p></li>
+<li><p>🎯 <strong>Variant-Centered Sequences</strong>: Generate sequence windows around variants</p></li>
+<li><p>✂️ <strong>PAM Site Analysis</strong>: Identify variants that disrupt CRISPR PAM sites</p></li>
+<li><p>🧪 <strong>Saturation Mutagenesis</strong>: Systematic single-nucleotide mutations at every position for predictive modeling</p></li>
+<li><p>🔧 <strong>Memory Efficient</strong>: Chunked processing for large VCF files</p></li>
+<li><p>🗺️ <strong>Chromosome Matching</strong>: Optional handling of chromosome naming differences (chr1 ↔ 1, chrM ↔ MT) via <code class="docutils literal notranslate"><span class="pre">auto_map_chromosomes=True</span></code></p></li>
+<li><p>⚡ <strong>PyTorch Integration</strong>: Automatic tensor support when PyTorch is available</p></li>
+</ul>
+</section>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h2>
+<section id="install-from-github-recommended">
+<h3>Install from GitHub (Recommended)<a class="headerlink" href="#install-from-github-recommended" title="Link to this heading"></a></h3>
+<p>For the latest features and bug fixes:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Install directly latest release</span>
+pip<span class="w"> </span>install<span class="w"> </span>supremo-lite
+
+<span class="c1"># Or install a specific version/tag</span>
+pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/gladstone-institutes/supremo_lite.git@v0.5.0
+</pre></div>
+</div>
+</section>
+<section id="dependencies">
+<h3>Dependencies<a class="headerlink" href="#dependencies" title="Link to this heading"></a></h3>
+<p>Required dependencies will be installed automatically:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">pandas</span></code> - For VCF data handling</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">numpy</span></code> - For numerical operations</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pyfaidx</span></code> - For FASTA file reading</p></li>
+</ul>
+<p>Optional dependencies:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">torch</span></code> - For PyTorch tensor support (automatically detected)</p></li>
+<li><p><a class="reference external" href="https://github.com/gladstone-institutes/brisket">brisket</a> - Cython powered faster 1 hot encoding for DNA sequences (automatically detected)</p></li>
+</ul>
+</section>
+</section>
+<section id="quick-start">
+<h2>Quick Start<a class="headerlink" href="#quick-start" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">supremo_lite</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sl</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyfaidx</span><span class="w"> </span><span class="kn">import</span> <span class="n">Fasta</span>
+
+<span class="c1"># Load reference genome and variants</span>
+<span class="n">reference</span> <span class="o">=</span> <span class="n">Fasta</span><span class="p">(</span><span class="s1">&#39;hg38.fa&#39;</span><span class="p">)</span>
+<span class="n">variants</span> <span class="o">=</span> <span class="n">sl</span><span class="o">.</span><span class="n">read_vcf</span><span class="p">(</span><span class="s1">&#39;variants.vcf&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<section id="dna-sequence-encoding">
+<h3>DNA Sequence Encoding<a class="headerlink" href="#dna-sequence-encoding" title="Link to this heading"></a></h3>
+<p>supremo_lite uses <strong>one-hot encoding</strong> by default:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">A</span></code> = <code class="docutils literal notranslate"><span class="pre">[1,0,0,0]</span></code>, <code class="docutils literal notranslate"><span class="pre">C</span></code> = <code class="docutils literal notranslate"><span class="pre">[0,1,0,0]</span></code>, <code class="docutils literal notranslate"><span class="pre">G</span></code> = <code class="docutils literal notranslate"><span class="pre">[0,0,1,0]</span></code>, <code class="docutils literal notranslate"><span class="pre">T</span></code> = <code class="docutils literal notranslate"><span class="pre">[0,0,0,1]</span></code></p></li>
+<li><p>Ambiguous bases = <code class="docutils literal notranslate"><span class="pre">[0,0,0,0]</span></code></p></li>
+<li><p>Returns PyTorch tensors when available, otherwise NumPy arrays</p></li>
+</ul>
+</section>
+<section id="personalized-genome-generation">
+<h3>Personalized Genome Generation<a class="headerlink" href="#personalized-genome-generation" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Apply variants to create personalized genome</span>
+<span class="n">personal_genome</span> <span class="o">=</span> <span class="n">sl</span><span class="o">.</span><span class="n">get_personal_genome</span><span class="p">(</span>
+    <span class="n">reference_fn</span><span class="o">=</span><span class="n">reference</span><span class="p">,</span>
+    <span class="n">variants_fn</span><span class="o">=</span><span class="n">variants</span><span class="p">,</span>
+    <span class="n">encode</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>      <span class="c1"># One-hot encoded (or False for strings)</span>
+    <span class="n">chunk_size</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="c1"># Process 10k variants at a time</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span>      <span class="c1"># Show progress</span>
+<span class="p">)</span>
+
+<span class="c1"># If your VCF uses &#39;chr1&#39; and reference uses &#39;1&#39;, enable chromosome mapping</span>
+<span class="n">personal_genome</span> <span class="o">=</span> <span class="n">sl</span><span class="o">.</span><span class="n">get_personal_genome</span><span class="p">(</span>
+    <span class="n">reference_fn</span><span class="o">=</span><span class="n">reference</span><span class="p">,</span>
+    <span class="n">variants_fn</span><span class="o">=</span><span class="n">variants</span><span class="p">,</span>
+    <span class="n">auto_map_chromosomes</span><span class="o">=</span><span class="kc">True</span>  <span class="c1"># Handle chromosome name differences</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>📖 <a class="reference external" href="https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/user_guide/personalization.md">Full Guide: Personalized Genomes</a> | <a class="reference external" href="https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/notebooks/02_personalized_genomes.ipynb">Tutorial Notebook</a></strong></p>
+</section>
+<section id="variant-centered-sequences">
+<h3>Variant-Centered Sequences<a class="headerlink" href="#variant-centered-sequences" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Generate reference and alternate sequences around variants</span>
+<span class="c1"># Note: get_alt_ref_sequences is a generator that yields chunks</span>
+<span class="n">results</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">sl</span><span class="o">.</span><span class="n">get_alt_ref_sequences</span><span class="p">(</span>
+    <span class="n">reference_fn</span><span class="o">=</span><span class="n">reference</span><span class="p">,</span>
+    <span class="n">variants_fn</span><span class="o">=</span><span class="n">variants</span><span class="p">,</span>
+    <span class="n">seq_len</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+    <span class="n">encode</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">))</span>
+<span class="c1"># Unpack from the first chunk</span>
+<span class="n">alt_seqs</span><span class="p">,</span> <span class="n">ref_seqs</span><span class="p">,</span> <span class="n">metadata</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="c1"># Returns: (n_variants, seq_len, 4) shaped arrays</span>
+</pre></div>
+</div>
+<p><strong>📖 <a class="reference external" href="https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/user_guide/variant_centered_sequences.md">Full Guide: Variant-Centered Sequences</a> | <a class="reference external" href="https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/notebooks/01_getting_started.ipynb">Getting Started Notebook</a></strong></p>
+</section>
+<section id="prediction-alignment">
+<h3>Prediction Alignment<a class="headerlink" href="#prediction-alignment" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Align model predictions accounting for variant coordinate changes</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">supremo_lite.mock_models</span><span class="w"> </span><span class="kn">import</span> <span class="n">TestModel</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">TestModel</span><span class="p">(</span><span class="n">n_targets</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">bin_size</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">crop_length</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">ref_preds</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">ref_seqs</span><span class="p">)</span>
+<span class="n">alt_preds</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">alt_seqs</span><span class="p">)</span>
+
+<span class="n">ref_aligned</span><span class="p">,</span> <span class="n">alt_aligned</span> <span class="o">=</span> <span class="n">sl</span><span class="o">.</span><span class="n">align_predictions_by_coordinate</span><span class="p">(</span>
+    <span class="n">ref_pred</span><span class="o">=</span><span class="n">ref_preds</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+    <span class="n">alt_pred</span><span class="o">=</span><span class="n">alt_preds</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+    <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+    <span class="n">prediction_type</span><span class="o">=</span><span class="s2">&quot;1D&quot;</span><span class="p">,</span>
+    <span class="n">bin_size</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+    <span class="n">crop_length</span><span class="o">=</span><span class="mi">10</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>📖 <a class="reference external" href="https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/user_guide/prediction_alignment.md">Full Guide: Prediction Alignment</a> | <a class="reference external" href="https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/notebooks/03_prediction_alignment.ipynb">Tutorial with Visualizations</a></strong></p>
+</section>
+<section id="saturation-mutagenesis">
+<h3>Saturation Mutagenesis<a class="headerlink" href="#saturation-mutagenesis" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Mutate every position in a region</span>
+<span class="n">ref_seq</span><span class="p">,</span> <span class="n">alt_seqs</span><span class="p">,</span> <span class="n">metadata</span> <span class="o">=</span> <span class="n">sl</span><span class="o">.</span><span class="n">get_sm_sequences</span><span class="p">(</span>
+    <span class="n">chrom</span><span class="o">=</span><span class="s1">&#39;chr1&#39;</span><span class="p">,</span>
+    <span class="n">start</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+    <span class="n">end</span><span class="o">=</span><span class="mi">1100</span><span class="p">,</span>  <span class="c1"># 100 bp → 300 mutations (3 per position)</span>
+    <span class="n">reference_fasta</span><span class="o">=</span><span class="n">reference</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>📖 <a class="reference external" href="https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/user_guide/mutagenesis.md">Full Guide: Mutagenesis</a></strong></p>
+</section>
+</section>
+<section id="documentation">
+<h2>Documentation<a class="headerlink" href="#documentation" title="Link to this heading"></a></h2>
+<section id="user-guides">
+<h3>📚 User Guides<a class="headerlink" href="#user-guides" title="Link to this heading"></a></h3>
+<p>Detailed documentation for each major feature:</p>
+<ul class="simple">
+<li><p><strong><a class="reference external" href="https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/user_guide/personalization.md">Personalized Genomes</a></strong> - Apply variants to genomes</p></li>
+<li><p><strong><a class="reference external" href="https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/user_guide/variant_centered_sequences.md">Variant-Centered Sequences</a></strong> - Extract sequence windows around variants</p></li>
+<li><p><strong><a class="reference external" href="https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/user_guide/prediction_alignment.md">Prediction Alignment</a></strong> - Align model predictions for variant effect analysis</p></li>
+<li><p><strong><a class="reference external" href="https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/user_guide/mutagenesis.md">Saturation Mutagenesis</a></strong> - In-silico mutagenesis workflows</p></li>
+<li><p><strong><a class="reference external" href="https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/_static/images/variant_classification.png">Variant Classification</a></strong> - Flow chart showing automatic variant classification logic</p></li>
+</ul>
+</section>
+<section id="interactive-tutorials">
+<h3>📓 Interactive Tutorials<a class="headerlink" href="#interactive-tutorials" title="Link to this heading"></a></h3>
+<p>Hands-on Jupyter notebooks with visualizations:</p>
+<ul class="simple">
+<li><p><strong><a class="reference external" href="https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/notebooks/01_getting_started.ipynb">Getting Started</a></strong> - Installation and basic concepts</p></li>
+<li><p><strong><a class="reference external" href="https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/notebooks/02_personalized_genomes.ipynb">Personalized Genomes</a></strong> - Genome personalization workflows</p></li>
+<li><p><strong><a class="reference external" href="https://github.com/gladstone-institutes/supremo_lite/blob/main/docs/notebooks/03_prediction_alignment.ipynb">Prediction Alignment</a></strong> - Complete prediction workflow with visualizations ⭐</p></li>
+</ul>
+</section>
+<section id="api-reference">
+<h3>🔍 API Reference<a class="headerlink" href="#api-reference" title="Link to this heading"></a></h3>
+<p><strong>Core Functions:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">get_personal_genome()</span></code> - Generate personalized genomes</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">get_alt_ref_sequences()</span></code> - Generate variant-centered sequences</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">align_predictions_by_coordinate()</span></code> - Align model predictions</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">get_sm_sequences()</span></code> - Saturation mutagenesis</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">read_vcf()</span></code> - Read VCF files</p></li>
+</ul>
+<p>For complete API documentation with all parameters, see the <a class="reference external" href="https://github.com/gladstone-institutes/supremo_lite/tree/main/docs">docs/</a> directory.</p>
+</section>
+</section>
+<section id="issues-and-support">
+<h2>Issues and Support<a class="headerlink" href="#issues-and-support" title="Link to this heading"></a></h2>
+<p>We welcome feedback, bug reports, and feature requests! If you encounter any issues or have suggestions for improvements, please:</p>
+<ol class="arabic simple">
+<li><p><strong>Check existing issues</strong> first to see if your problem has already been reported</p></li>
+<li><p><strong>File a new issue</strong> on our <a class="reference external" href="https://github.com/gladstone-institutes/supremo_lite/issues">GitHub Issues page</a></p></li>
+<li><p><strong>Provide detailed information</strong> including:</p>
+<ul class="simple">
+<li><p>Python version and operating system</p></li>
+<li><p>Package version (<code class="docutils literal notranslate"><span class="pre">supremo_lite.__version__</span></code>)</p></li>
+<li><p>Complete error messages and stack traces</p></li>
+<li><p>Minimal reproducible example</p></li>
+<li><p>Expected vs. actual behavior</p></li>
+</ul>
+</li>
+</ol>
+<section id="common-issues-to-report">
+<h3>Common Issues to Report<a class="headerlink" href="#common-issues-to-report" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Performance problems</strong> with large genomes or variant files</p></li>
+<li><p><strong>Unexpected behavior</strong> with edge cases</p></li>
+<li><p><strong>Documentation gaps</strong> or unclear examples</p></li>
+<li><p><strong>Feature requests</strong> for new functionality</p></li>
+</ul>
+</section>
+</section>
+<section id="contributing">
+<h2>Contributing<a class="headerlink" href="#contributing" title="Link to this heading"></a></h2>
+<p>Interested in contributing? Check out the contributing guidelines. Please note that this project is released with a Code of Conduct. By contributing to this project, you agree to abide by its terms.</p>
+</section>
+<section id="license">
+<h2>License<a class="headerlink" href="#license" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">supremo_lite</span></code> was created by Natalie Gill and Sean Whalen, based on Sequence Mutator for Predictive Models (<a class="reference external" href="https://github.com/ketringjoni/SuPreMo">SuPreMo</a>) by Katie Gjoni. It is licensed under the terms of the MIT license.</p>
+</section>
+<section id="credits">
+<h2>Credits<a class="headerlink" href="#credits" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">supremo_lite</span></code> was created with <a class="reference external" href="https://cookiecutter.readthedocs.io/en/latest/"><code class="docutils literal notranslate"><span class="pre">cookiecutter</span></code></a> and the <code class="docutils literal notranslate"><span class="pre">py-pkgs-cookiecutter</span></code> <a class="reference external" href="https://github.com/py-pkgs/py-pkgs-cookiecutter">template</a>.</p>
+</section>
+<section id="id1">
+<h2>Quick Start<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>What do you want to do?</p></th>
+<th class="head"><p>Go to</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Install and learn basics</p></td>
+<td><p><a class="reference internal" href="notebooks/01_getting_started.html"><span class="std std-doc">Getting Started Notebook</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p>Apply variants to genome</p></td>
+<td><p><a class="reference internal" href="user_guide/personalization.html"><span class="std std-doc">Personalization Guide</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p>Generate variant sequences</p></td>
+<td><p><a class="reference internal" href="user_guide/variant_centered_sequences.html"><span class="std std-doc">Variant Sequences Guide</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p>Identify PAM-disrupting variants</p></td>
+<td><p><a class="reference internal" href="user_guide/pam_disruption.html"><span class="std std-doc">PAM Disruption Guide</span></a> | <a class="reference internal" href="notebooks/04_pam_disruption.html"><span class="std std-doc">Notebook</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p>Align model predictions</p></td>
+<td><p><a class="reference internal" href="user_guide/prediction_alignment.html"><span class="std std-doc">Prediction Alignment Guide</span></a> | <a class="reference internal" href="notebooks/03_prediction_alignment.html"><span class="std std-doc">Notebook</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p>Understand alignment visually</p></td>
+<td><p><a class="reference internal" href="user_guide/prediction_alignment_examples.html"><span class="std std-doc">Prediction Alignment Examples</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p>Perform mutagenesis</p></td>
+<td><p><a class="reference internal" href="user_guide/mutagenesis.html"><span class="std std-doc">Mutagenesis Guide</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p>Understand variant types</p></td>
+<td><p><a class="reference download internal" download="" href="_downloads/4715f8b2989677aaa97732e92525c24c/variant_classification.png"><span class="xref download myst">Variant Classification Flow Chart</span></a></p></td>
+</tr>
+</tbody>
+</table>
+<div class="toctree-wrapper compound">
+</div>
+<div class="toctree-wrapper compound">
+</div>
+<div class="toctree-wrapper compound">
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="user_guide/personalization.html" class="btn btn-neutral float-right" title="Personalized Genome Generation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Gladstone Institutes.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

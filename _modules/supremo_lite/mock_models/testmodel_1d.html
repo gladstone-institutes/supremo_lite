@@ -1,0 +1,316 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>supremo_lite.mock_models.testmodel_1d &mdash; supremo_lite  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=fd3f3429" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            supremo_lite
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/personalization.html">Personalized Genome Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/variant_centered_sequences.html">Variant-Centered Sequence Windows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/pam_disruption.html">PAM Disruption Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/prediction_alignment.html">Prediction Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/prediction_alignment_examples.html">Prediction Alignment Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/prediction_alignment_examples.html#variant-type-examples">Variant Type Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/mutagenesis.html">Saturation Mutagenesis</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Notebooks</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks/01_getting_started.html">Getting Started with supremo_lite</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks/02_personalized_genomes.html">Personalized Genome Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks/03_prediction_alignment.html">Prediction Alignment: From Sequences to Aligned Predictions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks/04_pam_disruption.html">PAM Disruption Analysis: Identifying CRISPR-Resistant Variants</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../autoapi/index.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../conduct.html">Code of Conduct</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">supremo_lite</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">supremo_lite.mock_models.testmodel_1d</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for supremo_lite.mock_models.testmodel_1d</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Mock 1D genomic prediction model for testing and demonstrations.</span>
+
+<span class="sd">This module provides a simple PyTorch model that mimics realistic genomic deep learning</span>
+<span class="sd">architectures. It is intended for:</span>
+<span class="sd">1. Testing prediction alignment functionality</span>
+<span class="sd">2. Providing runnable examples for users without trained models</span>
+
+<span class="sd">**NOT for actual genomic predictions** - this model returns constant values and has</span>
+<span class="sd">no learned parameters.</span>
+
+<span class="sd">Model Architecture Characteristics:</span>
+<span class="sd">- **Binning**: Predictions at lower resolution than input (bin_size parameter)</span>
+<span class="sd">- **Cropping**: Edge bins removed to focus on central regions (crop_length parameter)</span>
+<span class="sd">- **Output shape**: (batch_size, n_targets, n_final_bins)</span>
+
+<span class="sd">Example:</span>
+<span class="sd">    &gt;&gt;&gt; from supremo_lite.mock_models import TestModel</span>
+<span class="sd">    &gt;&gt;&gt; import torch</span>
+<span class="sd">    &gt;&gt;&gt;</span>
+<span class="sd">    &gt;&gt;&gt; model = TestModel(seq_length=1024, bin_length=32, crop_length=128, n_targets=1)</span>
+<span class="sd">    &gt;&gt;&gt; x = torch.randn(8, 4, 1024)  # (batch, channels, length)</span>
+<span class="sd">    &gt;&gt;&gt; predictions = model(x)</span>
+<span class="sd">    &gt;&gt;&gt; predictions.shape</span>
+<span class="sd">    torch.Size([8, 1, 28])  # (batch, targets, bins after cropping)</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nn</span>
+
+    <span class="n">TORCH_AVAILABLE</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">TORCH_AVAILABLE</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">torch</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">nn</span> <span class="o">=</span> <span class="kc">None</span>
+
+
+<span class="k">if</span> <span class="n">TORCH_AVAILABLE</span><span class="p">:</span>
+
+    <span class="k">class</span><span class="w"> </span><span class="nc">TestModel</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Mock 1D genomic prediction model.</span>
+
+<span class="sd">        This model demonstrates typical genomic deep learning architecture features:</span>
+<span class="sd">        - Accepts one-hot encoded DNA sequences</span>
+<span class="sd">        - Outputs binned predictions at lower resolution</span>
+<span class="sd">        - Applies edge cropping to focus on central regions</span>
+
+<span class="sd">        **Warning**: Returns constant values (ones). Not for actual predictions.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        seq_length : int</span>
+<span class="sd">            Length of input sequences in base pairs</span>
+<span class="sd">        bin_length : int</span>
+<span class="sd">            Number of base pairs per prediction bin</span>
+<span class="sd">        crop_length : int, optional</span>
+<span class="sd">            Number of base pairs to crop from each edge (default: 0)</span>
+<span class="sd">        n_targets : int, optional</span>
+<span class="sd">            Number of prediction targets per bin (default: 1)</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        Basic usage:</span>
+
+<span class="sd">        &gt;&gt;&gt; model = TestModel(seq_length=1024, bin_length=32)</span>
+<span class="sd">        &gt;&gt;&gt; x = torch.randn(4, 4, 1024)  # (batch, channels, length)</span>
+<span class="sd">        &gt;&gt;&gt; out = model(x)</span>
+<span class="sd">        &gt;&gt;&gt; out.shape</span>
+<span class="sd">        torch.Size([4, 1, 32])</span>
+
+<span class="sd">        With cropping:</span>
+
+<span class="sd">        &gt;&gt;&gt; model = TestModel(seq_length=2048, bin_length=64, crop_length=256)</span>
+<span class="sd">        &gt;&gt;&gt; model.n_initial_bins</span>
+<span class="sd">        32</span>
+<span class="sd">        &gt;&gt;&gt; model.crop_bins</span>
+<span class="sd">        4</span>
+<span class="sd">        &gt;&gt;&gt; model.n_final_bins</span>
+<span class="sd">        24</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq_length</span><span class="p">,</span> <span class="n">bin_length</span><span class="p">,</span> <span class="n">crop_length</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_targets</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">seq_length</span> <span class="o">=</span> <span class="n">seq_length</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bin_length</span> <span class="o">=</span> <span class="n">bin_length</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">crop_length</span> <span class="o">=</span> <span class="n">crop_length</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_targets</span> <span class="o">=</span> <span class="n">n_targets</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">crop_bins</span> <span class="o">=</span> <span class="n">crop_length</span> <span class="o">//</span> <span class="n">bin_length</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_initial_bins</span> <span class="o">=</span> <span class="n">seq_length</span> <span class="o">//</span> <span class="n">bin_length</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_final_bins</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_initial_bins</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">crop_bins</span>
+
+<div class="viewcode-block" id="TestModel.forward">
+<a class="viewcode-back" href="../../../autoapi/supremo_lite/mock_models/testmodel_1d/index.html#supremo_lite.mock_models.testmodel_1d.TestModel.forward">[docs]</a>
+        <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Forward pass returning mock predictions.</span>
+
+<span class="sd">            Parameters</span>
+<span class="sd">            ----------</span>
+<span class="sd">            x : torch.Tensor</span>
+<span class="sd">                Input tensor of shape (batch_size, 4, seq_length)</span>
+<span class="sd">                Channel dimension should be 4 (one-hot encoded A, C, G, T)</span>
+
+<span class="sd">            Returns</span>
+<span class="sd">            -------</span>
+<span class="sd">            torch.Tensor</span>
+<span class="sd">                Mock predictions of shape (batch_size, n_targets, n_final_bins)</span>
+<span class="sd">                Contains all ones (not meaningful predictions)</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="k">assert</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">4</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Expected 4 channels (one-hot), got </span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">assert</span> <span class="p">(</span>
+                <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">seq_length</span>
+            <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Expected sequence length </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">seq_length</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_targets</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_final_bins</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="TestModel.training_step">
+<a class="viewcode-back" href="../../../autoapi/supremo_lite/mock_models/testmodel_1d/index.html#supremo_lite.mock_models.testmodel_1d.TestModel.training_step">[docs]</a>
+        <span class="k">def</span><span class="w"> </span><span class="nf">training_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">batch_idx</span><span class="p">):</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Mock training step for demonstration purposes.</span>
+
+<span class="sd">            Shows how cropping would be applied during training.</span>
+<span class="sd">            This is for educational purposes only - the model has no learnable parameters.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">batch</span>
+            <span class="c1"># Crop target predictions to match model output</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="p">[:,</span> <span class="p">:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">crop_bins</span> <span class="p">:</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">crop_bins</span><span class="p">]</span>
+            <span class="n">y_hat</span> <span class="o">=</span> <span class="bp">self</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">mse_loss</span><span class="p">(</span><span class="n">y_hat</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span></div>
+
+
+<span class="k">else</span><span class="p">:</span>
+    <span class="c1"># Fallback when PyTorch not available</span>
+<div class="viewcode-block" id="TestModel">
+<a class="viewcode-back" href="../../../autoapi/supremo_lite/mock_models/testmodel_1d/index.html#supremo_lite.mock_models.testmodel_1d.TestModel">[docs]</a>
+    <span class="k">class</span><span class="w"> </span><span class="nc">TestModel</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;TestModel requires PyTorch. Please install with: pip install torch&quot;&quot;&quot;</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+                <span class="s2">&quot;TestModel requires PyTorch. Install with: pip install torch</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;See https://pytorch.org/get-started/locally/ for installation instructions.&quot;</span>
+            <span class="p">)</span></div>
+
+
+
+<span class="c1"># Make TestModel available at module level</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;TestModel&quot;</span><span class="p">,</span> <span class="s2">&quot;TORCH_AVAILABLE&quot;</span><span class="p">]</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">TORCH_AVAILABLE</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;PyTorch not available. Install with: pip install torch&quot;</span><span class="p">)</span>
+        <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Demonstration of model behavior</span>
+    <span class="n">batch_size</span> <span class="o">=</span> <span class="mi">8</span>
+    <span class="n">seq_length</span> <span class="o">=</span> <span class="mi">524288</span>
+    <span class="n">bin_length</span> <span class="o">=</span> <span class="mi">32</span>
+    <span class="n">crop_length</span> <span class="o">=</span> <span class="mi">163840</span>
+    <span class="n">n_targets</span> <span class="o">=</span> <span class="mi">2</span>
+
+    <span class="n">crop_bins</span> <span class="o">=</span> <span class="n">crop_length</span> <span class="o">//</span> <span class="n">bin_length</span>
+    <span class="n">n_initial_bins</span> <span class="o">=</span> <span class="n">seq_length</span> <span class="o">//</span> <span class="n">bin_length</span>
+    <span class="n">n_cropped_bins</span> <span class="o">=</span> <span class="n">n_initial_bins</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">crop_bins</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Model Configuration:&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Sequence length: </span><span class="si">{</span><span class="n">seq_length</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> bp&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Bin length: </span><span class="si">{</span><span class="n">bin_length</span><span class="si">}</span><span class="s2"> bp&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Crop length: </span><span class="si">{</span><span class="n">crop_length</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> bp&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Initial bins: </span><span class="si">{</span><span class="n">n_initial_bins</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Crop bins per edge: </span><span class="si">{</span><span class="n">crop_bins</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Final bins: </span><span class="si">{</span><span class="n">n_cropped_bins</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Targets: </span><span class="si">{</span><span class="n">n_targets</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="n">m</span> <span class="o">=</span> <span class="n">TestModel</span><span class="p">(</span><span class="n">seq_length</span><span class="p">,</span> <span class="n">bin_length</span><span class="p">,</span> <span class="n">crop_length</span><span class="p">,</span> <span class="n">n_targets</span><span class="p">)</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">seq_length</span><span class="p">])</span>
+
+    <span class="n">y_hat</span> <span class="o">=</span> <span class="n">m</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">y_hat</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">batch_size</span>
+    <span class="k">assert</span> <span class="n">y_hat</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">n_targets</span>
+    <span class="k">assert</span> <span class="n">y_hat</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="n">n_cropped_bins</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Input shape: </span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Output shape: </span><span class="si">{</span><span class="n">y_hat</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;✓ Model test passed!&quot;</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Gladstone Institutes.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
