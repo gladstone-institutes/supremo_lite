@@ -1,0 +1,14 @@
+##fileformat=VCFv4.2
+##FILTER=<ID=PASS,Description="All filters passed">
+##reference=tests/data/test_genome.fa
+##contig=<ID=chr1,length=78>
+##contig=<ID=chr2,length=78>
+##contig=<ID=chr3,length=78>
+##FORMAT=<ID=AD,Number=R,Type=Integer,Description="Allelic depths">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##INFO=<ID=SVTYPE,Number=1,Type=String,Description="Type of structural variant">
+##INFO=<ID=MATEID,Number=.,Type=String,Description="ID of mate breakends">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+chr2	30	bnd_1	T	]chr2:35]T	6	PASS	SVTYPE=BND;MATEID=bnd_2
+chr2	35	bnd_2	A	A[chr2:30[	6	PASS	SVTYPE=BND;MATEID=bnd_1
+chr4	40	dup_1	A	<DUP:TANDEM>	6	PASS	SVTYPE=DUP;END=60;SVLEN=20

@@ -18,9 +18,18 @@ except ImportError:
     TORCH_AVAILABLE = False
     warnings.warn("PyTorch not found. Will return numpy arrays instead of tensors.")
 
+# Check for brisket availability
+try:
+    import brisket
+
+    BRISKET_AVAILABLE = True
+except ImportError:
+    BRISKET_AVAILABLE = False
+    warnings.warn("Brisket not found. Using slower sequence encoding implementation.")
+
 # Nucleotide to one-hot encoding mapping
-# Using a defaultdict to handle ambiguous bases with uniform probabilities
-nt_to_1h = defaultdict(lambda: np.array([0.25, 0.25, 0.25, 0.25]))
+# Using a defaultdict to handle ambiguous bases as zeros for efficiency
+nt_to_1h = defaultdict(lambda: np.array([0, 0, 0, 0]))
 nt_to_1h["A"] = np.array([1, 0, 0, 0])
 nt_to_1h["a"] = np.array([1, 0, 0, 0])
 nt_to_1h["C"] = np.array([0, 1, 0, 0])

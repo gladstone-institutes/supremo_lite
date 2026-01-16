@@ -85,6 +85,69 @@ class TestPersonalizeGenome(unittest.TestCase):
                 f"Mismatch in {chrom} for deletion variants",
             )
 
+    def test_bnd_variants(self):
+        """Test personalization with BND (breakend) variants."""
+        # Paths for BND test
+        bnd_vcf = os.path.join(self.data_dir, "bnd", "bnd.vcf")
+        bnd_expected = os.path.join(self.data_dir, "bnd", "bnd_expected_output.fa")
+
+        # Create personalized genome
+        personalized = sl.get_personal_genome(self.reference_fa, bnd_vcf, encode=False)
+
+        # Load expected output
+        expected = Fasta(bnd_expected)
+
+        # Compare each chromosome
+        for chrom in expected.keys():
+            self.assertIn(chrom, personalized)
+            self.assertEqual(
+                personalized[chrom],
+                str(expected[chrom]),
+                f"Mismatch in {chrom} for BND variants",
+            )
+
+    def test_dup_variants(self):
+        """Test personalization with DUP (duplication) variants."""
+        # Paths for DUP test
+        dup_vcf = os.path.join(self.data_dir, "dup", "dup.vcf")
+        dup_expected = os.path.join(self.data_dir, "dup", "dup_expected_output.fa")
+
+        # Create personalized genome
+        personalized = sl.get_personal_genome(self.reference_fa, dup_vcf, encode=False)
+
+        # Load expected output
+        expected = Fasta(dup_expected)
+
+        # Compare each chromosome
+        for chrom in expected.keys():
+            self.assertIn(chrom, personalized)
+            self.assertEqual(
+                personalized[chrom],
+                str(expected[chrom]),
+                f"Mismatch in {chrom} for DUP variants",
+            )
+
+    def test_inv_variants(self):
+        """Test personalization with INV (inversion) variants."""
+        # Paths for INV test
+        inv_vcf = os.path.join(self.data_dir, "inv", "inv.vcf")
+        inv_expected = os.path.join(self.data_dir, "inv", "inv_expected_output.fa")
+
+        # Create personalized genome
+        personalized = sl.get_personal_genome(self.reference_fa, inv_vcf, encode=False)
+
+        # Load expected output
+        expected = Fasta(inv_expected)
+
+        # Compare each chromosome
+        for chrom in expected.keys():
+            self.assertIn(chrom, personalized)
+            self.assertEqual(
+                personalized[chrom],
+                str(expected[chrom]),
+                f"Mismatch in {chrom} for INV variants",
+            )
+
     def test_multi_overlapping_variants(self):
         """
         Test personalization with multiple overlapping variants where some should be skipped.
@@ -98,7 +161,7 @@ class TestPersonalizeGenome(unittest.TestCase):
 
         # Load the variants to understand what we're testing
         variants = sl.read_vcf(multi_vcf)
-        chr1_variants = variants[variants["chrom"] == "chr1"].sort_values("pos")
+        chr1_variants = variants[variants["chrom"] == "chr1"].sort_values("pos1")
 
         # Verify we have the expected overlapping variants
         self.assertTrue(
@@ -106,7 +169,7 @@ class TestPersonalizeGenome(unittest.TestCase):
         )
 
         # Check for overlapping variants at positions 11
-        pos_11_variants = chr1_variants[chr1_variants["pos"] == 11]
+        pos_11_variants = chr1_variants[chr1_variants["pos1"] == 11]
         self.assertTrue(
             len(pos_11_variants) >= 2, "Should have overlapping variants at position 11"
         )
