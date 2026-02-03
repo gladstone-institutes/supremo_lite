@@ -1,0 +1,40 @@
+supremo_lite.core
+=================
+
+.. py:module:: supremo_lite.core
+
+.. autoapi-nested-parse::
+
+   Core utilities, constants and common functions for supremo_lite.
+
+   This module provides the basic constants and utility functions used throughout
+   the package.
+
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   supremo_lite.core.TORCH_AVAILABLE
+   supremo_lite.core.BRISKET_AVAILABLE
+   supremo_lite.core.nt_to_1h
+   supremo_lite.core.nts
+
+
+Module Contents
+---------------
+
+.. py:data:: TORCH_AVAILABLE
+   :value: True
+
+
+.. py:data:: BRISKET_AVAILABLE
+   :value: True
+
+
+.. py:data:: nt_to_1h
+
+.. py:data:: nts
+

@@ -1,0 +1,74 @@
+supremo_lite.sequence_utils
+===========================
+
+.. py:module:: supremo_lite.sequence_utils
+
+.. autoapi-nested-parse::
+
+   Sequence transformation utilities for supremo_lite.
+
+   This module provides functions for encoding, decoding, and manipulating
+   DNA sequences.
+
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   supremo_lite.sequence_utils.encode_seq
+   supremo_lite.sequence_utils.decode_seq
+   supremo_lite.sequence_utils.rc
+   supremo_lite.sequence_utils.rc_str
+
+
+Module Contents
+---------------
+
+.. py:function:: encode_seq(seq, encoder=None)
+
+   Convert a nucleotide string to a one-hot encoded tensor/array.
+
+   :param seq: A string of nucleotides or a list of such strings
+   :param encoder: Optional custom encoding function. If provided, should accept a single
+                   sequence string and return encoded array with shape (4, L).
+
+   :returns: A tensor/array with shape (4, L) for a single sequence or (N, 4, L) for a list,
+             where L is the sequence length and N is the number of sequences.
+
+   Encoding scheme (default):
+       'A' = [1, 0, 0, 0] (first channel)
+       'C' = [0, 1, 0, 0] (second channel)
+       'G' = [0, 0, 1, 0] (third channel)
+       'T' = [0, 0, 0, 1] (fourth channel)
+       'N' = [0, 0, 0, 0] (all channels zero)
+
+
+.. py:function:: decode_seq(seq_1h)
+
+   Convert a one-hot encoded tensor/array back to a nucleotide string.
+
+   :param seq_1h: A tensor/array with shape (4, L) or (N, 4, L)
+
+   :returns: A string or list of strings of nucleotides
+
+
+.. py:function:: rc(seq_1h)
+
+   Reverse complement a one-hot encoded tensor/array.
+
+   :param seq_1h: A tensor/array with shape (4, L) or (N, 4, L)
+
+   :returns: The reverse complement with the same shape
+
+
+.. py:function:: rc_str(seq)
+
+   Reverse complement a nucleotide string.
+
+   :param seq: A string of nucleotides
+
+   :returns: The reverse complement string
+
+
