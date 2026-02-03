@@ -389,8 +389,8 @@ class TestScrambledSubsequences(unittest.TestCase):
             "scramble_start",
             "scramble_end",
             "scramble_idx",
-            "original_seq",
-            "scrambled_seq",
+            "ref",
+            "alt",
         ]
         self.assertEqual(list(metadata.columns), expected_cols)
 
@@ -409,14 +409,14 @@ class TestScrambledSubsequences(unittest.TestCase):
             random_state=42,
         )
 
-        original = metadata.iloc[0]["original_seq"]
-        scrambled = metadata.iloc[0]["scrambled_seq"]
+        ref_region = metadata.iloc[0]["ref"]
+        alt_region = metadata.iloc[0]["alt"]
 
         # Same length
-        self.assertEqual(len(original), len(scrambled))
+        self.assertEqual(len(ref_region), len(alt_region))
 
         # Same nucleotide composition
-        self.assertEqual(Counter(original), Counter(scrambled))
+        self.assertEqual(Counter(ref_region), Counter(alt_region))
 
     def test_scramble_reproducibility(self):
         """Test that random_state provides reproducibility."""
@@ -442,9 +442,7 @@ class TestScrambledSubsequences(unittest.TestCase):
 
         # Same random state should give same results
         for i in range(3):
-            self.assertEqual(
-                meta1.iloc[i]["scrambled_seq"], meta2.iloc[i]["scrambled_seq"]
-            )
+            self.assertEqual(meta1.iloc[i]["alt"], meta2.iloc[i]["alt"])
 
     def test_scramble_with_bed_file(self):
         """Test scrambling with actual BED file."""
@@ -465,8 +463,8 @@ class TestScrambledSubsequences(unittest.TestCase):
         self.assertEqual(scrambled_seqs.shape[0], 4)  # 2 regions * 2 scrambles
         self.assertEqual(len(metadata), 4)
 
-    def test_scramble_empty_chromosome(self):
-        """Test handling when no BED regions match chromosome."""
+    def test_scramble_empty_chromosome_returns_original(self):
+        """Test handling when no BED regions match chromosome - returns original sequence."""
         bed_df = pd.DataFrame({"chrom": ["chr99"], "start": [30], "end": [50]})
 
         with self.assertWarns(UserWarning):
@@ -475,18 +473,202 @@ class TestScrambledSubsequences(unittest.TestCase):
                 80,
                 self.reference,
                 bed_regions=bed_df,
-                n_scrambles=1,
+                n_scrambles=3,
                 auto_map_chromosomes=True,
             )
 
-        self.assertEqual(len(ref_seqs), 0)
-        self.assertEqual(len(scrambled_seqs), 0)
-        self.assertEqual(len(metadata), 0)
+        # Should return 1 reference and n_scrambles "scrambled" (but actually unshuffled)
+        self.assertEqual(len(ref_seqs), 1)
+        self.assertEqual(len(scrambled_seqs), 3)
+        self.assertEqual(len(metadata), 3)
+
+        # The "scrambled" sequences should be identical to original
+        for idx in range(3):
+            self.assertEqual(metadata.iloc[idx]["ref"], metadata.iloc[idx]["alt"])
+
+        # scramble_start and scramble_end should indicate no scrambling (empty region)
+        self.assertEqual(metadata.iloc[0]["scramble_start"], 0)
+        self.assertEqual(metadata.iloc[0]["scramble_end"], 0)
 
     def test_scramble_requires_bed_regions(self):
         """Test that bed_regions is required."""
         with self.assertRaises(ValueError):
             sl.get_scrambled_subsequences("chr1", 80, self.reference, bed_regions=None)
+
+    def test_scramble_with_kmer_size(self):
+        """Test scrambling with different k-mer sizes."""
+        from collections import Counter
+
+        bed_df = pd.DataFrame({"chrom": ["chr1"], "start": [20], "end": [60]})
+
+        # Test kmer_size=2 (preserves mononucleotide composition)
+        _, _, meta_k2 = sl.get_scrambled_subsequences(
+            "chr1",
+            80,
+            self.reference,
+            bed_regions=bed_df,
+            n_scrambles=1,
+            kmer_size=2,
+            random_state=42,
+        )
+
+        ref_k2 = meta_k2.iloc[0]["ref"]
+        alt_k2 = meta_k2.iloc[0]["alt"]
+
+        # Same length and composition
+        self.assertEqual(len(ref_k2), len(alt_k2))
+        self.assertEqual(Counter(ref_k2), Counter(alt_k2))
+
+        # Test kmer_size=3 (preserves dinucleotide frequencies)
+        _, _, meta_k3 = sl.get_scrambled_subsequences(
+            "chr1",
+            80,
+            self.reference,
+            bed_regions=bed_df,
+            n_scrambles=1,
+            kmer_size=3,
+            random_state=42,
+        )
+
+        ref_k3 = meta_k3.iloc[0]["ref"]
+        alt_k3 = meta_k3.iloc[0]["alt"]
+
+        self.assertEqual(len(ref_k3), len(alt_k3))
+        self.assertEqual(Counter(ref_k3), Counter(alt_k3))
+
+    def test_scramble_kmer_size_validation(self):
+        """Test that invalid kmer_size raises ValueError."""
+        bed_df = pd.DataFrame({"chrom": ["chr1"], "start": [30], "end": [50]})
+
+        with self.assertRaises(ValueError):
+            sl.get_scrambled_subsequences(
+                "chr1",
+                80,
+                self.reference,
+                bed_regions=bed_df,
+                kmer_size=0,
+            )
+
+        with self.assertRaises(ValueError):
+            sl.get_scrambled_subsequences(
+                "chr1",
+                80,
+                self.reference,
+                bed_regions=bed_df,
+                kmer_size=-1,
+            )
+
+
+class TestKmerShuffle(unittest.TestCase):
+    """Test k-mer shuffling functionality."""
+
+    def _get_kmers(self, seq, k):
+        """Count non-overlapping k-mers in a sequence."""
+        from collections import Counter
+
+        return Counter([seq[i : i + k] for i in range(0, len(seq) - k + 1, k)])
+
+    def test_kmer_shuffle_k1_preserves_mononucleotide_composition(self):
+        """Test k=1 preserves mononucleotide (GC) composition."""
+        from collections import Counter
+        from supremo_lite.mutagenesis import _kmer_shuffle
+
+        seq = "ATGCATGCATGCATGC"
+        shuffled = _kmer_shuffle(seq, k=1, random_state=42)
+
+        # Same length
+        self.assertEqual(len(seq), len(shuffled))
+        # Mononucleotide composition preserved (A, C, G, T counts match)
+        self.assertEqual(Counter(seq), Counter(shuffled))
+
+    def test_kmer_shuffle_k2_preserves_dinucleotide_frequencies(self):
+        """Test k=2 preserves dinucleotide frequencies."""
+        from supremo_lite.mutagenesis import _kmer_shuffle
+
+        # Sequence divisible by 2
+        seq = "ATGCATGCATGCATGC"
+        shuffled = _kmer_shuffle(seq, k=2, random_state=42)
+
+        # Same length
+        self.assertEqual(len(seq), len(shuffled))
+        # Dinucleotide (2-mer) frequencies preserved
+        orig_dimers = self._get_kmers(seq, 2)
+        shuf_dimers = self._get_kmers(shuffled, 2)
+        self.assertEqual(orig_dimers, shuf_dimers)
+
+    def test_kmer_shuffle_k3_preserves_trinucleotide_frequencies(self):
+        """Test k=3 preserves trinucleotide frequencies."""
+        from supremo_lite.mutagenesis import _kmer_shuffle
+
+        # Sequence divisible by 3 (30 bp)
+        seq = "ATGCATGCATGCATGCATGCATGCATGCAT"
+        shuffled = _kmer_shuffle(seq, k=3, random_state=42)
+
+        # Same length
+        self.assertEqual(len(seq), len(shuffled))
+        # Trinucleotide (3-mer) frequencies preserved
+        orig_trimers = self._get_kmers(seq, 3)
+        shuf_trimers = self._get_kmers(shuffled, 3)
+        self.assertEqual(orig_trimers, shuf_trimers)
+
+    def test_kmer_shuffle_short_sequence(self):
+        """Test handling of sequences too short to shuffle."""
+        from supremo_lite.mutagenesis import _kmer_shuffle
+
+        # Sequences shorter than k should be returned unchanged
+        self.assertEqual(_kmer_shuffle("A", k=1), "A")
+        self.assertEqual(_kmer_shuffle("A", k=2), "A")
+        self.assertEqual(_kmer_shuffle("AT", k=3), "AT")
+
+    def test_kmer_shuffle_reproducibility(self):
+        """Test that random_state provides reproducibility."""
+        from supremo_lite.mutagenesis import _kmer_shuffle
+
+        seq = "ATGCATGCATGCATGCATGC"
+
+        result1 = _kmer_shuffle(seq, k=2, random_state=42)
+        result2 = _kmer_shuffle(seq, k=2, random_state=42)
+
+        self.assertEqual(result1, result2)
+
+    def test_kmer_shuffle_invalid_k(self):
+        """Test error handling for invalid k values."""
+        from supremo_lite.mutagenesis import _kmer_shuffle
+
+        with self.assertRaises(ValueError):
+            _kmer_shuffle("ATGC", k=0)
+
+        with self.assertRaises(ValueError):
+            _kmer_shuffle("ATGC", k=-1)
+
+    def test_kmer_shuffle_different_k_values(self):
+        """Test that different k values produce different results."""
+        from collections import Counter
+        from supremo_lite.mutagenesis import _kmer_shuffle
+
+        seq = "ATGCATGCATGCATGCATGCATGCATGC"
+
+        result_k1 = _kmer_shuffle(seq, k=1, random_state=42)
+        result_k2 = _kmer_shuffle(seq, k=2, random_state=42)
+        result_k3 = _kmer_shuffle(seq, k=3, random_state=42)
+
+        # All should preserve mononucleotide composition
+        self.assertEqual(Counter(seq), Counter(result_k1))
+        self.assertEqual(Counter(seq), Counter(result_k2))
+        self.assertEqual(Counter(seq), Counter(result_k3))
+
+    def test_kmer_shuffle_leftover_bases(self):
+        """Test that leftover bases (not forming complete k-mer) are preserved."""
+        from supremo_lite.mutagenesis import _kmer_shuffle
+
+        # 7 bp sequence with k=3: 2 complete 3-mers + 1 leftover base
+        seq = "ATGCATG"
+        shuffled = _kmer_shuffle(seq, k=3, random_state=42)
+
+        # Same length
+        self.assertEqual(len(seq), len(shuffled))
+        # Last base should be preserved (leftover)
+        self.assertEqual(seq[-1], shuffled[-1])
 
 
 if __name__ == "__main__":

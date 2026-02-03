@@ -13,6 +13,10 @@
   - Generate control sequences with BED-defined regions scrambled
   - Preserves nucleotide composition while disrupting motifs
   - Reproducible with `random_state` parameter
+- **K-mer Shuffling**: `kmer_size=n` parameter for `get_scrambled_subsequences()`
+  - `kmer_size=1` (default): Shuffle individual nucleotides, preserving mononucleotide composition
+  - `kmer_size=2`: Shuffle 2-mers, preserving dinucleotide frequencies
+  - `kmer_size=3`: Shuffle 3-mers, preserving trinucleotide frequencies
 
 ### Improvements
 - **VCF Parsing Robustness**: Better error handling for edge cases
@@ -22,7 +26,6 @@
 
 ### Documentation
 - New mutagenesis tutorial notebook with visual examples
-- Updated mutagenesis user guide with scrambling documentation
 
 ## v0.5.5 (11/18/2025)
 
