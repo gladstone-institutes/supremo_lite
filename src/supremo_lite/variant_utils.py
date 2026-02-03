@@ -667,6 +667,8 @@ def read_vcf(path, include_info=True, classify_variants=True):
     """
     Read VCF file into pandas DataFrame with enhanced variant classification.
 
+    Supports both uncompressed (.vcf) and gzip-compressed (.vcf.gz) files.
+
     Args:
         path: Path to VCF file
         include_info: Whether to include INFO field (default: True)
@@ -675,11 +677,21 @@ def read_vcf(path, include_info=True, classify_variants=True):
     Returns:
         DataFrame with columns: chrom, pos1, id, ref, alt, [info], [variant_type]
 
+    Raises:
+        FileNotFoundError: If VCF file does not exist
+        ValueError: If VCF file has invalid format or no valid header
+
     Notes:
         - INFO field parsing enables structural variant classification
         - variant_type column uses VCF 4.2 compliant classification
         - Compatible with existing code expecting basic 5-column format
     """
+    import os
+
+    # Validate file exists
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"VCF file not found: {path}")
+
     # Determine columns to read based on parameters
     if include_info:
         usecols = [0, 1, 2, 3, 4, 7]  # Include INFO field
@@ -689,12 +701,38 @@ def read_vcf(path, include_info=True, classify_variants=True):
         base_columns = ["chrom", "pos1", "id", "ref", "alt"]
 
     # Count header lines for VCF line tracking (needed for vcf_line column)
-    header_count = _count_vcf_header_lines(path)
+    try:
+        header_count = _count_vcf_header_lines(path)
+    except Exception as e:
+        raise ValueError(f"Failed to parse VCF header in {path}: {e}")
+
+    if header_count == 0:
+        raise ValueError(
+            f"VCF file {path} appears to have no header lines. "
+            "Valid VCF files must start with ##fileformat or #CHROM header."
+        )
 
     # Read VCF using pandas with comment='#' to skip all header lines automatically
-    df = pd.read_table(
-        path, comment="#", header=None, names=base_columns, usecols=usecols
-    )
+    try:
+        df = pd.read_table(
+            path,
+            comment="#",
+            header=None,
+            names=base_columns,
+            usecols=usecols,
+            on_bad_lines="warn",
+        )
+    except pd.errors.EmptyDataError:
+        warnings.warn(f"VCF file {path} contains no data rows after header.")
+        empty_cols = base_columns + (["variant_type"] if classify_variants else [])
+        return pd.DataFrame(columns=empty_cols)
+
+    # Handle empty DataFrame
+    if len(df) == 0:
+        warnings.warn(f"VCF file {path} contains no variant records.")
+        if classify_variants:
+            df["variant_type"] = pd.Series(dtype=str)
+        return df
 
     # Add VCF line numbers for debugging (1-indexed, accounting for header lines)
     # Line number = header_lines + 1 (for 1-indexing) + row_index
@@ -702,9 +740,22 @@ def read_vcf(path, include_info=True, classify_variants=True):
 
     # Validate that pos1 column is numeric
     if not pd.api.types.is_numeric_dtype(df["pos1"]):
-        raise ValueError(
-            f"Position column (second column) must be numeric, got {df['pos1'].dtype}"
-        )
+        # Try to convert, providing helpful error message
+        try:
+            df["pos1"] = pd.to_numeric(df["pos1"], errors="coerce")
+            invalid_rows = df[df["pos1"].isna()]
+            if len(invalid_rows) > 0:
+                warnings.warn(
+                    f"Found {len(invalid_rows)} rows with non-numeric positions in {path}. "
+                    f"First invalid at VCF line {invalid_rows.iloc[0]['vcf_line']}. "
+                    "These rows will be removed."
+                )
+                df = df.dropna(subset=["pos1"])
+                df["pos1"] = df["pos1"].astype(int)
+        except Exception as e:
+            raise ValueError(
+                f"Position column must be numeric in {path}, conversion failed: {e}"
+            )
 
     # Filter out multiallelic variants (ALT alleles containing commas)
     df = _filter_multiallelic_variants(df)

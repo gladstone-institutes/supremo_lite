@@ -340,6 +340,48 @@ class TestVCFReading:
         assert df.iloc[1]["variant_type"] == "DEL"
 
 
+class TestVCFEdgeCases:
+    """Test VCF reading edge cases and error handling."""
+
+    def test_vcf_missing_file(self):
+        """Test appropriate error for missing file."""
+        with pytest.raises(FileNotFoundError):
+            read_vcf("/nonexistent/path/file.vcf")
+
+    def test_vcf_empty_file(self, tmp_path):
+        """Test handling of empty VCF file."""
+        vcf_file = tmp_path / "empty.vcf"
+        vcf_file.write_text("")
+
+        with pytest.raises(ValueError, match="no header"):
+            read_vcf(str(vcf_file))
+
+    def test_vcf_header_only(self, tmp_path):
+        """Test VCF with header but no data."""
+        vcf_content = "##fileformat=VCFv4.2\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
+        vcf_file = tmp_path / "header_only.vcf"
+        vcf_file.write_text(vcf_content)
+
+        with pytest.warns(UserWarning, match="no variant records"):
+            df = read_vcf(str(vcf_file))
+
+        assert len(df) == 0
+
+    def test_vcf_with_hash_in_info(self, tmp_path):
+        """Test VCF where INFO field might have special characters."""
+        vcf_content = """##fileformat=VCFv4.2
+#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO
+chr1\t100\t.\tA\tG\t.\tPASS\tDP=50;NOTE=test
+"""
+        vcf_file = tmp_path / "special_info.vcf"
+        vcf_file.write_text(vcf_content)
+
+        df = read_vcf(str(vcf_file))
+        assert len(df) == 1
+        assert df.iloc[0]["chrom"] == "chr1"
+        assert df.iloc[0]["pos1"] == 100
+
+
 class TestGzipVCFReading:
     """Test reading gzip-compressed VCF files."""
 
