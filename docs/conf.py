@@ -53,6 +53,22 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", ".ipynb_checkpoints"]
 #
 html_theme = "sphinx_rtd_theme"
 
+# Theme options for sphinx_rtd_theme
+html_theme_options = {
+    "display_version": True,
+    "prev_next_buttons_location": "bottom",
+    "style_external_links": True,
+}
+
+# GitHub repository context (for "Edit on GitHub" links and header link)
+html_context = {
+    "display_github": True,
+    "github_user": "gladstone-institutes",
+    "github_repo": "supremo_lite",
+    "github_version": "main",
+    "conf_py_path": "/docs/",
+}
+
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".

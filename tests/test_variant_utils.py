@@ -358,7 +358,9 @@ class TestVCFEdgeCases:
 
     def test_vcf_header_only(self, tmp_path):
         """Test VCF with header but no data."""
-        vcf_content = "##fileformat=VCFv4.2\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
+        vcf_content = (
+            "##fileformat=VCFv4.2\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
+        )
         vcf_file = tmp_path / "header_only.vcf"
         vcf_file.write_text(vcf_content)
 

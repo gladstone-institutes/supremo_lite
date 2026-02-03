@@ -56,7 +56,29 @@ ref_seq, alt_seqs, metadata = sl.get_sm_subsequences(
 
 **Returns:** `(ref_seq, alt_seqs, metadata)` where metadata contains columns `['chrom', 'window_start', 'window_end', 'variant_offset0', 'ref', 'alt']`
 
+### get_scrambled_subsequences() - Control Sequence Generation
+
+Generate negative control sequences by scrambling BED-defined regions while preserving nucleotide composition.
+
+```python
+ref_seqs, scrambled_seqs, metadata = sl.get_scrambled_subsequences(
+    chrom='chr1',
+    seq_len=200,
+    reference_fasta=reference,
+    bed_regions='regulatory_regions.bed',
+    n_scrambles=5,          # 5 scrambled versions per region
+    random_state=42         # For reproducibility
+)
+```
+
+**Returns:** `(ref_seqs, scrambled_seqs, metadata)` where:
+- `ref_seqs`: shape (N, 4, seq_len) - one reference per BED region
+- `scrambled_seqs`: shape (N × n_scrambles, 4, seq_len)
+- `metadata` columns: `['chrom', 'window_start', 'window_end', 'scramble_start', 'scramble_end', 'scramble_idx', 'original_seq', 'scrambled_seq']`
+
 ## Metadata Columns
+
+### Mutagenesis Metadata
 
 - `chrom`: Chromosome name
 - `window_start`: Start position of the sequence window (0-based)
@@ -65,4 +87,11 @@ ref_seq, alt_seqs, metadata = sl.get_sm_subsequences(
 - `ref`: Reference nucleotide
 - `alt`: Alternate nucleotide
 
+### Scrambled Sequences Metadata
 
+- `chrom`: Chromosome name
+- `window_start`, `window_end`: Sequence window boundaries (0-based)
+- `scramble_start`, `scramble_end`: Region within window that was scrambled (0-based)
+- `scramble_idx`: Index of this scramble (0 to n_scrambles-1)
+- `original_seq`: Original sequence in scrambled region
+- `scrambled_seq`: Scrambled sequence (same nucleotide composition)

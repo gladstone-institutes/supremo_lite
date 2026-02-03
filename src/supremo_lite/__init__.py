@@ -42,7 +42,11 @@ from .personalize import (
 )
 
 # Import mutagenesis functions
-from .mutagenesis import get_sm_sequences, get_sm_subsequences, get_scrambled_subsequences
+from .mutagenesis import (
+    get_sm_sequences,
+    get_sm_subsequences,
+    get_scrambled_subsequences,
+)
 
 # Import prediction alignment functions
 from .prediction_alignment import align_predictions_by_coordinate
@@ -52,7 +56,7 @@ from .prediction_alignment import align_predictions_by_coordinate
 # This allows users who don't have PyTorch to still use the main package
 
 # Version
-__version__ = "0.6.0"
+__version__ = "1.0.0"
 # Package metadata
 __description__ = (
     "A module for generating personalized genome sequences and in-silico mutagenesis"

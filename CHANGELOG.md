@@ -1,5 +1,29 @@
 # Changelog
 
+## v1.0.0 (Unreleased)
+
+### Breaking Changes
+- **Renamed `variant_pos0` to `variant_offset0`** in mutagenesis metadata
+  - Clarifies this is an offset within the window, not an absolute genomic position
+  - Affects: `get_sm_sequences()`, `get_sm_subsequences()` return metadata
+
+### New Features
+- **gzip VCF Support**: All VCF reading functions now support `.vcf.gz` files
+- **Scrambled Subsequences**: New `get_scrambled_subsequences()` function
+  - Generate control sequences with BED-defined regions scrambled
+  - Preserves nucleotide composition while disrupting motifs
+  - Reproducible with `random_state` parameter
+
+### Improvements
+- **VCF Parsing Robustness**: Better error handling for edge cases
+  - Raises `FileNotFoundError` for missing files
+  - Warns on empty or header-only VCF files
+  - Graceful handling of malformed records
+
+### Documentation
+- New mutagenesis tutorial notebook with visual examples
+- Updated mutagenesis user guide with scrambling documentation
+
 ## v0.5.5 (11/18/2025)
 
 ### Critical Bug Fixes
