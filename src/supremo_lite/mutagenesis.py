@@ -29,8 +29,8 @@ def _kmer_shuffle(sequence: str, k: int = 1, random_state=None) -> str:
     - k=2: Shuffle 2-mers (preserves dinucleotide frequencies)
     - k=3: Shuffle 3-mers (preserves trinucleotide frequencies)
 
-    Note: The sequence length should be divisible by k for exact preservation.
-    Any remainder bases are kept at the end unchanged.
+    Note: If sequence length is not divisible by k, the remainder bases are
+    treated as a partial k-mer and shuffled along with the complete k-mers.
 
     Args:
         sequence: Input DNA sequence string (ACGT only)
@@ -66,13 +66,15 @@ def _kmer_shuffle(sequence: str, k: int = 1, random_state=None) -> str:
     # Split into k-mers
     kmers = [seq[i : i + k] for i in range(0, kmer_portion_len, k)]
 
-    # Any leftover bases that don't form a complete k-mer
+    # Include leftover bases as an additional chunk to shuffle
     leftover = seq[kmer_portion_len:]
+    if leftover:
+        kmers.append(leftover)
 
-    # Shuffle all k-mers
+    # Shuffle all chunks (including leftover if present)
     rng.shuffle(kmers)
 
-    return "".join(kmers) + leftover
+    return "".join(kmers)
 
 
 def _scramble_region(

@@ -658,7 +658,7 @@ class TestKmerShuffle(unittest.TestCase):
         self.assertEqual(Counter(seq), Counter(result_k3))
 
     def test_kmer_shuffle_leftover_bases(self):
-        """Test that leftover bases (not forming complete k-mer) are preserved."""
+        """Test that leftover bases are shuffled along with complete k-mers."""
         from supremo_lite.mutagenesis import _kmer_shuffle
 
         # 7 bp sequence with k=3: 2 complete 3-mers + 1 leftover base
@@ -667,8 +667,25 @@ class TestKmerShuffle(unittest.TestCase):
 
         # Same length
         self.assertEqual(len(seq), len(shuffled))
-        # Last base should be preserved (leftover)
-        self.assertEqual(seq[-1], shuffled[-1])
+        # Same nucleotide composition
+        self.assertEqual(sorted(seq), sorted(shuffled))
+
+        # Verify leftover can move to different positions across multiple shuffles
+        # The sequence has chunks: ["ATG", "CAT", "G"] - leftover "G" should be shuffled
+        last_char_positions = set()
+        for seed in range(50):
+            result = _kmer_shuffle(seq, k=3, random_state=seed)
+            # Track the position of the last character after shuffle
+            # If leftover is truly shuffled, it shouldn't always be at the end
+            last_char_positions.add(len(result) - 1 if result[-1] == "G" else -1)
+
+        # With true shuffling, the leftover "G" should sometimes NOT be at the end
+        # (i.e., we should see at least one shuffle where position is -1)
+        self.assertIn(
+            -1,
+            last_char_positions,
+            "Leftover should be shuffled to non-final positions",
+        )
 
 
 if __name__ == "__main__":

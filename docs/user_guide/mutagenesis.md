@@ -82,6 +82,10 @@ The `kmer_size` parameter controls what level of sequence composition is preserv
 | 2 | Dinucleotides (2-mers) | Dinucleotide frequencies |
 | 3 | Trinucleotides (3-mers) | Trinucleotide frequencies |
 
+**Leftover Base Handling:**
+
+If the region length is not evenly divisible by the k-mer size, the remaining bases are treated as a partial k-mer and shuffled along with the complete k-mers. For example, a 15bp region with `kmer_size=2` produces 7 complete 2-mers plus 1 leftover base—all 8 chunks participate in the shuffle.
+
 **Example: Different k-mer sizes**
 
 ```python
