@@ -19,6 +19,94 @@ except ImportError:
     pass  # Already handled in core
 
 
+def _kmer_shuffle(sequence: str, k: int = 1, random_state=None) -> str:
+    """
+    Shuffle a sequence by k-mer chunks, preserving k-mer composition.
+
+    Breaks the sequence into non-overlapping k-mers and shuffles these chunks.
+    This preserves the k-mer frequency counts in the shuffled sequence:
+    - k=1: Shuffle individual nucleotides (preserves mononucleotide/GC composition)
+    - k=2: Shuffle 2-mers (preserves dinucleotide frequencies)
+    - k=3: Shuffle 3-mers (preserves trinucleotide frequencies)
+
+    Note: If sequence length is not divisible by k, the remainder bases are
+    treated as a partial k-mer and shuffled along with the complete k-mers.
+
+    Args:
+        sequence: Input DNA sequence string (ACGT only)
+        k: Size of k-mers to shuffle (default: 1)
+        random_state: Optional numpy random state or seed for reproducibility
+
+    Returns:
+        Shuffled sequence with preserved k-mer composition
+
+    Raises:
+        ValueError: If k < 1
+    """
+    if k < 1:
+        raise ValueError(f"k must be >= 1, got {k}")
+
+    if len(sequence) < k:
+        return sequence
+
+    # Handle random state
+    if random_state is None:
+        rng = np.random.default_rng()
+    elif isinstance(random_state, (int, np.integer)):
+        rng = np.random.default_rng(random_state)
+    else:
+        rng = random_state
+
+    seq = sequence.upper()
+
+    # Calculate how many complete k-mers we can make
+    n_complete_kmers = len(seq) // k
+    kmer_portion_len = n_complete_kmers * k
+
+    # Split into k-mers
+    kmers = [seq[i : i + k] for i in range(0, kmer_portion_len, k)]
+
+    # Include leftover bases as an additional chunk to shuffle
+    leftover = seq[kmer_portion_len:]
+    if leftover:
+        kmers.append(leftover)
+
+    # Shuffle all chunks (including leftover if present)
+    rng.shuffle(kmers)
+
+    return "".join(kmers)
+
+
+def _scramble_region(
+    sequence: str, start: int, end: int, k: int = 1, random_state=None
+) -> str:
+    """
+    Scramble a specific region within a sequence using k-mer shuffle.
+
+    Args:
+        sequence: Full sequence string
+        start: Start position of region to scramble (0-based)
+        end: End position of region to scramble (exclusive)
+        k: Size of k-mers to shuffle (default: 1 for mononucleotide shuffle)
+        random_state: Optional random state for reproducibility
+
+    Returns:
+        Sequence with the specified region scrambled
+    """
+    if start < 0 or end > len(sequence) or start >= end:
+        raise ValueError(
+            f"Invalid region [{start}, {end}) for sequence of length {len(sequence)}"
+        )
+
+    prefix = sequence[:start]
+    region = sequence[start:end]
+    suffix = sequence[end:]
+
+    scrambled_region = _kmer_shuffle(region, k=k, random_state=random_state)
+
+    return prefix + scrambled_region + suffix
+
+
 def _read_bed_file(bed_regions: Union[str, pd.DataFrame]) -> pd.DataFrame:
     """
     Read BED file or validate BED DataFrame format.
@@ -147,7 +235,14 @@ def get_sm_sequences(chrom, start, end, reference_fasta, encoder=None):
     # Create a DataFrame for the metadata
     metadata_df = pd.DataFrame(
         metadata,
-        columns=["chrom", "window_start", "window_end", "variant_pos0", "ref", "alt"],
+        columns=[
+            "chrom",
+            "window_start",
+            "window_end",
+            "variant_offset0",
+            "ref",
+            "alt",
+        ],
     )
 
     return ref_1h, alt_seqs_stacked, metadata_df
@@ -416,7 +511,262 @@ def get_sm_subsequences(
     # Create a DataFrame for the metadata
     metadata_df = pd.DataFrame(
         metadata,
-        columns=["chrom", "window_start", "window_end", "variant_pos0", "ref", "alt"],
+        columns=[
+            "chrom",
+            "window_start",
+            "window_end",
+            "variant_offset0",
+            "ref",
+            "alt",
+        ],
     )
 
     return ref_1h, alt_seqs_stacked, metadata_df
+
+
+def get_scrambled_subsequences(
+    chrom: str,
+    seq_len: int,
+    reference_fasta,
+    bed_regions: Union[str, pd.DataFrame],
+    n_scrambles: int = 1,
+    kmer_size: int = 1,
+    encoder=None,
+    auto_map_chromosomes: bool = False,
+    random_state=None,
+):
+    """
+    Generate sequences with BED-defined regions scrambled using k-mer shuffle.
+
+    This function creates control sequences where specific regions (defined by BED file)
+    are scrambled while preserving (k-1)-mer frequencies. Useful for generating
+    negative controls that maintain sequence composition properties.
+
+    Args:
+        chrom: Chromosome name
+        seq_len: Total sequence length for each window
+        reference_fasta: Reference genome object (pyfaidx.Fasta or dict-like)
+        bed_regions: BED file path or DataFrame defining regions to scramble.
+                    BED format: chrom, start, end (0-based, half-open intervals).
+                    Each BED region is scrambled within its centered seq_len window.
+        n_scrambles: Number of scrambled versions to generate per region (default: 1)
+        kmer_size: Size of k-mers to shuffle (default: 1).
+                   - kmer_size=1: Shuffle individual nucleotides (preserves length only)
+                   - kmer_size=2: Shuffle 2-mers (preserves mononucleotide composition)
+                   - kmer_size=3: Shuffle 3-mers (preserves dinucleotide frequencies)
+                   Higher values preserve more local sequence context.
+        encoder: Optional custom encoding function
+        auto_map_chromosomes: Automatically map chromosome names between reference
+                             and BED file (e.g., 'chr1' <-> '1'). Default: False.
+        random_state: Random seed or numpy random generator for reproducibility.
+
+    Returns:
+        Tuple of (ref_seqs, scrambled_seqs, metadata):
+        - ref_seqs: One-hot encoded reference sequences, shape (N, 4, seq_len)
+        - scrambled_seqs: Scrambled sequences, shape (N * n_scrambles, 4, seq_len)
+        - metadata: DataFrame with columns:
+            - chrom: Chromosome name
+            - window_start: Start of sequence window (0-based)
+            - window_end: End of sequence window (0-based, exclusive)
+            - scramble_start: Start of scrambled region within window (0-based)
+            - scramble_end: End of scrambled region within window (0-based, exclusive)
+            - scramble_idx: Index of this scramble (0 to n_scrambles-1)
+            - ref: Original/reference sequence in scrambled region
+            - alt: Scrambled/alternate sequence in that region
+
+    Raises:
+        ValueError: If bed_regions is not provided, has invalid format, or kmer_size < 1
+    """
+    if bed_regions is None:
+        raise ValueError("bed_regions is required for get_scrambled_subsequences()")
+
+    if kmer_size < 1:
+        raise ValueError(f"kmer_size must be >= 1, got {kmer_size}")
+
+    # Handle random state
+    if random_state is None:
+        rng = np.random.default_rng()
+    elif isinstance(random_state, (int, np.integer)):
+        rng = np.random.default_rng(random_state)
+    else:
+        rng = random_state
+
+    # Parse BED file
+    bed_df = _read_bed_file(bed_regions)
+
+    # Apply chromosome name matching
+    ref_chroms = {chrom}
+    bed_chroms = set(bed_df["chrom"].unique())
+
+    mapping, unmatched = match_chromosomes_with_report(
+        ref_chroms,
+        bed_chroms,
+        verbose=False,
+        auto_map_chromosomes=auto_map_chromosomes,
+    )
+
+    if mapping:
+        bed_df = apply_chromosome_mapping(bed_df, mapping)
+
+    # Filter to target chromosome
+    chrom_bed_regions = bed_df[bed_df["chrom"] == chrom].copy()
+
+    if len(chrom_bed_regions) == 0:
+        warnings.warn(
+            f"No BED regions found for chromosome {chrom}. "
+            f"Returning original unshuffled sequence."
+        )
+        # Return original sequence (unshuffled) centered on chromosome
+        chrom_obj = reference_fasta[chrom]
+        if hasattr(chrom_obj, "__len__"):
+            chrom_len = len(chrom_obj)
+        else:
+            chrom_len = len(str(chrom_obj))
+
+        # Center window on chromosome
+        chrom_center = chrom_len // 2
+        window_start = max(0, chrom_center - seq_len // 2)
+        window_end = min(chrom_len, window_start + seq_len)
+
+        # Adjust if we hit the end
+        if window_end - window_start < seq_len:
+            window_start = max(0, window_end - seq_len)
+
+        # Get reference sequence
+        ref_seq_obj = reference_fasta[chrom][window_start:window_end]
+        if hasattr(ref_seq_obj, "seq"):
+            ref_seq = str(ref_seq_obj.seq)
+        else:
+            ref_seq = str(ref_seq_obj)
+
+        ref_1h = encode_seq(ref_seq, encoder)
+
+        if TORCH_AVAILABLE and isinstance(ref_1h, torch.Tensor):
+            ref_stacked = torch.stack([ref_1h])
+            # Return same sequence for all "scrambled" outputs (but unshuffled)
+            scrambled_stacked = torch.stack([ref_1h] * n_scrambles)
+        else:
+            ref_stacked = np.stack([ref_1h])
+            scrambled_stacked = np.stack([ref_1h] * n_scrambles)
+
+        # Create metadata indicating no scrambling occurred
+        meta_rows = []
+        for i in range(n_scrambles):
+            meta_rows.append(
+                {
+                    "chrom": chrom,
+                    "window_start": window_start,
+                    "window_end": window_end,
+                    "scramble_start": 0,
+                    "scramble_end": 0,  # Empty region indicates no scrambling
+                    "scramble_idx": i,
+                    "ref": ref_seq,
+                    "alt": ref_seq,  # Same as ref when no scrambling
+                }
+            )
+
+        return ref_stacked, scrambled_stacked, pd.DataFrame(meta_rows)
+
+    ref_sequences = []
+    scrambled_sequences = []
+    metadata = []
+
+    # Process each BED region
+    for _, bed_region in chrom_bed_regions.iterrows():
+        region_start = int(bed_region["start"])
+        region_end = int(bed_region["end"])
+        region_center = (region_start + region_end) // 2
+
+        # Calculate sequence window centered on BED region
+        window_start = region_center - seq_len // 2
+        window_end = window_start + seq_len
+
+        # Adjust window to stay within chromosome bounds
+        chrom_obj = reference_fasta[chrom]
+        chrom_len = len(chrom_obj) if hasattr(chrom_obj, "__len__") else len(chrom_obj)
+
+        if window_start < 0:
+            window_start = 0
+            window_end = min(seq_len, chrom_len)
+        elif window_end > chrom_len:
+            window_end = chrom_len
+            window_start = max(0, chrom_len - seq_len)
+
+        # Get reference sequence
+        ref_seq_obj = reference_fasta[chrom][window_start:window_end]
+        if hasattr(ref_seq_obj, "seq"):
+            ref_seq = str(ref_seq_obj.seq)
+        else:
+            ref_seq = str(ref_seq_obj)
+
+        if len(ref_seq) != seq_len:
+            warnings.warn(
+                f"Region {chrom}:{region_start}-{region_end} produces sequence of length "
+                f"{len(ref_seq)} instead of {seq_len}. Skipping."
+            )
+            continue
+
+        # Calculate scramble region relative to window
+        scramble_start_rel = max(0, region_start - window_start)
+        scramble_end_rel = min(seq_len, region_end - window_start)
+
+        if scramble_start_rel >= scramble_end_rel:
+            warnings.warn(
+                f"BED region {chrom}:{region_start}-{region_end} is outside window bounds. Skipping."
+            )
+            continue
+
+        # Store reference sequence
+        ref_1h = encode_seq(ref_seq, encoder)
+        ref_sequences.append(ref_1h)
+
+        # Get original region sequence for metadata
+        original_region = ref_seq[scramble_start_rel:scramble_end_rel]
+
+        # Generate n_scrambles scrambled versions
+        for scramble_idx in range(n_scrambles):
+            scrambled_seq = _scramble_region(
+                ref_seq,
+                scramble_start_rel,
+                scramble_end_rel,
+                k=kmer_size,
+                random_state=rng,
+            )
+
+            scrambled_1h = encode_seq(scrambled_seq, encoder)
+            scrambled_sequences.append(scrambled_1h)
+
+            scrambled_region = scrambled_seq[scramble_start_rel:scramble_end_rel]
+
+            metadata.append(
+                {
+                    "chrom": chrom,
+                    "window_start": window_start,
+                    "window_end": window_end,
+                    "scramble_start": scramble_start_rel,
+                    "scramble_end": scramble_end_rel,
+                    "scramble_idx": scramble_idx,
+                    "ref": original_region,
+                    "alt": scrambled_region,
+                }
+            )
+
+    # Stack sequences
+    if ref_sequences:
+        if TORCH_AVAILABLE and isinstance(ref_sequences[0], torch.Tensor):
+            ref_stacked = torch.stack(ref_sequences)
+            scrambled_stacked = torch.stack(scrambled_sequences)
+        else:
+            ref_stacked = np.stack(ref_sequences)
+            scrambled_stacked = np.stack(scrambled_sequences)
+    else:
+        if TORCH_AVAILABLE:
+            ref_stacked = torch.empty((0, 4, seq_len), dtype=torch.float32)
+            scrambled_stacked = torch.empty((0, 4, seq_len), dtype=torch.float32)
+        else:
+            ref_stacked = np.empty((0, 4, seq_len), dtype=np.float32)
+            scrambled_stacked = np.empty((0, 4, seq_len), dtype=np.float32)
+
+    metadata_df = pd.DataFrame(metadata)
+
+    return ref_stacked, scrambled_stacked, metadata_df

@@ -11,7 +11,7 @@
 | Identify PAM-disrupting variants | [PAM Disruption Guide](user_guide/pam_disruption.md) \| [Notebook](notebooks/04_pam_disruption.ipynb) |
 | Align model predictions | [Prediction Alignment Guide](user_guide/prediction_alignment.md) \| [Notebook](notebooks/03_prediction_alignment.ipynb) |
 | Understand alignment visually | [Prediction Alignment Examples](user_guide/prediction_alignment_examples.md) |
-| Perform mutagenesis | [Mutagenesis Guide](user_guide/mutagenesis.md) |
+| Perform mutagenesis | [Mutagenesis Guide](user_guide/mutagenesis.md) \| [Notebook](notebooks/05_mutagenesis.ipynb) |
 | Understand variant types | [Variant Classification Flow Chart](_static/images/variant_classification.png) |
 
 ```{toctree}
@@ -36,6 +36,7 @@ notebooks/01_getting_started
 notebooks/02_personalized_genomes
 notebooks/03_prediction_alignment
 notebooks/04_pam_disruption
+notebooks/05_mutagenesis
 ```
 
 ```{toctree}

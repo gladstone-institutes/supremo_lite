@@ -18,6 +18,8 @@ from supremo_lite.variant_utils import (
     read_vcf_chunked,
     read_vcf_chromosome,
     read_vcf_chromosomes_chunked,
+    get_vcf_chromosomes,
+    _count_vcf_header_lines,
 )
 
 
@@ -336,6 +338,119 @@ class TestVCFReading:
         assert all(df["chrom"] == "chr1")
         assert df.iloc[0]["variant_type"] == "SNV"
         assert df.iloc[1]["variant_type"] == "DEL"
+
+
+class TestVCFEdgeCases:
+    """Test VCF reading edge cases and error handling."""
+
+    def test_vcf_missing_file(self):
+        """Test appropriate error for missing file."""
+        with pytest.raises(FileNotFoundError):
+            read_vcf("/nonexistent/path/file.vcf")
+
+    def test_vcf_empty_file(self, tmp_path):
+        """Test handling of empty VCF file."""
+        vcf_file = tmp_path / "empty.vcf"
+        vcf_file.write_text("")
+
+        with pytest.raises(ValueError, match="no header"):
+            read_vcf(str(vcf_file))
+
+    def test_vcf_header_only(self, tmp_path):
+        """Test VCF with header but no data."""
+        vcf_content = (
+            "##fileformat=VCFv4.2\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
+        )
+        vcf_file = tmp_path / "header_only.vcf"
+        vcf_file.write_text(vcf_content)
+
+        with pytest.warns(UserWarning, match="no variant records"):
+            df = read_vcf(str(vcf_file))
+
+        assert len(df) == 0
+
+    def test_vcf_with_hash_in_info(self, tmp_path):
+        """Test VCF where INFO field might have special characters."""
+        vcf_content = """##fileformat=VCFv4.2
+#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO
+chr1\t100\t.\tA\tG\t.\tPASS\tDP=50;NOTE=test
+"""
+        vcf_file = tmp_path / "special_info.vcf"
+        vcf_file.write_text(vcf_content)
+
+        df = read_vcf(str(vcf_file))
+        assert len(df) == 1
+        assert df.iloc[0]["chrom"] == "chr1"
+        assert df.iloc[0]["pos1"] == 100
+
+
+class TestGzipVCFReading:
+    """Test reading gzip-compressed VCF files."""
+
+    @pytest.fixture
+    def vcf_path(self):
+        """Path to uncompressed test VCF."""
+        return Path(__file__).parent / "data" / "snp" / "snp.vcf"
+
+    @pytest.fixture
+    def vcf_gz_path(self):
+        """Path to gzip-compressed test VCF."""
+        return Path(__file__).parent / "data" / "snp" / "snp.vcf.gz"
+
+    def test_read_gzipped_vcf(self, vcf_path, vcf_gz_path):
+        """Test reading a gzipped VCF file produces same results as uncompressed."""
+        df_orig = read_vcf(str(vcf_path))
+        df_gz = read_vcf(str(vcf_gz_path))
+
+        # Should have same number of rows
+        assert len(df_gz) == len(df_orig)
+
+        # Should have same columns
+        assert list(df_gz.columns) == list(df_orig.columns)
+
+        # Content should match
+        pd.testing.assert_frame_equal(
+            df_gz[["chrom", "pos1", "ref", "alt"]].reset_index(drop=True),
+            df_orig[["chrom", "pos1", "ref", "alt"]].reset_index(drop=True),
+        )
+
+    def test_get_vcf_chromosomes_gzipped(self, vcf_path, vcf_gz_path):
+        """Test getting chromosomes from gzipped VCF."""
+        chroms_orig = get_vcf_chromosomes(str(vcf_path))
+        chroms_gz = get_vcf_chromosomes(str(vcf_gz_path))
+
+        assert chroms_gz == chroms_orig
+        assert "chr1" in chroms_gz
+        assert "chr2" in chroms_gz
+
+    def test_count_header_lines_gzipped(self, vcf_path, vcf_gz_path):
+        """Test counting header lines in gzipped VCF."""
+        count_orig = _count_vcf_header_lines(str(vcf_path))
+        count_gz = _count_vcf_header_lines(str(vcf_gz_path))
+
+        assert count_gz == count_orig
+        assert count_gz == 7  # 6 metadata lines + 1 #CHROM line
+
+    def test_read_vcf_chromosome_gzipped(self, vcf_path, vcf_gz_path):
+        """Test reading specific chromosome from gzipped VCF."""
+        df_orig = read_vcf_chromosome(str(vcf_path), "chr1")
+        df_gz = read_vcf_chromosome(str(vcf_gz_path), "chr1")
+
+        assert len(df_gz) == len(df_orig)
+        pd.testing.assert_frame_equal(
+            df_gz[["chrom", "pos1", "ref", "alt"]].reset_index(drop=True),
+            df_orig[["chrom", "pos1", "ref", "alt"]].reset_index(drop=True),
+        )
+
+    def test_read_vcf_chunked_gzipped(self, vcf_path, vcf_gz_path):
+        """Test chunked reading of gzipped VCF."""
+        chunks_orig = list(read_vcf_chunked(str(vcf_path), n_chunks=2))
+        chunks_gz = list(read_vcf_chunked(str(vcf_gz_path), n_chunks=2))
+
+        assert len(chunks_gz) == len(chunks_orig)
+
+        for orig, gz in zip(chunks_orig, chunks_gz):
+            assert len(gz) == len(orig)
 
 
 if __name__ == "__main__":

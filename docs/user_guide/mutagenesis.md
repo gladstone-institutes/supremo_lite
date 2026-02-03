@@ -23,7 +23,7 @@ ref_seq, alt_seqs, metadata = sl.get_sm_sequences(
 
 Generates `(end - start) × 3` mutations. Example: 100 bp → 300 mutations.
 
-**Returns:** `(ref_seq, alt_seqs, metadata)` where metadata contains columns `['chrom', 'window_start', 'window_end', 'variant_pos0', 'ref', 'alt']`
+**Returns:** `(ref_seq, alt_seqs, metadata)` where metadata contains columns `['chrom', 'window_start', 'window_end', 'variant_offset0', 'ref', 'alt']`
 
 ### get_sm_subsequences() - Targeted Mutagenesis
 
@@ -54,15 +54,82 @@ ref_seq, alt_seqs, metadata = sl.get_sm_subsequences(
 )
 ```
 
-**Returns:** `(ref_seq, alt_seqs, metadata)` where metadata contains columns `['chrom', 'window_start', 'window_end', 'variant_pos0', 'ref', 'alt']`
+**Returns:** `(ref_seq, alt_seqs, metadata)` where metadata contains columns `['chrom', 'window_start', 'window_end', 'variant_offset0', 'ref', 'alt']`
+
+### get_scrambled_subsequences() - Control Sequence Generation
+
+Generate negative control sequences by scrambling BED-defined regions using k-mer shuffling.
+
+```python
+ref_seqs, scrambled_seqs, metadata = sl.get_scrambled_subsequences(
+    chrom='chr1',
+    seq_len=200,
+    reference_fasta=reference,
+    bed_regions='regulatory_regions.bed',
+    n_scrambles=5,          # 5 scrambled versions per region
+    kmer_size=1,            # Size of k-mers to shuffle (see below)
+    random_state=42         # For reproducibility
+)
+```
+
+**K-mer Size Options:**
+
+The `kmer_size` parameter controls what level of sequence composition is preserved:
+
+| kmer_size | Shuffle Unit | Preserves |
+|-----------|--------------|-----------|
+| 1 (default) | Individual nucleotides | Nucleotide composition |
+| 2 | Dinucleotides (2-mers) | Dinucleotide frequencies |
+| 3 | Trinucleotides (3-mers) | Trinucleotide frequencies |
+
+**Leftover Base Handling:**
+
+If the region length is not evenly divisible by the k-mer size, the remaining bases are treated as a partial k-mer and shuffled along with the complete k-mers. For example, a 15bp region with `kmer_size=2` produces 7 complete 2-mers plus 1 leftover base—all 8 chunks participate in the shuffle.
+
+**Example: Different k-mer sizes**
+
+```python
+# Nucleotide shuffle (default) - preserves GC content
+ref, scrambled, meta = sl.get_scrambled_subsequences(
+    'chr1', 200, reference, bed_regions=bed_df, kmer_size=1
+)
+
+# Dinucleotide shuffle - preserves dinucleotide frequencies
+ref, scrambled, meta = sl.get_scrambled_subsequences(
+    'chr1', 200, reference, bed_regions=bed_df, kmer_size=2
+)
+
+# Trinucleotide shuffle - preserves trinucleotide frequencies
+ref, scrambled, meta = sl.get_scrambled_subsequences(
+    'chr1', 200, reference, bed_regions=bed_df, kmer_size=3
+)
+```
+
+**Empty Chromosome Handling:**
+
+If no BED regions match the specified chromosome, the function returns the original unshuffled sequence (centered on the chromosome) with a warning. The metadata will have `scramble_start=0` and `scramble_end=0` to indicate no scrambling occurred.
+
+**Returns:** `(ref_seqs, scrambled_seqs, metadata)` where:
+- `ref_seqs`: shape (N, 4, seq_len) - one reference per BED region
+- `scrambled_seqs`: shape (N × n_scrambles, 4, seq_len)
+- `metadata` columns: `['chrom', 'window_start', 'window_end', 'scramble_start', 'scramble_end', 'scramble_idx', 'ref', 'alt']`
 
 ## Metadata Columns
+
+### Mutagenesis Metadata
 
 - `chrom`: Chromosome name
 - `window_start`: Start position of the sequence window (0-based)
 - `window_end`: End position of the sequence window (0-based, exclusive)
-- `variant_pos0`: Position of the mutation within the sequence window (0-based)
+- `variant_offset0`: Offset of the mutation within the sequence window (0-based, relative to window_start)
 - `ref`: Reference nucleotide
 - `alt`: Alternate nucleotide
 
+### Scrambled Sequences Metadata
 
+- `chrom`: Chromosome name
+- `window_start`, `window_end`: Sequence window boundaries (0-based)
+- `scramble_start`, `scramble_end`: Region within window that was scrambled (0-based). If both are 0, no scrambling occurred (e.g., no BED regions matched the chromosome)
+- `scramble_idx`: Index of this scramble (0 to n_scrambles-1)
+- `ref`: Original/reference sequence in scrambled region
+- `alt`: Scrambled/alternate sequence (same nucleotide composition, or identical to ref if no scrambling)
