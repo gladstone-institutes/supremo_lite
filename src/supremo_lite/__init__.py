@@ -42,7 +42,7 @@ from .personalize import (
 )
 
 # Import mutagenesis functions
-from .mutagenesis import get_sm_sequences, get_sm_subsequences
+from .mutagenesis import get_sm_sequences, get_sm_subsequences, get_scrambled_subsequences
 
 # Import prediction alignment functions
 from .prediction_alignment import align_predictions_by_coordinate

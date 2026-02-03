@@ -351,5 +351,143 @@ class TestSaturationMutagenesis(unittest.TestCase):
         self.assertEqual(len(metadata), 90)  # 30 positions * 3 alternatives
 
 
+class TestScrambledSubsequences(unittest.TestCase):
+    """Test dinucleotide shuffling and scrambled subsequences."""
+
+    def setUp(self):
+        """Set up test data."""
+        test_data_dir = os.path.join(os.path.dirname(__file__), "data")
+        reference_path = os.path.join(test_data_dir, "test_genome.fa")
+        self.reference = Fasta(reference_path)
+
+    def test_basic_scrambling(self):
+        """Test basic scrambling functionality."""
+        chrom = "chr1"
+        seq_len = 80
+
+        bed_df = pd.DataFrame({"chrom": ["chr1"], "start": [30], "end": [50]})
+
+        ref_seqs, scrambled_seqs, metadata = sl.get_scrambled_subsequences(
+            chrom,
+            seq_len,
+            self.reference,
+            bed_regions=bed_df,
+            n_scrambles=5,
+            random_state=42,
+        )
+
+        # Should have 1 ref sequence and 5 scrambled
+        self.assertEqual(ref_seqs.shape[0], 1)
+        self.assertEqual(scrambled_seqs.shape[0], 5)
+        self.assertEqual(len(metadata), 5)
+
+        # Check metadata columns
+        expected_cols = [
+            "chrom",
+            "window_start",
+            "window_end",
+            "scramble_start",
+            "scramble_end",
+            "scramble_idx",
+            "original_seq",
+            "scrambled_seq",
+        ]
+        self.assertEqual(list(metadata.columns), expected_cols)
+
+    def test_scramble_preserves_composition(self):
+        """Test that scrambling preserves nucleotide composition."""
+        from collections import Counter
+
+        bed_df = pd.DataFrame({"chrom": ["chr1"], "start": [20], "end": [60]})
+
+        _, _, metadata = sl.get_scrambled_subsequences(
+            "chr1",
+            80,
+            self.reference,
+            bed_regions=bed_df,
+            n_scrambles=1,
+            random_state=42,
+        )
+
+        original = metadata.iloc[0]["original_seq"]
+        scrambled = metadata.iloc[0]["scrambled_seq"]
+
+        # Same length
+        self.assertEqual(len(original), len(scrambled))
+
+        # Same nucleotide composition
+        self.assertEqual(Counter(original), Counter(scrambled))
+
+    def test_scramble_reproducibility(self):
+        """Test that random_state provides reproducibility."""
+        bed_df = pd.DataFrame({"chrom": ["chr1"], "start": [30], "end": [50]})
+
+        _, scrambled1, meta1 = sl.get_scrambled_subsequences(
+            "chr1",
+            80,
+            self.reference,
+            bed_regions=bed_df,
+            n_scrambles=3,
+            random_state=42,
+        )
+
+        _, scrambled2, meta2 = sl.get_scrambled_subsequences(
+            "chr1",
+            80,
+            self.reference,
+            bed_regions=bed_df,
+            n_scrambles=3,
+            random_state=42,
+        )
+
+        # Same random state should give same results
+        for i in range(3):
+            self.assertEqual(
+                meta1.iloc[i]["scrambled_seq"], meta2.iloc[i]["scrambled_seq"]
+            )
+
+    def test_scramble_with_bed_file(self):
+        """Test scrambling with actual BED file."""
+        bed_file = os.path.join(os.path.dirname(__file__), "data", "test_regions.bed")
+
+        ref_seqs, scrambled_seqs, metadata = sl.get_scrambled_subsequences(
+            "chr1",
+            80,
+            self.reference,
+            bed_regions=bed_file,
+            n_scrambles=2,
+            auto_map_chromosomes=True,
+            random_state=123,
+        )
+
+        # test_regions.bed has 2 chr1 regions
+        self.assertEqual(ref_seqs.shape[0], 2)
+        self.assertEqual(scrambled_seqs.shape[0], 4)  # 2 regions * 2 scrambles
+        self.assertEqual(len(metadata), 4)
+
+    def test_scramble_empty_chromosome(self):
+        """Test handling when no BED regions match chromosome."""
+        bed_df = pd.DataFrame({"chrom": ["chr99"], "start": [30], "end": [50]})
+
+        with self.assertWarns(UserWarning):
+            ref_seqs, scrambled_seqs, metadata = sl.get_scrambled_subsequences(
+                "chr1",
+                80,
+                self.reference,
+                bed_regions=bed_df,
+                n_scrambles=1,
+                auto_map_chromosomes=True,
+            )
+
+        self.assertEqual(len(ref_seqs), 0)
+        self.assertEqual(len(scrambled_seqs), 0)
+        self.assertEqual(len(metadata), 0)
+
+    def test_scramble_requires_bed_regions(self):
+        """Test that bed_regions is required."""
+        with self.assertRaises(ValueError):
+            sl.get_scrambled_subsequences("chr1", 80, self.reference, bed_regions=None)
+
+
 if __name__ == "__main__":
     unittest.main()
