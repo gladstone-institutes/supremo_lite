@@ -23,7 +23,6 @@
   - Raises `FileNotFoundError` for missing files
   - Warns on empty or header-only VCF files
   - Graceful handling of malformed records
-- **K-mer Shuffle Leftover Handling**: Leftover bases (when sequence length isn't divisible by k-mer size) are now shuffled along with complete k-mers instead of being kept at the end unchanged
 
 ### Documentation
 - New mutagenesis tutorial notebook with visual examples
