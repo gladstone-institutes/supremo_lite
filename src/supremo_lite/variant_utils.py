@@ -5,6 +5,7 @@ This module provides functions for reading variants from VCF files
 and other related operations.
 """
 
+import gzip
 import io
 import pandas as pd
 import numpy as np
@@ -12,6 +13,22 @@ import re
 import warnings
 from typing import Dict, Optional, List, Tuple, Union
 from dataclasses import dataclass
+
+
+def _open_vcf(path: str, mode: str = "rt"):
+    """
+    Open a VCF file, automatically detecting gzip compression.
+
+    Args:
+        path: Path to VCF file (may be .vcf or .vcf.gz)
+        mode: File mode. Use 'rt' for text reading (default).
+
+    Returns:
+        File handle (context manager compatible)
+    """
+    if path.endswith(".gz"):
+        return gzip.open(path, mode)
+    return open(path, mode.replace("t", "") if "t" in mode else mode)
 
 
 @dataclass
@@ -625,13 +642,15 @@ def _count_vcf_header_lines(path: str) -> int:
     - Lines starting with ## (metadata)
     - Line starting with #CHROM (column header)
 
+    Supports both uncompressed (.vcf) and gzip-compressed (.vcf.gz) files.
+
     Args:
         path: Path to VCF file
 
     Returns:
         Number of lines to skip (all ## lines + the #CHROM line)
     """
-    with open(path, "r") as f:
+    with _open_vcf(path, "rt") as f:
         header_count = 0
         for line in f:
             if line.startswith("##"):
@@ -775,6 +794,8 @@ def get_vcf_chromosomes(path):
     """
     Get list of chromosomes in VCF file without loading all variants.
 
+    Supports both uncompressed (.vcf) and gzip-compressed (.vcf.gz) files.
+
     Args:
         path: Path to VCF file
 
@@ -782,7 +803,7 @@ def get_vcf_chromosomes(path):
         Set of chromosome names found in the VCF file
     """
     chromosomes = set()
-    with open(path, "r") as f:
+    with _open_vcf(path, "rt") as f:
         for line in f:
             if line.startswith("##"):
                 continue
@@ -800,6 +821,8 @@ def read_vcf_chromosome(
     """
     Read VCF file for a specific chromosome only with enhanced variant classification.
 
+    Supports both uncompressed (.vcf) and gzip-compressed (.vcf.gz) files.
+
     Args:
         path: Path to VCF file
         target_chromosome: Chromosome name to filter for
@@ -813,7 +836,7 @@ def read_vcf_chromosome(
     chromosome_lines = []
     header_line = None
 
-    with open(path, "r") as f:
+    with _open_vcf(path, "rt") as f:
         for line in f:
             if line.startswith("##"):
                 continue
