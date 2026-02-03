@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.0.0
+## v1.0.0 (02/03/2026)
 
 ### Breaking Changes
 - **Renamed `variant_pos0` to `variant_offset0`** in mutagenesis metadata
