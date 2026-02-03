@@ -50,11 +50,11 @@ class TestSaturationMutagenesis(unittest.TestCase):
         self.assertEqual(len(metadata), 30)
         self.assertEqual(
             list(metadata.columns),
-            ["chrom", "window_start", "window_end", "variant_pos0", "ref", "alt"],
+            ["chrom", "window_start", "window_end", "variant_offset0", "ref", "alt"],
         )
 
         # Check each position gets all 3 alternatives
-        pos_counts = metadata["variant_pos0"].value_counts()
+        pos_counts = metadata["variant_offset0"].value_counts()
         self.assertEqual(len(pos_counts), 10)  # all 10 positions should be present
         self.assertTrue(
             all(count == 3 for count in pos_counts)
@@ -64,7 +64,7 @@ class TestSaturationMutagenesis(unittest.TestCase):
         actual_seq = str(self.reference[chrom][start:end].seq)
         for i, ref_base in enumerate(actual_seq):
             # Get all rows for this position
-            pos_rows = metadata[metadata["variant_pos0"] == i]
+            pos_rows = metadata[metadata["variant_offset0"] == i]
 
             # Check that the reference base is correct
             self.assertEqual(pos_rows["ref"].iloc[0], ref_base)
@@ -104,7 +104,7 @@ class TestSaturationMutagenesis(unittest.TestCase):
         anchor_offset = anchor - (
             anchor - seq_len // 2
         )  # Anchor position in the sequence
-        for pos in metadata["variant_pos0"]:
+        for pos in metadata["variant_offset0"]:
             self.assertTrue(pos >= anchor_offset - anchor_radius)
             self.assertTrue(pos < anchor_offset + anchor_radius)
 

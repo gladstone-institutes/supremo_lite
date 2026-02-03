@@ -23,7 +23,7 @@ ref_seq, alt_seqs, metadata = sl.get_sm_sequences(
 
 Generates `(end - start) × 3` mutations. Example: 100 bp → 300 mutations.
 
-**Returns:** `(ref_seq, alt_seqs, metadata)` where metadata contains columns `['chrom', 'window_start', 'window_end', 'variant_pos0', 'ref', 'alt']`
+**Returns:** `(ref_seq, alt_seqs, metadata)` where metadata contains columns `['chrom', 'window_start', 'window_end', 'variant_offset0', 'ref', 'alt']`
 
 ### get_sm_subsequences() - Targeted Mutagenesis
 
@@ -54,14 +54,14 @@ ref_seq, alt_seqs, metadata = sl.get_sm_subsequences(
 )
 ```
 
-**Returns:** `(ref_seq, alt_seqs, metadata)` where metadata contains columns `['chrom', 'window_start', 'window_end', 'variant_pos0', 'ref', 'alt']`
+**Returns:** `(ref_seq, alt_seqs, metadata)` where metadata contains columns `['chrom', 'window_start', 'window_end', 'variant_offset0', 'ref', 'alt']`
 
 ## Metadata Columns
 
 - `chrom`: Chromosome name
 - `window_start`: Start position of the sequence window (0-based)
 - `window_end`: End position of the sequence window (0-based, exclusive)
-- `variant_pos0`: Position of the mutation within the sequence window (0-based)
+- `variant_offset0`: Offset of the mutation within the sequence window (0-based, relative to window_start)
 - `ref`: Reference nucleotide
 - `alt`: Alternate nucleotide
 

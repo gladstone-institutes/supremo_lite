@@ -147,7 +147,7 @@ def get_sm_sequences(chrom, start, end, reference_fasta, encoder=None):
     # Create a DataFrame for the metadata
     metadata_df = pd.DataFrame(
         metadata,
-        columns=["chrom", "window_start", "window_end", "variant_pos0", "ref", "alt"],
+        columns=["chrom", "window_start", "window_end", "variant_offset0", "ref", "alt"],
     )
 
     return ref_1h, alt_seqs_stacked, metadata_df
@@ -416,7 +416,7 @@ def get_sm_subsequences(
     # Create a DataFrame for the metadata
     metadata_df = pd.DataFrame(
         metadata,
-        columns=["chrom", "window_start", "window_end", "variant_pos0", "ref", "alt"],
+        columns=["chrom", "window_start", "window_end", "variant_offset0", "ref", "alt"],
     )
 
     return ref_1h, alt_seqs_stacked, metadata_df
